@@ -21,7 +21,7 @@ int d4_load_config(d4_t* d4)
         for (i=0; i < ND4PARAMS; i++) {
             snprintf(buf,2*FILENAME_MAX, "%s/%s",d4->confdir, d4params[i]);
             fd = open(buf,O_RDONLY);
-            if (fd) {
+            if (fd > 0) {
                 //FIXME error handling
                 read(fd, d4->conf[i], SZCONFVALUE);
             } else {
