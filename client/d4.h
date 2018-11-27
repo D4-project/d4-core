@@ -9,6 +9,7 @@
 #define STDIN "stdin"
 #define STDOUT "stdout"
 #define MAXSNAPLEN 65535
+#define SZUUID 128
 
 #define INSERT_ERROR(...) do { \
     if (d4->err_idx < NERRORS) \
@@ -47,6 +48,7 @@ typedef struct d4_s {
     char conf[ND4PARAMS][SZCONFVALUE];
     char errors[NERRORS][SZERRVALUE];
     int err_idx;
+    d4_header_t header;
 } d4_t;
 
 

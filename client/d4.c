@@ -8,6 +8,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
+#include <time.h>
 
 #include "d4.h"
 //
@@ -83,6 +84,46 @@ d4_t* d4_init(char* confdir)
     return out;
 }
 
+
+//FIXME split in prepare and update. Do not copy uuid each time
+void d4_update_header(d4_t* d4, ssize_t nread) {
+    bzero(&d4->header,sizeof(d4_update_header));
+    //TODO Check format
+    d4->header.version = atoi(d4->conf[VERSION]);
+    //TODO set type
+    d4->header.timestamp = time(NULL);
+    //FIXME length handling
+    strncpy((char*)&(d4->header.uuid), d4->conf[UUID], SZUUID);
+    //TODO hmac
+    d4->header.size=nread;
+}
+
+//Core routine. Transfers data from the source to the destinations
+void d4_transfert(d4_t* d4)
+{
+    ssize_t nread;
+    char* buf;
+
+    buf = calloc(1, d4->snaplen);
+    //TODO error handling -> insert error message
+    if (!buf)
+        return;
+
+    while ( 1 ) {
+        //In case of errors see block of 0 bytes
+        bzero(buf, d4->snaplen);
+        nread = read(d4->source.fd, buf, d4->snaplen);
+        if ( nread > 0 ) {
+            d4_update_header(d4, nread);
+            write(d4->destination.fd, &d4->header, sizeof(d4->header));
+            write(d4->destination.fd,buf,nread);
+        } else{
+            //FIXME no data available, sleep, abort, retry
+            break;
+        }
+    }
+}
+
 int main (int argc, char* argv[])
 {
     int opt;
@@ -113,9 +154,9 @@ int main (int argc, char* argv[])
 
     d4 = d4_init(confdir);
     free(confdir);
-    d4_load_config(d4);
-
-
+    if (d4_load_config(d4)) {
+        d4_transfert(d4);
+    }
 
     return EXIT_SUCCESS;
 }
