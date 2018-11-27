@@ -9,6 +9,7 @@
 #define INSERT_ERROR(...) do { \
     if (d4->err_idx < NERRORS) \
         snprintf(d4->errors[d4->err_idx],SZERRVALUE,__VA_ARGS__); \
+        d4->err_idx++;\
     } while(0)
 
 typedef struct d4_header_s {
