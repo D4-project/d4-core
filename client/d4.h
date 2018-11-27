@@ -1,6 +1,9 @@
 #ifndef D4_H
 #define D4_H
 
+#define ND4PARAMS 5
+#define SZCONFVALUE 1024
+
 typedef struct d4_header_s {
     uint8_t  version;
     uint8_t type;
@@ -29,6 +32,7 @@ typedef struct d4_s {
     int caplen;
     int d4_error;
     int errno_copy;
+    char conf[ND4PARAMS][SZCONFVALUE];
 } d4_t;
 
 
@@ -41,7 +45,6 @@ typedef struct d4_s {
  */
 
 const char* d4params[] = {"uuid", "snaplen", "caplen", "timestamp", "collector"};
-#define ND4PARAMS 5
 
 #define UUID 0
 #define SNAPLEN 1

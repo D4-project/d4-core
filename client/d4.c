@@ -27,9 +27,14 @@ void usage(void)
 d4_t* d4_init(char* confdir)
 {
     d4_t* out;
+    int i;
     out = calloc(1,sizeof(d4_t));
     if (out) {
         strncpy(out->confdir, confdir, FILENAME_MAX);
+    }
+
+    for  (i=0; i< ND4PARAMS; i++) {
+        bzero(out->conf[i],SZCONFVALUE);
     }
     // Do other inititalization stuff here
     return out;
