@@ -89,5 +89,7 @@ int main (int argc, char* argv[])
     d4 = d4_init(confdir);
     free(confdir);
     d4_load_config(d4);
+
+
     return EXIT_SUCCESS;
 }

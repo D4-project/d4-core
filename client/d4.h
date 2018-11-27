@@ -6,6 +6,11 @@
 #define SZCONFVALUE 1024
 #define SZERRVALUE 1024
 
+#define INSERT_ERROR(...) do { \
+    if (d4->err_idx < NERRORS) \
+        snprintf(d4->errors[d4->err_idx],SZERRVALUE,__VA_ARGS__); \
+    } while(0)
+
 typedef struct d4_header_s {
     uint8_t  version;
     uint8_t type;
