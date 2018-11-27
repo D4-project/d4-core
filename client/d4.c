@@ -27,9 +27,9 @@ int d4_load_config(d4_t* d4)
             } else {
                 d4->errno_copy = errno;
                 if ( d4->err_idx < SZERRVALUE ) {
-                    d4->err_idx++;
                     snprintf(d4->errors[d4->err_idx], SZERRVALUE,
                             "Failed to load %s", d4params[i]);
+                    d4->err_idx++;
                 }
             }
         }
