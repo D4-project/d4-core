@@ -8,6 +8,14 @@
 //Returns -1 on error, 0 otherwise
 int d4_load_config(d4_t* d4)
 {
+    int i;
+    char *buf;
+    buf=calloc(1,2*FILENAME_MAX);
+    if (buf) {
+        for (i=0; i < ND4PARAMS; i++) {
+            snprintf(buf,2*FILENAME_MAX, "%s/%s",d4->confdir, d4params[i]);
+        }
+    }
     return -1;
 }
 
