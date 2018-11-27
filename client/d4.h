@@ -6,6 +6,10 @@
 #define SZCONFVALUE 1024
 #define SZERRVALUE 1024
 
+#define STDIN "stdin"
+#define STDOUT "stdout"
+#define MAXSNAPLEN 65535
+
 #define INSERT_ERROR(...) do { \
     if (d4->err_idx < NERRORS) \
         snprintf(d4->errors[d4->err_idx],SZERRVALUE,__VA_ARGS__); \

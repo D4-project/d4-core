@@ -10,6 +10,35 @@
 #include <errno.h>
 
 #include "d4.h"
+//
+int d4_check_config(d4_t* d4)
+{
+    // TODO implement other sources, file, fifo, unix_socket ...
+    if (strlen(d4->conf[SOURCE]) > strlen(STDIN)) {
+        if (!strncmp(d4->conf[SOURCE],STDIN, strlen(STDIN))) {
+            d4->source.fd = STDIN_FILENO;
+        }
+    }
+
+    //TODO implement other destinations file, fifo unix_socket ...
+    if (strlen(d4->conf[DESTINATION]) > strlen(STDOUT)) {
+        if (!strncmp(d4->conf[DESTINATION],STDOUT, strlen(STDOUT))) {
+            d4->destination.fd = STDOUT_FILENO;
+        }
+    }
+    d4->snaplen  = atoi(d4->conf[SNAPLEN]);
+    if ((d4->snaplen < 0)  || (d4->snaplen > MAXSNAPLEN)) {
+        d4->snaplen = 0;
+    }
+
+    printf("TEST snaplen %d stdin %d stdout %d\n", d4->snaplen, STDIN_FILENO, STDOUT_FILENO);
+    //FIXME Check other parameters
+    if (( d4->destination.fd > 0 ) && ( d4->snaplen >0 )) {
+        return 1;
+    }
+    return -1;
+}
+
 //Returns -1 on error, 0 otherwise
 int d4_load_config(d4_t* d4)
 {
@@ -30,7 +59,7 @@ int d4_load_config(d4_t* d4)
             }
         }
     }
-    return -1;
+    return d4_check_config(d4);
 }
 
 void usage(void)
