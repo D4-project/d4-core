@@ -2,7 +2,9 @@
 #define D4_H
 
 #define ND4PARAMS 5
+#define NERRORS 100
 #define SZCONFVALUE 1024
+#define SZERRVALUE 1024
 
 typedef struct d4_header_s {
     uint8_t  version;
@@ -33,8 +35,9 @@ typedef struct d4_s {
     int d4_error;
     int errno_copy;
     char conf[ND4PARAMS][SZCONFVALUE];
+    char errors[NERRORS][SZERRVALUE];
+    int err_idx;
 } d4_t;
-
 
 
 /* D4 configuration is a directory structure shown below (like proc filesytem)
