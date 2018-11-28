@@ -89,7 +89,6 @@ d4_t* d4_init(char* confdir)
 void d4_prepare_header(d4_t* d4)
 {
     bzero(&d4->header,sizeof(d4->header));
-    //TODO Check format
     d4->header.version = atoi(d4->conf[VERSION]);
     //FIXME length handling
     strncpy((char*)&(d4->header.uuid), d4->conf[UUID], SZUUID);
