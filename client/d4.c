@@ -85,16 +85,21 @@ d4_t* d4_init(char* confdir)
 }
 
 
-//FIXME split in prepare and update. Do not copy uuid each time
-void d4_update_header(d4_t* d4, ssize_t nread) {
-    bzero(&d4->header,sizeof(d4_update_header));
+
+void d4_prepare_header(d4_t* d4)
+{
+    bzero(&d4->header,sizeof(d4->header));
     //TODO Check format
     d4->header.version = atoi(d4->conf[VERSION]);
-    //TODO set type
-    d4->header.timestamp = time(NULL);
     //FIXME length handling
     strncpy((char*)&(d4->header.uuid), d4->conf[UUID], SZUUID);
-    //TODO hmac
+     //TODO set type
+}
+
+//FIXME split in prepare and update. Do not copy uuid each time
+void d4_update_header(d4_t* d4, ssize_t nread) {
+   d4->header.timestamp = time(NULL);
+   //TODO hmac
     d4->header.size=nread;
 }
 
@@ -109,6 +114,7 @@ void d4_transfert(d4_t* d4)
     if (!buf)
         return;
 
+    d4_prepare_header(d4);
     while ( 1 ) {
         //In case of errors see block of 0 bytes
         bzero(buf, d4->snaplen);
