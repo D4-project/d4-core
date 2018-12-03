@@ -1,7 +1,7 @@
 #ifndef D4_H
 #define D4_H
 
-#define ND4PARAMS 6
+#define ND4PARAMS 7
 #define NERRORS 100
 #define SZCONFVALUE 1024
 #define SZERRVALUE 1024
@@ -59,7 +59,7 @@ typedef struct d4_s {
  * d4-conf/collector
  */
 
-const char* d4params[] = {"uuid", "snaplen", "key", "version", "source", "destination"};
+const char* d4params[] = {"uuid", "snaplen", "key", "version", "source", "destination","type"};
 
 #define UUID 0
 #define SNAPLEN 1
@@ -67,5 +67,6 @@ const char* d4params[] = {"uuid", "snaplen", "key", "version", "source", "destin
 #define VERSION 3
 #define SOURCE 4
 #define DESTINATION 5
+#define TYPE 6
 
 #endif
