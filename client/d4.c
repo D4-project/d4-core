@@ -8,8 +8,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
-#include <time.h>
-
+#include <sys/time.h>
 #include "d4.h"
 //
 int d4_check_config(d4_t* d4)
@@ -97,8 +96,11 @@ void d4_prepare_header(d4_t* d4)
 
 //FIXME split in prepare and update. Do not copy uuid each time
 void d4_update_header(d4_t* d4, ssize_t nread) {
-   d4->header.timestamp = time(NULL);
-   //TODO hmac
+    struct timeval tv;
+    bzero(&tv,sizeof(struct timeval));
+    gettimeofday(&tv,NULL);
+    d4->header.timestamp = tv.tv_sec;
+    //TODO hmac
     d4->header.size=nread;
 }
 
