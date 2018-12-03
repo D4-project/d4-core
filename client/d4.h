@@ -9,7 +9,7 @@
 #define STDIN "stdin"
 #define STDOUT "stdout"
 #define MAXSNAPLEN 65535
-#define SZUUID 128
+#define SZUUID 16
 #define SZUUID_TEXT 37
 #define INSERT_ERROR(...) do { \
     if (d4->err_idx < NERRORS) \
@@ -20,7 +20,7 @@
 typedef struct d4_header_s {
     uint8_t  version;
     uint8_t type;
-    uint8_t uuid[128];
+    uint8_t uuid[SZUUID];
     uint64_t timestamp;
     uint8_t hmac[256];
     uint32_t size;
