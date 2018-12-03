@@ -129,10 +129,16 @@ d4_t* d4_init(char* confdir)
 
 void d4_prepare_header(d4_t* d4)
 {
+    char uuid_text[24];
+    uuid_t uuid;
+
     bzero(&d4->header,sizeof(d4->header));
+    bzero(&uuid_text, 24);
     d4->header.version = atoi(d4->conf[VERSION]);
-    //FIXME length handling
-    strncpy((char*)&(d4->header.uuid), d4->conf[UUID], SZUUID);
+    if (!uuid_parse(d4->conf[UUID],uuid)) {
+        memcpy(d4->header.uuid, uuid, SZUUID);
+    }
+    // If UUID cannot be parsed it is set to 0
     d4->header.type = atoi(d4->conf[TYPE]);
 }
 
