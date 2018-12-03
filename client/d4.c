@@ -94,7 +94,6 @@ void d4_prepare_header(d4_t* d4)
      //TODO set type
 }
 
-//FIXME split in prepare and update. Do not copy uuid each time
 void d4_update_header(d4_t* d4, ssize_t nread) {
     struct timeval tv;
     bzero(&tv,sizeof(struct timeval));
