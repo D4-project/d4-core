@@ -9,8 +9,47 @@
 #include <unistd.h>
 #include <errno.h>
 #include <sys/time.h>
+
+#include <uuid/uuid.h>
 #include "d4.h"
 //
+
+/*
+ * Generate a uuid if no one was set
+ */
+void  d4_update_uuid(d4_t* d4)
+{
+    uuid_t uuid;
+    int fd,ret;
+    char* filename;
+    char* uuid_text;
+
+    if (d4->conf[UUID][0] == 0){
+        uuid_generate(uuid);
+        memcpy(&(d4->header.uuid), uuid, SZUUID);
+        filename = calloc(1,2*FILENAME_MAX);
+        uuid_text = calloc(1, SZUUID_TEXT);
+        if ((filename != NULL) && (uuid != NULL)) {
+            snprintf(filename, 2*FILENAME_MAX, "%s/%s",d4->confdir, d4params[UUID]);
+            fd = open(filename, O_CREAT  |  O_WRONLY, S_IRUSR  |S_IWUSR);
+            if (fd > 0) {
+                uuid_unparse(uuid, uuid_text);
+                ret =  write(fd, uuid_text, SZUUID_TEXT-1);
+                if (ret < 0) {
+                    d4->errno_copy = errno;
+                }
+                close(fd);
+            } else {
+                // Cannot open file
+                d4->errno_copy = errno;
+            }
+        }
+        /* If there is an error the uuid is not stored and a new one is
+         * generated for the next boot
+         */
+     }
+}
+
 int d4_check_config(d4_t* d4)
 {
     // TODO implement other sources, file, fifo, unix_socket ...
@@ -27,6 +66,9 @@ int d4_check_config(d4_t* d4)
         }
     }
     d4->snaplen  = atoi(d4->conf[SNAPLEN]);
+
+    d4_update_uuid(d4);
+
     if ((d4->snaplen < 0)  || (d4->snaplen > MAXSNAPLEN)) {
         d4->snaplen = 0;
     }

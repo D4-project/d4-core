@@ -10,7 +10,7 @@
 #define STDOUT "stdout"
 #define MAXSNAPLEN 65535
 #define SZUUID 128
-
+#define SZUUID_TEXT 37
 #define INSERT_ERROR(...) do { \
     if (d4->err_idx < NERRORS) \
         snprintf(d4->errors[d4->err_idx],SZERRVALUE,__VA_ARGS__); \
