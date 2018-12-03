@@ -15,7 +15,9 @@
 //
 
 /*
- * Generate a uuid if no one was set
+ * Generate a uuid if no one was set.
+ * If no errors occured textual representation of uuid is stored in the
+ * configuration array
  */
 void  d4_update_uuid(d4_t* d4)
 {
@@ -26,7 +28,6 @@ void  d4_update_uuid(d4_t* d4)
 
     if (d4->conf[UUID][0] == 0){
         uuid_generate(uuid);
-        memcpy(d4->conf[UUID], uuid, SZUUID);
         filename = calloc(1,2*FILENAME_MAX);
         uuid_text = calloc(1, SZUUID_TEXT);
         if ((filename != NULL) && (uuid != NULL)) {
@@ -35,7 +36,9 @@ void  d4_update_uuid(d4_t* d4)
             if (fd > 0) {
                 uuid_unparse(uuid, uuid_text);
                 ret =  write(fd, uuid_text, SZUUID_TEXT-1);
-                if (ret < 0) {
+                if (ret > 0) {
+                    memcpy(d4->conf[UUID], uuid_text, SZUUID_TEXT);
+                } else {
                     d4->errno_copy = errno;
                 }
                 close(fd);
