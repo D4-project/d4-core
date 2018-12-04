@@ -143,6 +143,12 @@ void d4_prepare_header(d4_t* d4)
     }
     // If UUID cannot be parsed it is set to 0
     d4->header.type = atoi(d4->conf[TYPE]);
+
+    d4->ctx = calloc(sizeof(hmac_sha256_ctx),1);
+    if (d4->ctx) {
+        //FIXME check cast of the key
+        hmac_sha256_init(d4->ctx, (uint8_t*)d4->conf[KEY], strlen(d4->conf[KEY]));
+    }
 }
 
 void d4_update_header(d4_t* d4, ssize_t nread) {
@@ -150,7 +156,6 @@ void d4_update_header(d4_t* d4, ssize_t nread) {
     bzero(&tv,sizeof(struct timeval));
     gettimeofday(&tv,NULL);
     d4->header.timestamp = tv.tv_sec;
-    //TODO hmac
     d4->header.size=nread;
 }
 
@@ -172,6 +177,7 @@ void d4_transfert(d4_t* d4)
         nread = read(d4->source.fd, buf, d4->snaplen);
         if ( nread > 0 ) {
             d4_update_header(d4, nread);
+            //TODO hmac header and payload
             write(d4->destination.fd, &d4->header, sizeof(d4->header));
             write(d4->destination.fd,buf,nread);
         } else{

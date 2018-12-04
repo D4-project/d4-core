@@ -1,6 +1,8 @@
 #ifndef D4_H
 #define D4_H
 
+#include "others/hmac/hmac_sha2.h"
+
 #define ND4PARAMS 7
 #define NERRORS 100
 #define SZCONFVALUE 1024
@@ -49,6 +51,7 @@ typedef struct d4_s {
     char errors[NERRORS][SZERRVALUE];
     int err_idx;
     d4_header_t header;
+    hmac_sha256_ctx *ctx;
 } d4_t;
 
 
