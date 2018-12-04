@@ -164,10 +164,12 @@ void d4_transfert(d4_t* d4)
 {
     ssize_t nread;
     char* buf;
+    unsigned char* hmac;
 
     buf = calloc(1, d4->snaplen);
+    hmac = calloc(1,SZHMAC);
     //TODO error handling -> insert error message
-    if (!buf)
+    if ((buf == NULL) && (hmac == NULL))
         return;
 
     d4_prepare_header(d4);
@@ -177,9 +179,15 @@ void d4_transfert(d4_t* d4)
         nread = read(d4->source.fd, buf, d4->snaplen);
         if ( nread > 0 ) {
             d4_update_header(d4, nread);
-            //TODO hmac header and payload
+            //Do HMAC on header and payload. HMAC field is 0 during computation
+            hmac_sha256_update(d4->ctx, (const unsigned char*)&d4->header,
+                               sizeof(d4_header_t));
+            hmac_sha256_update(d4->ctx, (const unsigned char*)buf, nread);
             write(d4->destination.fd, &d4->header, sizeof(d4->header));
             write(d4->destination.fd,buf,nread);
+            hmac_sha256_final(d4->ctx, hmac, SZHMAC);
+            //Add it to the header
+            memcpy(d4->header.hmac, hmac, SZHMAC);
         } else{
             //FIXME no data available, sleep, abort, retry
             break;

@@ -7,6 +7,7 @@
 #define NERRORS 100
 #define SZCONFVALUE 1024
 #define SZERRVALUE 1024
+#define SZHMAC 32
 
 #define STDIN "stdin"
 #define STDOUT "stdout"
@@ -24,7 +25,7 @@ typedef struct d4_header_s {
     uint8_t type;
     uint8_t uuid[SZUUID];
     uint64_t timestamp;
-    uint8_t hmac[256];
+    uint8_t hmac[SZHMAC];
     uint32_t size;
 } d4_header_t;
 
