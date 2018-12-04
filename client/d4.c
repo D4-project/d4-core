@@ -183,11 +183,11 @@ void d4_transfert(d4_t* d4)
             hmac_sha256_update(d4->ctx, (const unsigned char*)&d4->header,
                                sizeof(d4_header_t));
             hmac_sha256_update(d4->ctx, (const unsigned char*)buf, nread);
-            write(d4->destination.fd, &d4->header, sizeof(d4->header));
-            write(d4->destination.fd,buf,nread);
             hmac_sha256_final(d4->ctx, hmac, SZHMAC);
             //Add it to the header
             memcpy(d4->header.hmac, hmac, SZHMAC);
+            write(d4->destination.fd, &d4->header, sizeof(d4->header));
+            write(d4->destination.fd,buf,nread);
         } else{
             //FIXME no data available, sleep, abort, retry
             break;
