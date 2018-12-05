@@ -1,0 +1,3 @@
+[submodule "client/others/hmac"]
+	path = client/others/hmac
+	url = https://github.com/ogay/hmac.git
