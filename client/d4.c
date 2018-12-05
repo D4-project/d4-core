@@ -8,10 +8,75 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
-#include <time.h>
+#include <sys/time.h>
 
+#include <uuid/uuid.h>
 #include "d4.h"
 //
+
+
+void usage(void)
+{
+    printf("d4 - d4 client\n");
+    printf("Read data from the configured <source> and send it to <destination>\n");
+    printf("\n");
+    printf("Usage: d4 -c  config_directory\n");
+    printf("\n");
+
+    printf("Configuration\n\n");
+    printf("The configuration settings are stored in files in the configuration directory\n");
+    printf("specified with the -c command line switch.\n\n");
+    printf("Files in the configuration directory\n");
+    printf("\n");
+    printf("key         - is the private HMAC-SHA-256-128 key.\n");
+    printf("              The HMAC is computed on the header with a HMAC value set to 0\n");
+    printf("              which is updated later.\n");
+    printf("snaplen     - the length of bytes that is read from the <source>\n");
+    printf("version     - the version of the d4 client\n");
+    printf("type        - the type of data that is send. pcap, netflow, ...\n");
+    printf("source      - the source where the data is read from\n");
+    printf("destination - the destination where the data is written to\n");
+}
+
+/*
+ * Generate a uuid if no one was set.
+ * If no errors occured textual representation of uuid is stored in the
+ * configuration array
+ */
+void  d4_update_uuid(d4_t* d4)
+{
+    uuid_t uuid;
+    int fd,ret;
+    char* filename;
+    char* uuid_text;
+
+    if (d4->conf[UUID][0] == 0){
+        uuid_generate(uuid);
+        filename = calloc(1,2*FILENAME_MAX);
+        uuid_text = calloc(1, SZUUID_TEXT);
+        if ((filename != NULL) && (uuid != NULL)) {
+            snprintf(filename, 2*FILENAME_MAX, "%s/%s",d4->confdir, d4params[UUID]);
+            fd = open(filename, O_CREAT  |  O_WRONLY, S_IRUSR  |S_IWUSR);
+            if (fd > 0) {
+                uuid_unparse(uuid, uuid_text);
+                ret =  write(fd, uuid_text, SZUUID_TEXT-1);
+                if (ret > 0) {
+                    memcpy(d4->conf[UUID], uuid_text, SZUUID_TEXT);
+                } else {
+                    d4->errno_copy = errno;
+                }
+                close(fd);
+            } else {
+                // Cannot open file
+                d4->errno_copy = errno;
+            }
+        }
+        /* If there is an error the uuid is not stored and a new one is
+         * generated for the next boot
+         */
+     }
+}
+
 int d4_check_config(d4_t* d4)
 {
     // TODO implement other sources, file, fifo, unix_socket ...
@@ -28,13 +93,15 @@ int d4_check_config(d4_t* d4)
         }
     }
     d4->snaplen  = atoi(d4->conf[SNAPLEN]);
+
+    d4_update_uuid(d4);
+
     if ((d4->snaplen < 0)  || (d4->snaplen > MAXSNAPLEN)) {
         d4->snaplen = 0;
     }
 
-    printf("TEST snaplen %d stdin %d stdout %d\n", d4->snaplen, STDIN_FILENO, STDOUT_FILENO);
     //FIXME Check other parameters
-    if (( d4->destination.fd > 0 ) && ( d4->snaplen >0 )) {
+    if ((atoi(d4->conf[VERSION])>0) &&   ( d4->destination.fd > 0 ) && ( d4->snaplen >0 )) {
         return 1;
     }
     return -1;
@@ -63,11 +130,6 @@ int d4_load_config(d4_t* d4)
     return d4_check_config(d4);
 }
 
-void usage(void)
-{
-    printf("d4 client help\n");
-}
-
 d4_t* d4_init(char* confdir)
 {
     d4_t* out;
@@ -85,16 +147,33 @@ d4_t* d4_init(char* confdir)
 }
 
 
-//FIXME split in prepare and update. Do not copy uuid each time
-void d4_update_header(d4_t* d4, ssize_t nread) {
-    bzero(&d4->header,sizeof(d4_update_header));
-    //TODO Check format
+
+void d4_prepare_header(d4_t* d4)
+{
+    char uuid_text[24];
+    uuid_t uuid;
+
+    bzero(&d4->header,sizeof(d4->header));
+    bzero(&uuid_text, 24);
     d4->header.version = atoi(d4->conf[VERSION]);
-    //TODO set type
-    d4->header.timestamp = time(NULL);
-    //FIXME length handling
-    strncpy((char*)&(d4->header.uuid), d4->conf[UUID], SZUUID);
-    //TODO hmac
+    if (!uuid_parse(d4->conf[UUID],uuid)) {
+        memcpy(d4->header.uuid, uuid, SZUUID);
+    }
+    // If UUID cannot be parsed it is set to 0
+    d4->header.type = atoi(d4->conf[TYPE]);
+
+    d4->ctx = calloc(sizeof(hmac_sha256_ctx),1);
+    if (d4->ctx) {
+        //FIXME check cast of the key
+        hmac_sha256_init(d4->ctx, (uint8_t*)d4->conf[KEY], strlen(d4->conf[KEY]));
+    }
+}
+
+void d4_update_header(d4_t* d4, ssize_t nread) {
+    struct timeval tv;
+    bzero(&tv,sizeof(struct timeval));
+    gettimeofday(&tv,NULL);
+    d4->header.timestamp = tv.tv_sec;
     d4->header.size=nread;
 }
 
@@ -103,18 +182,28 @@ void d4_transfert(d4_t* d4)
 {
     ssize_t nread;
     char* buf;
+    unsigned char* hmac;
 
     buf = calloc(1, d4->snaplen);
+    hmac = calloc(1,SZHMAC);
     //TODO error handling -> insert error message
-    if (!buf)
+    if ((buf == NULL) && (hmac == NULL))
         return;
 
+    d4_prepare_header(d4);
     while ( 1 ) {
         //In case of errors see block of 0 bytes
         bzero(buf, d4->snaplen);
         nread = read(d4->source.fd, buf, d4->snaplen);
         if ( nread > 0 ) {
             d4_update_header(d4, nread);
+            //Do HMAC on header and payload. HMAC field is 0 during computation
+            hmac_sha256_update(d4->ctx, (const unsigned char*)&d4->header,
+                               sizeof(d4_header_t));
+            hmac_sha256_update(d4->ctx, (const unsigned char*)buf, nread);
+            hmac_sha256_final(d4->ctx, hmac, SZHMAC);
+            //Add it to the header
+            memcpy(d4->header.hmac, hmac, SZHMAC);
             write(d4->destination.fd, &d4->header, sizeof(d4->header));
             write(d4->destination.fd,buf,nread);
         } else{

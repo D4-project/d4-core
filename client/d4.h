@@ -1,16 +1,19 @@
 #ifndef D4_H
 #define D4_H
 
-#define ND4PARAMS 6
+#include "others/hmac/hmac_sha2.h"
+
+#define ND4PARAMS 7
 #define NERRORS 100
 #define SZCONFVALUE 1024
 #define SZERRVALUE 1024
+#define SZHMAC 32
 
 #define STDIN "stdin"
 #define STDOUT "stdout"
 #define MAXSNAPLEN 65535
-#define SZUUID 128
-
+#define SZUUID 16
+#define SZUUID_TEXT 37
 #define INSERT_ERROR(...) do { \
     if (d4->err_idx < NERRORS) \
         snprintf(d4->errors[d4->err_idx],SZERRVALUE,__VA_ARGS__); \
@@ -20,9 +23,9 @@
 typedef struct d4_header_s {
     uint8_t  version;
     uint8_t type;
-    uint8_t uuid[128];
+    uint8_t uuid[SZUUID];
     uint64_t timestamp;
-    uint8_t hmac[256];
+    uint8_t hmac[SZHMAC];
     uint32_t size;
 } d4_header_t;
 
@@ -49,6 +52,7 @@ typedef struct d4_s {
     char errors[NERRORS][SZERRVALUE];
     int err_idx;
     d4_header_t header;
+    hmac_sha256_ctx *ctx;
 } d4_t;
 
 
@@ -59,7 +63,7 @@ typedef struct d4_s {
  * d4-conf/collector
  */
 
-const char* d4params[] = {"uuid", "snaplen", "key", "version", "source", "destination"};
+const char* d4params[] = {"uuid", "snaplen", "key", "version", "source", "destination","type"};
 
 #define UUID 0
 #define SNAPLEN 1
@@ -67,5 +71,6 @@ const char* d4params[] = {"uuid", "snaplen", "key", "version", "source", "destin
 #define VERSION 3
 #define SOURCE 4
 #define DESTINATION 5
+#define TYPE 6
 
 #endif
