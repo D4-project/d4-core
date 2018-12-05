@@ -76,7 +76,6 @@ int d4_check_config(d4_t* d4)
         d4->snaplen = 0;
     }
 
-    printf("TEST snaplen %d stdin %d stdout %d\n", d4->snaplen, STDIN_FILENO, STDOUT_FILENO);
     //FIXME Check other parameters
     if ((atoi(d4->conf[VERSION])>0) &&   ( d4->destination.fd > 0 ) && ( d4->snaplen >0 )) {
         return 1;
