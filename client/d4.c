@@ -14,6 +14,30 @@
 #include "d4.h"
 //
 
+
+void usage(void)
+{
+    printf("d4 - d4 client\n");
+    printf("Read data from the configured <source> and send it to <destination>\n");
+    printf("\n");
+    printf("Usage: d4 -c  config_directory\n");
+    printf("\n");
+
+    printf("Configuration\n\n");
+    printf("The configuration settings are stored in files in the configuration directory\n");
+    printf("specified with the -c command line switch.\n\n");
+    printf("Files in the configuration directory\n");
+    printf("\n");
+    printf("key         - is the private HMAC-SHA-256-128 key.\n");
+    printf("              The HMAC is computed on the header with a HMAC value set to 0\n");
+    printf("              which is updated later.\n");
+    printf("snaplen     - the length of bytes that is read from the <source>\n");
+    printf("version     - the version of the d4 client\n");
+    printf("type        - the type of data that is send. pcap, netflow, ...\n");
+    printf("source      - the source where the data is read from\n");
+    printf("destination - the destination where the data is written to\n");
+}
+
 /*
  * Generate a uuid if no one was set.
  * If no errors occured textual representation of uuid is stored in the
@@ -104,11 +128,6 @@ int d4_load_config(d4_t* d4)
         }
     }
     return d4_check_config(d4);
-}
-
-void usage(void)
-{
-    printf("d4 client help\n");
 }
 
 d4_t* d4_init(char* confdir)
