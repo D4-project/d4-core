@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 
 import sys
+import hmac
+
+import binascii
 
 from twisted.internet import ssl, task, protocol, endpoints, defer
 from twisted.python import log
@@ -8,7 +11,9 @@ from twisted.python.modules import getModule
 
 from twisted.internet.protocol import Protocol
 
+
 from ctypes import *
+from uuid import UUID
 
 class Echo(Protocol):
 
@@ -16,15 +21,9 @@ class Echo(Protocol):
     #    self.factory = factory
 
     def dataReceived(self, data):
-        print(data)
-        d = unpack(D4Header, data)
         print('-----')
-        print(d.version)
-        print(d.type)
-        print('{}-{}'.format(d.uuid1, d.uuid2))
-        print(d.timestamp)
-        print('{}-{}-{}-{}'.format(d.hmac1, d.hmac2, d.hmac3, d.hmac4))
-        print(d.size)
+        process_header(data)
+        #print(data[72:])
 
 class D4Header(Structure):
     _fields_ = [
@@ -40,9 +39,58 @@ class D4Header(Structure):
         ("size", c_uint32),
         ]
 
+def process_header(data):
+
+    d4_header = data[:72].hex()
+    print(d4_header)
+
+    #version = int(d4_header[0:2], 16)
+    #type = int(d4_header[2:4], 16)
+    uuid_header = d4_header[4:36]
+    #timestamp = d4_header[36:52] fixme
+    hmac_header = d4_header[64:128]
+    #size = d4_header[128:132] endian issue
+
+    d = unpack(D4Header, data)
+
+    if is_valid_uuid_v4(uuid_header):
+        print('version: {}'.format(d.version))
+        print('type: {}'.format(d.type))
+        print('uuid: {}'.format(uuid_header))
+        print('timestamp: {}'.format(d.timestamp))
+        print('hmac: {}'.format(hmac_header))
+        print('size: {}'.format(d.size))
+        print(len(data) - sizeof(d)) # sizeof(d)=72
+
+        print('___________________')
+        reset = '0000000000000000000000000000000000000000000000000000000000000000'
+        print(d4_header)
+        d4_header = d4_header.replace(hmac_header, reset)
+        print()
+        temp = bytes.fromhex(d4_header)
+        data = data.replace(data[:72], temp)
+        print(data)
+
+
+        HMAC = hmac.new(b'private key to change\n', msg=data, digestmod='sha256')
+        print(HMAC.digest())
+        print(HMAC.hexdigest())
+        print(hmac_header)
+
+
+
 def unpack(ctype, buffer):
     c_str = create_string_buffer(buffer)
     return cast(pointer(c_str), POINTER(ctype)).contents
+
+def is_valid_uuid_v4(header_uuid):
+    #try:
+    #print(header_uuid)
+    uuid_test = UUID(hex=header_uuid, version=4)
+    #print(uuid_test.hex)
+    return uuid_test.hex == header_uuid
+    #except:
+    #    return False
 
 def main(reactor):
     log.startLogging(sys.stdout)
