@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
+import os
 import sys
 import hmac
-
-import binascii
+import stat
 
 from twisted.internet import ssl, task, protocol, endpoints, defer
 from twisted.python import log
@@ -15,13 +15,17 @@ from twisted.internet.protocol import Protocol
 from ctypes import *
 from uuid import UUID
 
+path = '/mypath'
+
+hmac_reset = '0000000000000000000000000000000000000000000000000000000000000000'
+hmac_key = b'private key to change\n'
+
 class Echo(Protocol):
 
     #def __init__(self, factory):
     #    self.factory = factory
 
     def dataReceived(self, data):
-        print('-----')
         process_header(data)
         #print(data[72:])
 
@@ -41,53 +45,73 @@ class D4Header(Structure):
 
 def process_header(data):
 
-    d4_header = data[:72].hex()
-    print(d4_header)
+    if len(data) > 73:
 
-    #version = int(d4_header[0:2], 16)
-    #type = int(d4_header[2:4], 16)
-    uuid_header = d4_header[4:36]
-    #timestamp = d4_header[36:52] fixme
-    hmac_header = d4_header[64:128]
-    #size = d4_header[128:132] endian issue
+        d4_header = data[:72].hex()
+        uuid_header = d4_header[4:36]
+        hmac_header = d4_header[64:128]
 
-    d = unpack(D4Header, data)
-
-    if is_valid_uuid_v4(uuid_header):
-        print('version: {}'.format(d.version))
-        print('type: {}'.format(d.type))
-        print('uuid: {}'.format(uuid_header))
-        print('timestamp: {}'.format(d.timestamp))
-        print('hmac: {}'.format(hmac_header))
-        print('size: {}'.format(d.size))
-        print(len(data) - sizeof(d)) # sizeof(d)=72
-
-        print('___________________')
-        reset = '0000000000000000000000000000000000000000000000000000000000000000'
-        print(d4_header)
-        d4_header = d4_header.replace(hmac_header, reset)
-        print()
+        d4_header = d4_header.replace(hmac_header, hmac_reset)
         temp = bytes.fromhex(d4_header)
         data = data.replace(data[:72], temp)
         print(data)
 
+        data_header = unpack(D4Header, data)
 
-        HMAC = hmac.new(b'private key to change\n', msg=data, digestmod='sha256')
-        print(HMAC.digest())
-        print(HMAC.hexdigest())
-        print(hmac_header)
+        # check if is valid uuid v4
+        if not is_valid_uuid_v4(uuid_header):
+            print('not uuid v4')
+        # verify timestamp
+        #elif :
+        #    print('not valid timestamp')
+        elif data_header['size'] != (len(data) - data_header['struct_size']):
+            print('invalid size')
+            print('size: {}'.format(data_header['size']))
+            print(len(data) - data_header['struct_size']) # sizeof(d)=72
+        else:
+            ### Debug ###
+            print('version: {}'.format( data_header['version'] ))
+            print('type: {}'.format( data_header['type'] ))
+            print('uuid: {}'.format(uuid_header))
+            print('timestamp: {}'.format( data_header['timestamp'] ))
+            print('hmac: {}'.format( hmac_header ))
+            print('size: {}'.format( data_header['size'] ))
+            #print(d4_header)
+            ###       ###
 
+            # verify hmac sha256
+            HMAC = hmac.new(hmac_key, msg=data, digestmod='sha256')
+            if hmac_header == HMAC.hexdigest():
+                print('hmac match')
+                path_file = os.path.join(path,uuid_header)
+                if not os.path.isdir(path_file):
+                    os.mkdir(path_file)
+                with open(os.path.join(path_file, 'out'), 'ab')as f:
+                    f.write(data[72:])
+
+                print('END')
+                print()
+            # discard data
+            else:
+                print("hmac don't match")
+    else:
+        print('incomplete data')
 
 
 def unpack(ctype, buffer):
     c_str = create_string_buffer(buffer)
-    return cast(pointer(c_str), POINTER(ctype)).contents
+    d =  cast(pointer(c_str), POINTER(ctype)).contents
+    data_header = {}
+    data_header['version'] = d.version
+    data_header['type'] = d.type
+    data_header['timestamp'] = d.timestamp
+    data_header['size'] = d.size
+    data_header['struct_size'] = sizeof(d)
+    return data_header
 
 def is_valid_uuid_v4(header_uuid):
     #try:
-    #print(header_uuid)
     uuid_test = UUID(hex=header_uuid, version=4)
-    #print(uuid_test.hex)
     return uuid_test.hex == header_uuid
     #except:
     #    return False
