@@ -4,6 +4,7 @@ import os
 import sys
 import hmac
 import stat
+import redis
 
 from twisted.internet import ssl, task, protocol, endpoints, defer
 from twisted.python import log
@@ -15,10 +16,14 @@ from twisted.internet.protocol import Protocol
 from ctypes import *
 from uuid import UUID
 
-path = '/mypath'
-
 hmac_reset = '0000000000000000000000000000000000000000000000000000000000000000'
 hmac_key = b'private key to change\n'
+
+redis_server = redis.StrictRedis(
+                    host="localhost",
+                    port=6379,
+                    db=0,
+                    decode_responses=True)
 
 class Echo(Protocol):
 
@@ -27,6 +32,7 @@ class Echo(Protocol):
 
     def dataReceived(self, data):
         process_header(data)
+        print(self.transport.client)
         #print(data[72:])
 
 class D4Header(Structure):
@@ -48,6 +54,7 @@ def process_header(data):
     if len(data) > 73:
 
         d4_header = data[:72].hex()
+        print(d4_header)
         uuid_header = d4_header[4:36]
         hmac_header = d4_header[64:128]
 
@@ -57,6 +64,17 @@ def process_header(data):
         print(data)
 
         data_header = unpack(D4Header, data)
+
+        ### Debug ###
+        print('version: {}'.format( data_header['version'] ))
+        print('type: {}'.format( data_header['type'] ))
+        print('uuid: {}'.format(uuid_header))
+        print('timestamp: {}'.format( data_header['timestamp'] ))
+        print('hmac: {}'.format( hmac_header ))
+        print('size: {}'.format( data_header['size'] ))
+        print('size: {}'.format( len(data) - data_header['struct_size']))
+        #print(d4_header)
+        ###       ###
 
         # check if is valid uuid v4
         if not is_valid_uuid_v4(uuid_header):
@@ -69,25 +87,16 @@ def process_header(data):
             print('size: {}'.format(data_header['size']))
             print(len(data) - data_header['struct_size']) # sizeof(d)=72
         else:
-            ### Debug ###
-            print('version: {}'.format( data_header['version'] ))
-            print('type: {}'.format( data_header['type'] ))
-            print('uuid: {}'.format(uuid_header))
-            print('timestamp: {}'.format( data_header['timestamp'] ))
-            print('hmac: {}'.format( hmac_header ))
-            print('size: {}'.format( data_header['size'] ))
-            #print(d4_header)
-            ###       ###
 
             # verify hmac sha256
             HMAC = hmac.new(hmac_key, msg=data, digestmod='sha256')
+            print('hexdigest: {}'.format( HMAC.hexdigest() ))
+            print(data)
             if hmac_header == HMAC.hexdigest():
                 print('hmac match')
-                path_file = os.path.join(path,uuid_header)
-                if not os.path.isdir(path_file):
-                    os.mkdir(path_file)
-                with open(os.path.join(path_file, 'out'), 'ab')as f:
-                    f.write(data[72:])
+
+
+                redis_server.xadd('stream:{}'.format(data_header['type']), {'message': data[72:], 'uuid':uuid_header, 'timestamp': data_header['timestamp'], 'version': data_header['version']})
 
                 print('END')
                 print()
