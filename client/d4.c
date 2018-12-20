@@ -181,6 +181,7 @@ void d4_update_header(d4_t* d4, ssize_t nread) {
 void d4_transfert(d4_t* d4)
 {
     ssize_t nread;
+    ssize_t n;
     char* buf;
     unsigned char* hmac;
 
@@ -204,8 +205,18 @@ void d4_transfert(d4_t* d4)
             hmac_sha256_final(d4->ctx, hmac, SZHMAC);
             //Add it to the header
             memcpy(d4->header.hmac, hmac, SZHMAC);
-            write(d4->destination.fd, &d4->header, sizeof(d4->header));
-            write(d4->destination.fd,buf,nread);
+            n = 0;
+            n+=write(d4->destination.fd, &d4->header.version, sizeof(uint8_t));
+            n+=write(d4->destination.fd, &d4->header.type, sizeof(uint8_t));
+            n+=write(d4->destination.fd, &d4->header.uuid, SZUUID);
+            n+=write(d4->destination.fd, &d4->header.timestamp, sizeof(uint64_t));
+            n+=write(d4->destination.fd, &d4->header.hmac, SZHMAC);
+            n+=write(d4->destination.fd, &d4->header.size, sizeof(uint32_t));
+            n+=write(d4->destination.fd,buf,nread);
+            if (n != SZD4HDR + nread) {
+                fprintf(stderr,"Incomplete header written. abort to let consumer known that the packet is corrupted\n");
+                abort();
+            }
         } else{
             //FIXME no data available, sleep, abort, retry
             break;
