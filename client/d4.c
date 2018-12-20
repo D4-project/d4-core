@@ -199,12 +199,14 @@ void d4_transfert(d4_t* d4)
         if ( nread > 0 ) {
             d4_update_header(d4, nread);
             //Do HMAC on header and payload. HMAC field is 0 during computation
-            hmac_sha256_update(d4->ctx, (const unsigned char*)&d4->header,
+            if (d4->ctx) {
+                hmac_sha256_update(d4->ctx, (const unsigned char*)&d4->header,
                                sizeof(d4_header_t));
-            hmac_sha256_update(d4->ctx, (const unsigned char*)buf, nread);
-            hmac_sha256_final(d4->ctx, hmac, SZHMAC);
-            //Add it to the header
-            memcpy(d4->header.hmac, hmac, SZHMAC);
+                hmac_sha256_update(d4->ctx, (const unsigned char*)buf, nread);
+                hmac_sha256_final(d4->ctx, hmac, SZHMAC);
+                //Add it to the header
+                memcpy(d4->header.hmac, hmac, SZHMAC);
+            }
             n = 0;
             n+=write(d4->destination.fd, &d4->header.version, sizeof(uint8_t));
             n+=write(d4->destination.fd, &d4->header.type, sizeof(uint8_t));
