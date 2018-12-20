@@ -200,6 +200,8 @@ void d4_transfert(d4_t* d4)
             d4_update_header(d4, nread);
             //Do HMAC on header and payload. HMAC field is 0 during computation
             if (d4->ctx) {
+                bzero(d4->ctx,sizeof(hmac_sha256_ctx));
+                hmac_sha256_init(d4->ctx, (uint8_t*)d4->conf[KEY], strlen(d4->conf[KEY]));
                 hmac_sha256_update(d4->ctx, (const unsigned char*)&d4->header,
                                sizeof(d4_header_t));
                 hmac_sha256_update(d4->ctx, (const unsigned char*)buf, nread);
