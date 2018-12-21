@@ -5,6 +5,7 @@ import sys
 import hmac
 import stat
 import redis
+import struct
 
 from twisted.internet import ssl, task, protocol, endpoints, defer
 from twisted.python import log
@@ -16,7 +17,7 @@ from twisted.internet.protocol import Protocol
 from ctypes import *
 from uuid import UUID
 
-hmac_reset = '0000000000000000000000000000000000000000000000000000000000000000'
+hmac_reset = bytearray(32)
 hmac_key = b'private key to change\n'
 
 redis_server = redis.StrictRedis(
@@ -51,62 +52,90 @@ class D4Header(Structure):
 
 def process_header(data):
 
-    if len(data) > 73:
+    if len(data) > 63:
 
-        d4_header = data[:72].hex()
+        d4_header = data[:62]
+        all_data = data[62:]
+        #print(d4_header)
+
+        version = struct.unpack('B', d4_header[0:1])[0]
+        type = struct.unpack('B', d4_header[1:2])[0]
+        uuid_header = d4_header[2:18].hex()
+        timestamp = struct.unpack('Q', d4_header[18:26])[0]
+        hmac_header = d4_header[26:58]
+        size = struct.unpack('I', d4_header[58:62])[0]
+
+        print('-------------------------')
+        print(hmac_header)
+        print(hmac_reset)
+        print('***************************')
         print(d4_header)
-        uuid_header = d4_header[4:36]
-        hmac_header = d4_header[64:128]
-
         d4_header = d4_header.replace(hmac_header, hmac_reset)
-        temp = bytes.fromhex(d4_header)
-        data = data.replace(data[:72], temp)
+
+        print(d4_header)
+        data = d4_header + all_data
         print(data)
+        #print(data[:62])
+        #print(len(data[:62]))
 
-        data_header = unpack(D4Header, data)
+        hmac_header = hmac_header.hex()
 
+        # verify hmac sha256
+        HMAC = hmac.new(hmac_key, msg=data, digestmod='sha256')
+        print('hexdigest: {}'.format( HMAC.hexdigest() ))
+        #print(data)
+        if hmac_header != HMAC.hexdigest():
+            print("hmac don't match ...")
+            print('hexdigest: {}'.format( HMAC.hexdigest() ))
+            print('hexdigest: {}'.format( hmac_header ))
         ### Debug ###
-        print('version: {}'.format( data_header['version'] ))
-        print('type: {}'.format( data_header['type'] ))
+        print('version: {}'.format( version ))
+        print('type: {}'.format( type ))
         print('uuid: {}'.format(uuid_header))
-        print('timestamp: {}'.format( data_header['timestamp'] ))
+        print('timestamp: {}'.format( timestamp ))
         print('hmac: {}'.format( hmac_header ))
-        print('size: {}'.format( data_header['size'] ))
-        print('size: {}'.format( len(data) - data_header['struct_size']))
+        print('size: {}'.format( size ))
         #print(d4_header)
         ###       ###
 
         # check if is valid uuid v4
         if not is_valid_uuid_v4(uuid_header):
             print('not uuid v4')
+            print()
+            print()
         # verify timestamp
         #elif :
         #    print('not valid timestamp')
-        elif data_header['size'] != (len(data) - data_header['struct_size']):
+        elif size != (len(data) - 62):
             print('invalid size')
-            print('size: {}'.format(data_header['size']))
-            print(len(data) - data_header['struct_size']) # sizeof(d)=72
+            print('size: {}'.format(size))
+            print()
+            print()
         else:
 
             # verify hmac sha256
             HMAC = hmac.new(hmac_key, msg=data, digestmod='sha256')
             print('hexdigest: {}'.format( HMAC.hexdigest() ))
-            print(data)
+            #print(data)
             if hmac_header == HMAC.hexdigest():
                 print('hmac match')
 
 
-                redis_server.xadd('stream:{}'.format(data_header['type']), {'message': data[72:], 'uuid':uuid_header, 'timestamp': data_header['timestamp'], 'version': data_header['version']})
+                #redis_server.xadd('stream:{}'.format(data_header['type']), {'message': data[72:], 'uuid':uuid_header, 'timestamp': data_header['timestamp'], 'version': data_header['version']})
 
                 print('END')
                 print()
             # discard data
             else:
                 print("hmac don't match")
+                print()
+                print()
     else:
         print('incomplete data')
+        print()
+        print()
 
-
+'''
 def unpack(ctype, buffer):
     c_str = create_string_buffer(buffer)
     d =  cast(pointer(c_str), POINTER(ctype)).contents
@@ -117,6 +146,7 @@ def unpack(ctype, buffer):
     data_header['size'] = d.size
     data_header['struct_size'] = sizeof(d)
     return data_header
+'''
 
 def is_valid_uuid_v4(header_uuid):
     #try:
