@@ -13,6 +13,7 @@ from twisted.python import log
 from twisted.python.modules import getModule
 
 from twisted.internet.protocol import Protocol
+from twisted.protocols.policies import TimeoutMixin
 
 
 from ctypes import *
@@ -27,17 +28,24 @@ redis_server = redis.StrictRedis(
                     db=0,
                     decode_responses=True)
 
-class Echo(Protocol):
+timeout_time = 30
+
+class Echo(Protocol, TimeoutMixin):
 
     def __init__(self):
         self.buffer = b''
+        self.setTimeout(timeout_time)
 
     def dataReceived(self, data):
+        self.resetTimeout()
         self.process_header(data)
         #print(self.transport.client)
 
-    #def timeoutConnection(self):
-    #    self.transport.abortConnection()
+    def timeoutConnection(self):
+        #print('timeout')
+        self.resetTimeout()
+        self.buffer = b''
+        #self.transport.abortConnection()
 
     def unpack_header(self, data):
         data_header = {}
