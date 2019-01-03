@@ -184,9 +184,11 @@ void d4_transfert(d4_t* d4)
     ssize_t n;
     char* buf;
     unsigned char* hmac;
+    unsigned char* hmaczero;
 
     buf = calloc(1, d4->snaplen);
     hmac = calloc(1,SZHMAC);
+    hmaczero = calloc(1,SZHMAC);
     //TODO error handling -> insert error message
     if ((buf == NULL) && (hmac == NULL))
         return;
@@ -200,12 +202,15 @@ void d4_transfert(d4_t* d4)
             d4_update_header(d4, nread);
             //Do HMAC on header and payload. HMAC field is 0 during computation
             if (d4->ctx) {
-                bzero(d4->ctx,sizeof(hmac_sha256_ctx));
-                hmac_sha256_init(d4->ctx, (uint8_t*)d4->conf[KEY], strlen(d4->conf[KEY]));
-                hmac_sha256_update(d4->ctx, (const unsigned char*)&d4->header,
-                               sizeof(d4_header_t));
-                hmac_sha256_update(d4->ctx, (const unsigned char*)buf, nread);
-                hmac_sha256_final(d4->ctx, hmac, SZHMAC);
+                hmac_sha256_reinit(d4->ctx);
+		hmac_sha256_update(d4->ctx, (const unsigned char*)&d4->header.version, sizeof(uint8_t));
+		hmac_sha256_update(d4->ctx, (const unsigned char*)&d4->header.type, sizeof(uint8_t));
+		hmac_sha256_update(d4->ctx, (const unsigned char*)&d4->header.uuid, SZUUID);
+		hmac_sha256_update(d4->ctx, (const unsigned char*)&d4->header.timestamp, sizeof(uint64_t));
+		hmac_sha256_update(d4->ctx, (const unsigned char*) hmaczero, SZHMAC);
+		hmac_sha256_update(d4->ctx, (const unsigned char*)&d4->header.size, sizeof(uint32_t));
+		hmac_sha256_update(d4->ctx, (const unsigned char*)buf, nread);
+		hmac_sha256_final(d4->ctx, hmac, SZHMAC);
                 //Add it to the header
                 memcpy(d4->header.hmac, hmac, SZHMAC);
             }
