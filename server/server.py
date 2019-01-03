@@ -22,13 +22,15 @@ from uuid import UUID
 hmac_reset = bytearray(32)
 hmac_key = b'private key to change\n'
 
+timeout_time = 30
+
+header_size = 62
+
 redis_server = redis.StrictRedis(
                     host="localhost",
                     port=6379,
                     db=0,
                     decode_responses=True)
-
-timeout_time = 30
 
 class Echo(Protocol, TimeoutMixin):
 
@@ -49,7 +51,7 @@ class Echo(Protocol, TimeoutMixin):
 
     def unpack_header(self, data):
         data_header = {}
-        if len(data) > 62:
+        if len(data) >= header_size:
             data_header['version'] = struct.unpack('B', data[0:1])[0]
             data_header['type'] = struct.unpack('B', data[1:2])[0]
             data_header['uuid_header'] = data[2:18].hex()
@@ -79,12 +81,12 @@ class Echo(Protocol, TimeoutMixin):
             if data_header:
                 if self.is_valid_header(data_header['uuid_header']):
                     # check data size
-                    if data_header['size'] == (len(data) - 62):
+                    if data_header['size'] == (len(data) - header_size):
                         self.process_d4_data(data, data_header)
                     # multiple d4 headers
-                    elif data_header['size'] < (len(data) - 62):
-                        next_data = data[data_header['size'] + 62:]
-                        data = data[:data_header['size'] + 62]
+                    elif data_header['size'] < (len(data) - header_size):
+                        next_data = data[data_header['size'] + header_size:]
+                        data = data[:data_header['size'] + header_size]
                         #print('------------------------------------------------')
                         #print(data)
                         #print()
@@ -92,16 +94,16 @@ class Echo(Protocol, TimeoutMixin):
                         self.process_d4_data(data, data_header)
                         # process next d4 header
                         self.process_header(next_data)
-                    # data_header['size'] > (len(data) - 62)
+                    # data_header['size'] > (len(data) - header_size)
                     # buffer the data
                     else:
                         #print('**********************************************************')
                         #print(data)
                         #print(data_header['size'])
-                        #print((len(data) - 62))
+                        #print((len(data) - header_size))
                         self.buffer += data
                 else:
-                    if len(data) < 62:
+                    if len(data) < header_size:
                         self.buffer += data
                     else:
                         print('discard data')
@@ -110,7 +112,7 @@ class Echo(Protocol, TimeoutMixin):
                         time.sleep(5)
                         #sys.exit(1)
             else:
-                if len(data) < 62:
+                if len(data) < header_size:
                     self.buffer += data
                 else:
                     print('error discard data')
@@ -122,7 +124,7 @@ class Echo(Protocol, TimeoutMixin):
         # not a header
         else:
             # add previous data
-            if len(data) < 62:
+            if len(data) < header_size:
                 self.buffer += data
                 print(self.buffer)
                 print(len(self.buffer))
@@ -156,9 +158,9 @@ class Echo(Protocol, TimeoutMixin):
 
         if data_header['hmac_header'] == HMAC.hexdigest():
             #print('hmac match')
-            #redis_server.xadd('stream:{}'.format(data_header['type']), {'message': data[62:], 'uuid': data_header['uuid_header'], 'timestamp': data_header['timestamp'], 'version': data_header['version']})
+            #redis_server.xadd('stream:{}'.format(data_header['type']), {'message': data[header_size:], 'uuid': data_header['uuid_header'], 'timestamp': data_header['timestamp'], 'version': data_header['version']})
             with open(data_header['uuid_header'], 'ab') as f:
-                f.write(data[62:])
+                f.write(data[header_size:])
         else:
             print('hmac do not match')
             print(data)
