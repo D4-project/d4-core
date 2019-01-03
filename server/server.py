@@ -30,7 +30,7 @@ redis_server = redis.StrictRedis(
 class Echo(Protocol):
 
     def __init__(self):
-        self.buffer = ''
+        self.buffer = b''
 
     def dataReceived(self, data):
         self.process_header(data)
@@ -69,22 +69,22 @@ class Echo(Protocol):
                         self.process_d4_data(data, data_header)
                     # multiple d4 headers
                     elif data_header['size'] < (len(data) - 62):
-                        next_data = data[:data_header['size'] + 62]
-                        data = data[data_header['size'] + 62:]
-                        print()
-                        print('------------------------------------------------')
-                        print(data)
-                        print(next_data)
+                        next_data = data[data_header['size'] + 62:]
+                        data = data[:data_header['size'] + 62]
+                        #print('------------------------------------------------')
+                        #print(data)
+                        #print()
+                        #print(next_data)
                         self.process_d4_data(data, data_header)
                         # process next d4 header
                         self.process_header(next_data)
                     # data_header['size'] > (len(data) - 62)
                     # buffer the data
                     else:
-                        print('**********************************************************')
-                        print(data)
-                        print(data_header['size'])
-                        print((len(data) - 62))
+                        #print('**********************************************************')
+                        #print(data)
+                        #print(data_header['size'])
+                        #print((len(data) - 62))
                         self.buffer += data
                 else:
                     if len(data) < 62:
@@ -110,9 +110,15 @@ class Echo(Protocol):
             # add previous data
             if len(data) < 62:
                 data = self.buffer + data
+                print(data)
+                print()
             #todo check if valid header before adding ?
             else:
                 data = self.buffer + data
+                #print('()()()()()()()()()')
+                #print(data)
+                #print()
+                self.buffer = b''
                 self.process_header(data)
 
     def process_d4_data(self, data, data_header):
