@@ -109,9 +109,9 @@ class Echo(Protocol):
         else:
             # add previous data
             if len(data) < 62:
-                data = self.buffer + data
-                print(data)
-                print()
+                self.buffer += data
+                print(self.buffer)
+                print(len(self.buffer))
             #todo check if valid header before adding ?
             else:
                 data = self.buffer + data
@@ -144,6 +144,7 @@ class Echo(Protocol):
             print('hmac match')
         else:
             print('hmac do not match')
+            print(data)
         print()
 
 
