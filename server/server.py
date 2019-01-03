@@ -169,7 +169,12 @@ class Echo(Protocol, TimeoutMixin):
 
 def main(reactor):
     log.startLogging(sys.stdout)
-    certData = getModule(__name__).filePath.sibling('server.pem').getContent()
+    try:
+        certData = getModule(__name__).filePath.sibling('server.pem').getContent()
+    except FileNotFoundError as e:
+        print('Error, pem file not found')
+        print(e)
+        sys.exit(1)
     certificate = ssl.PrivateCertificate.loadPEM(certData)
     factory = protocol.Factory.forProtocol(Echo)
     reactor.listenSSL(4443, factory, certificate.options())
