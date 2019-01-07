@@ -7,6 +7,7 @@ import stat
 import redis
 import struct
 import time
+import datetime
 
 from twisted.internet import ssl, task, protocol, endpoints, defer
 from twisted.python import log
@@ -40,8 +41,10 @@ class Echo(Protocol, TimeoutMixin):
 
     def dataReceived(self, data):
         self.resetTimeout()
-        self.process_header(data)
-        #print(self.transport.client)
+        ip, source_port = self.transport.client
+        #print(ip)
+        #print(source_port)
+        self.process_header(data, ip, source_port)
 
     def timeoutConnection(self):
         #print('timeout')
@@ -75,14 +78,14 @@ class Echo(Protocol, TimeoutMixin):
         else:
             return False
 
-    def process_header(self, data):
+    def process_header(self, data, ip, source_port):
         if not self.buffer:
             data_header = self.unpack_header(data)
             if data_header:
                 if self.is_valid_header(data_header['uuid_header']):
                     # check data size
                     if data_header['size'] == (len(data) - header_size):
-                        self.process_d4_data(data, data_header)
+                        self.process_d4_data(data, data_header, ip)
                     # multiple d4 headers
                     elif data_header['size'] < (len(data) - header_size):
                         next_data = data[data_header['size'] + header_size:]
@@ -91,7 +94,7 @@ class Echo(Protocol, TimeoutMixin):
                         #print(data)
                         #print()
                         #print(next_data)
-                        self.process_d4_data(data, data_header)
+                        self.process_d4_data(data, data_header, ip)
                         # process next d4 header
                         self.process_header(next_data)
                     # data_header['size'] > (len(data) - header_size)
@@ -137,7 +140,7 @@ class Echo(Protocol, TimeoutMixin):
                 self.buffer = b''
                 self.process_header(data)
 
-    def process_d4_data(self, data, data_header):
+    def process_d4_data(self, data, data_header, ip):
         # empty buffer
         self.buffer = b''
         # set hmac_header to 0
@@ -158,9 +161,12 @@ class Echo(Protocol, TimeoutMixin):
 
         if data_header['hmac_header'] == HMAC.hexdigest():
             #print('hmac match')
-            #redis_server.xadd('stream:{}'.format(data_header['type']), {'message': data[header_size:], 'uuid': data_header['uuid_header'], 'timestamp': data_header['timestamp'], 'version': data_header['version']})
-            with open(data_header['uuid_header'], 'ab') as f:
-                f.write(data[header_size:])
+            date = datetime.datetime.now().strftime("%Y%m%d")
+            redis_server.xadd('stream:{}'.format(data_header['type']), {'message': data[header_size:], 'uuid': data_header['uuid_header'], 'timestamp': data_header['timestamp'], 'version': data_header['version']})
+            redis_server.sadd('daily_uuid:{}'.format(date), data_header['uuid_header'])
+            redis_server.zincrby('stat_uuid_ip:{}:{}'.format(date, data_header['uuid_header']), 1, ip)
+            #with open(data_header['uuid_header'], 'ab') as f:
+            #    f.write(data[header_size:])
         else:
             print('hmac do not match')
             print(data)
