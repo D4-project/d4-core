@@ -30,8 +30,7 @@ header_size = 62
 redis_server = redis.StrictRedis(
                     host="localhost",
                     port=6379,
-                    db=0,
-                    decode_responses=True)
+                    db=0)
 
 class Echo(Protocol, TimeoutMixin):
 
@@ -96,7 +95,7 @@ class Echo(Protocol, TimeoutMixin):
                         #print(next_data)
                         self.process_d4_data(data, data_header, ip)
                         # process next d4 header
-                        self.process_header(next_data)
+                        self.process_header(next_data, ip, source_port)
                     # data_header['size'] > (len(data) - header_size)
                     # buffer the data
                     else:
@@ -138,7 +137,7 @@ class Echo(Protocol, TimeoutMixin):
                 #print(data)
                 #print()
                 self.buffer = b''
-                self.process_header(data)
+                self.process_header(data, ip, source_port)
 
     def process_d4_data(self, data, data_header, ip):
         # empty buffer
