@@ -41,6 +41,9 @@ class Echo(Protocol, TimeoutMixin):
     def dataReceived(self, data):
         self.resetTimeout()
         ip, source_port = self.transport.client
+        # check blacklisted_ip
+        if redis_server.sismember('blacklisted_ip', ip):
+            self.transport.abortConnection()
         #print(ip)
         #print(source_port)
         self.process_header(data, ip, source_port)
@@ -164,6 +167,8 @@ class Echo(Protocol, TimeoutMixin):
             redis_server.xadd('stream:{}'.format(data_header['type']), {'message': data[header_size:], 'uuid': data_header['uuid_header'], 'timestamp': data_header['timestamp'], 'version': data_header['version']})
             redis_server.sadd('daily_uuid:{}'.format(date), data_header['uuid_header'])
             redis_server.zincrby('stat_uuid_ip:{}:{}'.format(date, data_header['uuid_header']), 1, ip)
+            redis_server.sadd('daily_ip:{}'.format(date), ip)
+            redis_server.zincrby('stat_ip_uuid:{}:{}'.format(date, ip), 1, data_header['uuid_header'])
             #with open(data_header['uuid_header'], 'ab') as f:
             #    f.write(data[header_size:])
         else:

@@ -57,9 +57,9 @@ if __name__ == "__main__":
                             break
                     filepath = os.path.join(dir_path, filename)
 
-                    if os.path.getsize(filepath) > 500000000: #bytes
-                        gzip_file(filepath)
-                        filename = data_timestamp
+                    #if os.path.getsize(filepath) > 500000000: #bytes
+                    #    gzip_file(filepath)
+                    #    filename = data_timestamp
 
                 except FileNotFoundError:
                     os.makedirs(dir_path)
