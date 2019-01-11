@@ -2,6 +2,7 @@
 
 import os
 import sys
+import uuid
 import hmac
 import stat
 import redis
@@ -16,33 +17,40 @@ from twisted.python.modules import getModule
 from twisted.internet.protocol import Protocol
 from twisted.protocols.policies import TimeoutMixin
 
-
-from ctypes import *
-from uuid import UUID
-
 hmac_reset = bytearray(32)
-hmac_key = b'private key to change\n'
+hmac_key = b'private key to change'
 
 timeout_time = 30
 
 header_size = 62
 
+data_default_size_limit = 100000
+
+host_redis="localhost"
+port_redis=6379
 redis_server = redis.StrictRedis(
-                    host="localhost",
-                    port=6379,
+                    host=host_redis,
+                    port=port_redis,
                     db=0)
+
+try:
+    redis_server.ping()
+except redis.exceptions.ConnectionError:
+    print('Error: Redis server {}:{}, ConnectionError'.format(host_redis, port_redis))
+    sys.exit(1)
 
 class Echo(Protocol, TimeoutMixin):
 
     def __init__(self):
         self.buffer = b''
         self.setTimeout(timeout_time)
+        self.session_uuid = str(uuid.uuid4())
 
     def dataReceived(self, data):
         self.resetTimeout()
         ip, source_port = self.transport.client
         # check blacklisted_ip
-        if redis_server.sismember('blacklisted_ip', ip):
+        if redis_server.sismember('blacklist_ip', ip):
             self.transport.abortConnection()
         #print(ip)
         #print(source_port)
@@ -54,6 +62,10 @@ class Echo(Protocol, TimeoutMixin):
         self.buffer = b''
         #self.transport.abortConnection()
 
+    def connectionLost(self, reason):
+            #print("Done")
+            redis_server.sadd('ended_session', self.session_uuid)
+
     def unpack_header(self, data):
         data_header = {}
         if len(data) >= header_size:
@@ -64,18 +76,26 @@ class Echo(Protocol, TimeoutMixin):
             data_header['hmac_header'] = data[26:58]
             data_header['size'] = struct.unpack('I', data[58:62])[0]
 
+            # uuid blacklist
+            if redis_server.sismember('blacklist_uuid', data_header['uuid_header']):
+                self.transport.abortConnection()
+
+            # check default size limit
+            if data_header['size'] > data_default_size_limit:
+                self.transport.abortConnection()
+
         return data_header
 
     def is_valid_uuid_v4(self, header_uuid):
         try:
-            uuid_test = UUID(hex=header_uuid, version=4)
+            uuid_test = uuid.UUID(hex=header_uuid, version=4)
             return uuid_test.hex == header_uuid
         except:
             return False
 
     # # TODO:  check timestamp
-    def is_valid_header(self, uuid):
-        if self.is_valid_uuid_v4(uuid):
+    def is_valid_header(self, uuid_to_check):
+        if self.is_valid_uuid_v4(uuid_to_check):
             return True
         else:
             return False
@@ -158,13 +178,13 @@ class Echo(Protocol, TimeoutMixin):
         #print('timestamp: {}'.format( data_header['timestamp'] ))
         #print('hmac: {}'.format( data_header['hmac_header'] ))
         #print('size: {}'.format( data_header['size'] ))
-        #print(d4_header)
         ###       ###
 
         if data_header['hmac_header'] == HMAC.hexdigest():
             #print('hmac match')
             date = datetime.datetime.now().strftime("%Y%m%d")
-            redis_server.xadd('stream:{}'.format(data_header['type']), {'message': data[header_size:], 'uuid': data_header['uuid_header'], 'timestamp': data_header['timestamp'], 'version': data_header['version']})
+            redis_server.xadd('stream:{}:{}'.format(data_header['type'], self.session_uuid), {'message': data[header_size:], 'uuid': data_header['uuid_header'], 'timestamp': data_header['timestamp'], 'version': data_header['version']})
+            redis_server.sadd('session_uuid:{}'.format(data_header['type']), self.session_uuid.encode())
             redis_server.sadd('daily_uuid:{}'.format(date), data_header['uuid_header'])
             redis_server.zincrby('stat_uuid_ip:{}:{}'.format(date, data_header['uuid_header']), 1, ip)
             redis_server.sadd('daily_ip:{}'.format(date), ip)
