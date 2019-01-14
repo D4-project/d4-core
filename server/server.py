@@ -49,6 +49,7 @@ class Echo(Protocol, TimeoutMixin):
         self.setTimeout(timeout_time)
         self.session_uuid = str(uuid.uuid4())
         self.data_saved = False
+        logger.debug('New session: session_uuid={}'.format(self.session_uuid))
 
     def dataReceived(self, data):
         self.resetTimeout()
@@ -56,16 +57,19 @@ class Echo(Protocol, TimeoutMixin):
         # check blacklisted_ip
         if redis_server.sismember('blacklist_ip', ip):
             self.transport.abortConnection()
+            logger.warning('Blacklisted IP={}, connection closed'.format(ip))
 
         self.process_header(data, ip, source_port)
 
     def timeoutConnection(self):
         self.resetTimeout()
         self.buffer = b''
+        logger.debug('buffer timeout, session_uuid={}'.format(self.session_uuid))
         #self.transport.abortConnection()
 
     def connectionLost(self, reason):
             redis_server.sadd('ended_session', self.session_uuid)
+            logger.debug('Connection closed: session_uuid={}'.format(self.session_uuid))
 
     def unpack_header(self, data):
         data_header = {}
@@ -80,10 +84,12 @@ class Echo(Protocol, TimeoutMixin):
             # uuid blacklist
             if redis_server.sismember('blacklist_uuid', data_header['uuid_header']):
                 self.transport.abortConnection()
+                logger.warning('Blacklisted UUID={}, connection closed'.format(data_header['uuid_header']))
 
             # check default size limit
             if data_header['size'] > data_default_size_limit:
                 self.transport.abortConnection()
+                logger.warning('Incorrect data size: the server received more data than expected by default, expected={}, received={} , uuid={}, session_uuid={}'.format(data_default_size_limit, data_header['size'] ,data_header['uuid_header'], self.session_uuid))
 
         return data_header
 
@@ -92,6 +98,7 @@ class Echo(Protocol, TimeoutMixin):
             uuid_test = uuid.UUID(hex=header_uuid, version=4)
             return uuid_test.hex == header_uuid
         except:
+            logger.info('Not UUID v4: uuid={}, session_uuid={}'.format(header_uuid, self.session_uuid))
             return False
 
     # # TODO:  check timestamp
@@ -140,10 +147,13 @@ class Echo(Protocol, TimeoutMixin):
             else:
                 if len(data) < header_size:
                     self.buffer += data
+                    logger.debug('Not enough data received, the header is incomplete, pushing data to buffer, session_uuid={}, data_received={}'.format(self.session_uuid, len(data)))
                 else:
+
                     print('error discard data')
                     print(data_header)
                     print(data)
+                    logger.warning('Error unpacking header: incorrect format, session_uuid={}'.format(self.session_uuid))
                     #time.sleep(5)
                     #sys.exit(1)
 
@@ -219,9 +229,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-v', '--verbose',help='dddd' , type=int, default=30)
     args = parser.parse_args()
-    print(args.verbose)
 
-    log_filename = 'd4-server-logs.log'
+    logs_dir = 'logs'
+    if not os.path.isdir(logs_dir):
+        os.makedirs(logs_dir)
+
+    log_filename = 'logs/d4-server-logs.log'
     logger = logging.getLogger()
     #formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
@@ -231,6 +244,5 @@ if __name__ == "__main__":
     logger.addHandler(handler_log)
     logger.setLevel(args.verbose)
 
-    logger.error('test')
-
+    logger.info('Launching Server ...')
     task.react(main)
