@@ -27,14 +27,9 @@ if __name__ == "__main__":
             session_uuid = session_uuid.decode()
             if not redis_server.sismember('working_session_uuid:{}'.format(type), session_uuid):
 
-                #try:
-                #    redis_server.xgroup_create('stream:{}:{}'.format(type, session_uuid), 'workers:{}:{}'.format(type, session_uuid))
-                #xcept redis.exceptions.ResponseError:
-                #    pass
-
                 process = subprocess.Popen(['./worker.py', session_uuid])
                 print('New worker launched: {}'.format(session_uuid))
 
 
-        print('sleeping(10)')
+        #print('.')
         time.sleep(10)

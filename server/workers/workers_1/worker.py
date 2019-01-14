@@ -33,24 +33,26 @@ if __name__ == "__main__":
     id = '0'
 
     res = redis_server.xread({stream_name: id}, count=1)
-    #print(res)
     if res:
         uuid = res[0][1][0][1][b'uuid'].decode()
+        date = datetime.datetime.now().strftime("%Y%m%d")
+        tcpdump_path = os.path.join('../../data', uuid, str(type))
+        rel_path = os.path.join(tcpdump_path, date[0:4], date[4:6], date[6:8])
+        if not os.path.isdir(rel_path):
+            os.makedirs(rel_path)
     else:
         sys.exit(1)
         print('Incorrect message')
     redis_server.sadd('working_session_uuid:{}'.format(type), session_uuid)
 
     #LAUNCH a tcpdump
-    #process = subprocess.Popen(["tcpdump", '-n', '-r', '-', '-G', '5', '-w', '{}/%Y/%m/%d/%H%M%S.cap'.format(uuid)], stdin=subprocess.PIPE)
-    process = subprocess.Popen(["tcpdump", '-n', '-r', '-', '-G', tcp_dump_cycle, '-w', '{}-%Y%m%d%H%M%S.cap'.format(uuid)], stdin=subprocess.PIPE, stderr=subprocess.PIPE)
+    process = subprocess.Popen(["tcpdump", '-n', '-r', '-', '-G', tcp_dump_cycle, '-w', '{}/%Y/%m/%d/{}-%Y-%m-%d-%H%M%S.cap'.format(tcpdump_path, uuid)], stdin=subprocess.PIPE)
     #redis_server.xgroup_create('stream:{}:{}'.format(type, session_uuid), 'workers:{}:{}'.format(type, session_uuid))
 
     while True:
         #print(redis_server.xpending(stream_name, group_name))
         #redis_server.sadd('working_session_uuid:{}'.format(type), session_uuid)
 
-        #res = redis_server.xreadgroup(group_name, consumer_name, {stream_name: '1547198181015-0'}, count=1)
         res = redis_server.xread({stream_name: id}, count=1)
         #print(res)
         if res:
@@ -61,8 +63,14 @@ if __name__ == "__main__":
                 if id and data:
                     #print(id)
                     #print(data)
+                    new_date = datetime.datetime.now().strftime("%Y%m%d")
+                    if new_date != date:
+                        print('rrr')
+                        date= new_date
+                        rel_path = os.path.join(tcpdump_path, date[0:4], date[4:6], date[6:8])
+                        if not os.path.isdir(rel_path):
+                            os.makedirs(rel_path)
 
-                    #print(data[b'message'])
                     try:
                         process.stdin.write(data[b'message'])
                     except:
@@ -72,9 +80,6 @@ if __name__ == "__main__":
 
                         #print(process.stdout.read())
 
-                    #redis_server.xack(stream_name, group_name, id)
-                    #redis_server.xdel(stream_name, id)
-
         else:
             # sucess, all data are saved
             if redis_server.sismember('ended_session', session_uuid):
@@ -82,20 +87,18 @@ if __name__ == "__main__":
                 #print(out)
                 if err == b'tcpdump: unknown file format\n':
                     data_incorrect_format(session_uuid)
-                else:
+                elif err:
                     print(err)
 
-
-
                 #print(process.stderr.read())
-                #redis_server.srem('ended_session', session_uuid)
-                #redis_server.srem('session_uuid:{}'.format(type), session_uuid)
-                #redis_server.srem('working_session_uuid:{}'.format(type), session_uuid)
-                #redis_server.delete(stream_name)
+                redis_server.srem('ended_session', session_uuid)
+                redis_server.srem('session_uuid:{}'.format(type), session_uuid)
+                redis_server.srem('working_session_uuid:{}'.format(type), session_uuid)
+                redis_server.hdel('map-type:session_uuid-uuid:{}'.format(type), session_uuid)
+                redis_server.delete(stream_name)
                 # make sure that tcpdump can save all datas
-                print('DONE')
                 time.sleep(int(tcp_dump_cycle) + 1)
-                print('Exit')
+                print('tcpdump: {} Done'.format(session_uuid))
                 sys.exit(0)
             else:
                 time.sleep(10)
