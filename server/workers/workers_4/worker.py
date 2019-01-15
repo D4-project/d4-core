@@ -4,7 +4,6 @@ import os
 import sys
 import time
 import redis
-import subprocess
 
 import datetime
 
@@ -64,22 +63,21 @@ if __name__ == "__main__":
                         date = new_date
                         rotate_file = True
 
-                    if rotate_file:
-                        if b'\n[' in data[b'message']:
-                            old_str, new_str = data[b'message'].split(b'\n[', maxsplit=1)
+                    if rotate_file and b'\n[' in data[b'message']:
+                        old_str, new_str = data[b'message'].split(b'\n[', maxsplit=1)
 
-                            with open(rel_path, 'ab') as f:
-                                f.write(old_str)
+                        with open(rel_path, 'ab') as f:
+                            f.write(old_str)
 
-                            dir_path = os.path.join(data_rel_path, date[0:4], date[4:6], date[6:8])
-                            if not os.path.isdir(dir_path):
-                                os.makedirs(dir_path)
-                            filename = '{}-{}-{}-{}-{}.dnscap.txt'.format(data[b'uuid'].decode(), date[0:4], date[4:6], date[6:8], date[8:14])
-                            rel_path = os.path.join(dir_path, filename)
-                            time_file = time.time()
-                            rotate_file = False
-                            with open(rel_path, 'ab') as f:
-                                f.write(b'['+new_str)
+                        dir_path = os.path.join(data_rel_path, date[0:4], date[4:6], date[6:8])
+                        if not os.path.isdir(dir_path):
+                            os.makedirs(dir_path)
+                        filename = '{}-{}-{}-{}-{}.dnscap.txt'.format(data[b'uuid'].decode(), date[0:4], date[4:6], date[6:8], date[8:14])
+                        rel_path = os.path.join(dir_path, filename)
+                        time_file = time.time()
+                        rotate_file = False
+                        with open(rel_path, 'ab') as f:
+                            f.write(b'['+new_str)
 
                     else:
                         with open(rel_path, 'ab') as f:
@@ -95,7 +93,6 @@ if __name__ == "__main__":
                 redis_server.srem('working_session_uuid:{}'.format(type), session_uuid)
                 redis_server.hdel('map-type:session_uuid-uuid:{}'.format(type), session_uuid)
                 redis_server.delete(stream_name)
-                # make sure that tcpdump can save all datas
                 print('dnscap: {} Done'.format(session_uuid))
                 sys.exit(0)
             else:
