@@ -21,7 +21,7 @@ from twisted.internet.protocol import Protocol
 from twisted.protocols.policies import TimeoutMixin
 
 hmac_reset = bytearray(32)
-hmac_key = b'private key to change\n'
+hmac_key = b'private key to change'
 
 timeout_time = 30
 
@@ -65,10 +65,10 @@ class Echo(Protocol, TimeoutMixin):
         self.resetTimeout()
         self.buffer = b''
         logger.debug('buffer timeout, session_uuid={}'.format(self.session_uuid))
-        #self.transport.abortConnection()
 
     def connectionLost(self, reason):
             redis_server.sadd('ended_session', self.session_uuid)
+            self.setTimeout(None)
             logger.debug('Connection closed: session_uuid={}'.format(self.session_uuid))
 
     def unpack_header(self, data):
@@ -106,6 +106,7 @@ class Echo(Protocol, TimeoutMixin):
         if self.is_valid_uuid_v4(uuid_to_check):
             return True
         else:
+            logger.info('Invalid Header, uuid={}, session_uuid={}'.format(uuid_to_check, self.session_uuid))
             return False
 
     def process_header(self, data, ip, source_port):
@@ -142,20 +143,17 @@ class Echo(Protocol, TimeoutMixin):
                         print('discard data')
                         print(data_header)
                         print(data)
-                        #time.sleep(5)
-                        #sys.exit(1)
+                        logger.warning('Invalid Header, uuid={}, session_uuid={}'.format(data_header['uuid_header'], self.session_uuid))
             else:
                 if len(data) < header_size:
                     self.buffer += data
-                    logger.debug('Not enough data received, the header is incomplete, pushing data to buffer, session_uuid={}, data_received={}'.format(self.session_uuid, len(data)))
+                    #logger.debug('Not enough data received, the header is incomplete, pushing data to buffer, session_uuid={}, data_received={}'.format(self.session_uuid, len(data)))
                 else:
 
                     print('error discard data')
                     print(data_header)
                     print(data)
                     logger.warning('Error unpacking header: incorrect format, session_uuid={}'.format(self.session_uuid))
-                    #time.sleep(5)
-                    #sys.exit(1)
 
         # not a header
         else:
@@ -201,6 +199,11 @@ class Echo(Protocol, TimeoutMixin):
             redis_server.sadd('daily_uuid:{}'.format(date), data_header['uuid_header'])
             redis_server.sadd('daily_ip:{}'.format(date), ip)
 
+            #
+            if not redis_server.hexists('metadata_uuid:{}'.format(data_header['uuid_header']), 'first_seen'):
+                redis_server.hset('metadata_uuid:{}'.format(data_header['uuid_header']), 'first_seen', data_header['timestamp'])
+            redis_server.hset('metadata_uuid:{}'.format(data_header['uuid_header']), 'last_seen', data_header['timestamp'])
+
             if not self.data_saved:
                 redis_server.sadd('session_uuid:{}'.format(data_header['type']), self.session_uuid.encode())
                 redis_server.hset('map-type:session_uuid-uuid:{}'.format(data_header['type']), self.session_uuid, data_header['uuid_header'])
@@ -208,6 +211,7 @@ class Echo(Protocol, TimeoutMixin):
         else:
             print('hmac do not match')
             print(data)
+            logger.debug("HMAC don't match, uuid={}, session_uuid={}".format(data_header['uuid_header'], self.session_uuid))
 
 
 

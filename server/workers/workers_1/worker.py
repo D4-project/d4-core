@@ -18,7 +18,10 @@ redis_server = redis.StrictRedis(
                     db=0)
 
 type = 1
-tcp_dump_cycle = '5'
+tcp_dump_cycle = '300'
+stream_buffer = 100
+
+id_to_delete = []
 
 if __name__ == "__main__":
 
@@ -47,14 +50,12 @@ if __name__ == "__main__":
 
     #LAUNCH a tcpdump
     process = subprocess.Popen(["tcpdump", '-n', '-r', '-', '-G', tcp_dump_cycle, '-w', '{}/%Y/%m/%d/{}-%Y-%m-%d-%H%M%S.cap'.format(tcpdump_path, uuid)], stdin=subprocess.PIPE)
-    #redis_server.xgroup_create('stream:{}:{}'.format(type, session_uuid), 'workers:{}:{}'.format(type, session_uuid))
+    nb_save = 0
 
     while True:
-        #print(redis_server.xpending(stream_name, group_name))
         #redis_server.sadd('working_session_uuid:{}'.format(type), session_uuid)
 
         res = redis_server.xread({stream_name: id}, count=1)
-        #print(res)
         if res:
             new_id = res[0][1][0][0].decode()
             if id != new_id:
@@ -65,7 +66,6 @@ if __name__ == "__main__":
                     #print(data)
                     new_date = datetime.datetime.now().strftime("%Y%m%d")
                     if new_date != date:
-                        print('rrr')
                         date= new_date
                         rel_path = os.path.join(tcpdump_path, date[0:4], date[4:6], date[6:8])
                         if not os.path.isdir(rel_path):
@@ -73,12 +73,20 @@ if __name__ == "__main__":
 
                     try:
                         process.stdin.write(data[b'message'])
+                        id_to_delete.append(id)
                     except:
                         Error_message = process.stderr.read()
                         if Error_message == b'tcpdump: unknown file format\n':
                             data_incorrect_format(session_uuid)
 
                         #print(process.stdout.read())
+                    nb_save += 1
+
+                    if nb_save > stream_buffer:
+                        for id in id_to_delete:
+                            redis_server.xdel(stream_name, id)
+                        id_to_delete = []
+                        nb_save = 0
 
         else:
             # sucess, all data are saved
