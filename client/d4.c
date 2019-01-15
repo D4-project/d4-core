@@ -121,6 +121,7 @@ int d4_load_config(d4_t* d4)
             if (fd > 0) {
                 //FIXME error handling
                 read(fd, d4->conf[i], SZCONFVALUE);
+                close(fd);
             } else {
                 d4->errno_copy = errno;
                 INSERT_ERROR("Failed to load %s", d4params[i]);
