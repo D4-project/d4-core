@@ -6,29 +6,32 @@ import time
 import redis
 import subprocess
 
-redis_server = redis.StrictRedis(
-                    host="localhost",
-                    port=6379,
+host_redis_stream = "localhost"
+port_redis_stream = 6379
+
+redis_server_stream = redis.StrictRedis(
+                    host=host_redis_stream,
+                    port=port_redis_stream,
                     db=0)
 type = 1
 
 try:
-    redis_server.ping()
+    redis_server_stream.ping()
 except redis.exceptions.ConnectionError:
     print('Error: Redis server {}:{}, ConnectionError'.format(host_redis, port_redis))
     sys.exit(1)
 
 if __name__ == "__main__":
     stream_name = 'stream:{}'.format(type)
-    redis_server.delete('working_session_uuid:{}'.format(type))
+    redis_server_stream.delete('working_session_uuid:{}'.format(type))
 
     while True:
-        for session_uuid in redis_server.smembers('session_uuid:{}'.format(type)):
+        for session_uuid in redis_server_stream.smembers('session_uuid:{}'.format(type)):
             session_uuid = session_uuid.decode()
-            if not redis_server.sismember('working_session_uuid:{}'.format(type), session_uuid):
+            if not redis_server_stream.sismember('working_session_uuid:{}'.format(type), session_uuid):
 
                 process = subprocess.Popen(['./worker.py', session_uuid])
-                print('New worker launched: {}'.format(session_uuid))
+                print('Launching new worker{} ...     session_uuid={}'.format(type, session_uuid))
 
 
         #print('.')
