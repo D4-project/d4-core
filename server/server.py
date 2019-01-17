@@ -229,11 +229,14 @@ class Echo(Protocol, TimeoutMixin):
             if redis_server_stream.xlen('stream:{}:{}'.format(data_header['type'], self.session_uuid)) < self.stream_max_size:
 
                 redis_server_stream.xadd('stream:{}:{}'.format(data_header['type'], self.session_uuid), {'message': data[header_size:], 'uuid': data_header['uuid_header'], 'timestamp': data_header['timestamp'], 'version': data_header['version']})
+
+                # daily stats
                 redis_server_metadata.zincrby('stat_uuid_ip:{}:{}'.format(date, data_header['uuid_header']), 1, ip)
                 redis_server_metadata.zincrby('stat_ip_uuid:{}:{}'.format(date, ip), 1, data_header['uuid_header'])
-
                 redis_server_metadata.zincrby('daily_uuid:{}'.format(date), 1, data_header['uuid_header'])
                 redis_server_metadata.zincrby('daily_ip:{}'.format(date), 1, ip)
+                redis_server_metadata.zincrby('daily_type:{}'.format(date), 1, data_header['type'])
+                redis_server_metadata.zincrby('stat_type_uuid:{}:{}'.format(date, data_header['type']), 1, data_header['uuid_header'])
 
                 #
                 if not redis_server_metadata.hexists('metadata_uuid:{}'.format(data_header['uuid_header']), 'first_seen'):
