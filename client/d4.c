@@ -191,7 +191,7 @@ void d4_transfert(d4_t* d4)
     hmac = calloc(1,SZHMAC);
     hmaczero = calloc(1,SZHMAC);
     //TODO error handling -> insert error message
-    if ((buf == NULL) && (hmac == NULL))
+    if ((buf == NULL) && (hmac == NULL) && (hmaczero == NULL))
         return;
 
     d4_prepare_header(d4);
