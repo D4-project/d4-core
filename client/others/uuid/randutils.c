@@ -14,7 +14,6 @@
 #include <sys/time.h>
 #include <errno.h>
 #include <sys/syscall.h>
-#include <sys/random.h>
 #include <unistd.h>
 
 //#include "c.h"
@@ -118,7 +117,7 @@ void random_get_bytes(void *buf, size_t nbytes)
 		int x;
 
 		errno = 0;
-		x = getrandom(cp, n, GRND_NONBLOCK);
+		x = getentropy(cp, n);
 		if (x > 0) {			/* success */
 		       n -= x;
 		       cp += x;
