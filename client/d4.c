@@ -80,14 +80,14 @@ void  d4_update_uuid(d4_t* d4)
 int d4_check_config(d4_t* d4)
 {
     // TODO implement other sources, file, fifo, unix_socket ...
-    if (strlen(d4->conf[SOURCE]) > strlen(STDIN)) {
+    if (strlen(d4->conf[SOURCE]) >= strlen(STDIN)) {
         if (!strncmp(d4->conf[SOURCE],STDIN, strlen(STDIN))) {
             d4->source.fd = STDIN_FILENO;
         }
     }
 
     //TODO implement other destinations file, fifo unix_socket ...
-    if (strlen(d4->conf[DESTINATION]) > strlen(STDOUT)) {
+    if (strlen(d4->conf[DESTINATION]) >= strlen(STDOUT)) {
         if (!strncmp(d4->conf[DESTINATION],STDOUT, strlen(STDOUT))) {
             d4->destination.fd = STDOUT_FILENO;
         }
@@ -121,6 +121,7 @@ int d4_load_config(d4_t* d4)
             if (fd > 0) {
                 //FIXME error handling
                 read(fd, d4->conf[i], SZCONFVALUE);
+                close(fd);
             } else {
                 d4->errno_copy = errno;
                 INSERT_ERROR("Failed to load %s", d4params[i]);
@@ -190,7 +191,7 @@ void d4_transfert(d4_t* d4)
     hmac = calloc(1,SZHMAC);
     hmaczero = calloc(1,SZHMAC);
     //TODO error handling -> insert error message
-    if ((buf == NULL) && (hmac == NULL))
+    if ((buf == NULL) && (hmac == NULL) && (hmaczero == NULL))
         return;
 
     d4_prepare_header(d4);
