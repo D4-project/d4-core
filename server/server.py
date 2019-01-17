@@ -21,26 +21,49 @@ from twisted.internet.protocol import Protocol
 from twisted.protocols.policies import TimeoutMixin
 
 hmac_reset = bytearray(32)
-hmac_key = b'private key to change\n'
+hmac_key = b'private key to change'
+
+accepted_type = [1, 4]
 
 timeout_time = 30
 
 header_size = 62
 
 data_default_size_limit = 100000
+default_max_entries_by_stream = 10000
 
-host_redis="localhost"
-port_redis=6379
-redis_server = redis.StrictRedis(
-                    host=host_redis,
-                    port=port_redis,
+host_redis_stream = "localhost"
+port_redis_stream = 6379
+
+host_redis_metadata = "localhost"
+port_redis_metadata= 6380
+
+redis_server_stream = redis.StrictRedis(
+                    host=host_redis_stream,
+                    port=port_redis_stream,
+                    db=0)
+
+redis_server_metadata = redis.StrictRedis(
+                    host=host_redis_metadata,
+                    port=port_redis_metadata,
                     db=0)
 
 try:
-    redis_server.ping()
+    redis_server_stream.ping()
 except redis.exceptions.ConnectionError:
-    print('Error: Redis server {}:{}, ConnectionError'.format(host_redis, port_redis))
+    print('Error: Redis server {}:{}, ConnectionError'.format(host_redis_stream, port_redis_stream))
     sys.exit(1)
+
+try:
+    redis_server_metadata.ping()
+except redis.exceptions.ConnectionError:
+    print('Error: Redis server {}:{}, ConnectionError'.format(host_redis_metadata, port_redis_metadata))
+    sys.exit(1)
+
+# init redis_server_metadata
+redis_server_metadata.delete('server:accepted_type')
+for type in accepted_type:
+    redis_server_metadata.sadd('server:accepted_type', type)
 
 class Echo(Protocol, TimeoutMixin):
 
@@ -49,13 +72,14 @@ class Echo(Protocol, TimeoutMixin):
         self.setTimeout(timeout_time)
         self.session_uuid = str(uuid.uuid4())
         self.data_saved = False
+        self.stream_max_size = None
         logger.debug('New session: session_uuid={}'.format(self.session_uuid))
 
     def dataReceived(self, data):
         self.resetTimeout()
         ip, source_port = self.transport.client
         # check blacklisted_ip
-        if redis_server.sismember('blacklist_ip', ip):
+        if redis_server_metadata.sismember('blacklist_ip', ip):
             self.transport.abortConnection()
             logger.warning('Blacklisted IP={}, connection closed'.format(ip))
 
@@ -65,10 +89,10 @@ class Echo(Protocol, TimeoutMixin):
         self.resetTimeout()
         self.buffer = b''
         logger.debug('buffer timeout, session_uuid={}'.format(self.session_uuid))
-        #self.transport.abortConnection()
 
     def connectionLost(self, reason):
-            redis_server.sadd('ended_session', self.session_uuid)
+            redis_server_stream.sadd('ended_session', self.session_uuid)
+            self.setTimeout(None)
             logger.debug('Connection closed: session_uuid={}'.format(self.session_uuid))
 
     def unpack_header(self, data):
@@ -82,7 +106,7 @@ class Echo(Protocol, TimeoutMixin):
             data_header['size'] = struct.unpack('I', data[58:62])[0]
 
             # uuid blacklist
-            if redis_server.sismember('blacklist_uuid', data_header['uuid_header']):
+            if redis_server_metadata.sismember('blacklist_uuid', data_header['uuid_header']):
                 self.transport.abortConnection()
                 logger.warning('Blacklisted UUID={}, connection closed'.format(data_header['uuid_header']))
 
@@ -102,17 +126,21 @@ class Echo(Protocol, TimeoutMixin):
             return False
 
     # # TODO:  check timestamp
-    def is_valid_header(self, uuid_to_check):
+    def is_valid_header(self, uuid_to_check, type):
         if self.is_valid_uuid_v4(uuid_to_check):
-            return True
+            if redis_server_metadata.sismember('server:accepted_type', type):
+                return True
+            else:
+                logger.warning('Invalid type, the server don\'t accept this type: {}, uuid={}, session_uuid={}'.format(type, uuid_to_check, self.session_uuid))
         else:
+            logger.info('Invalid Header, uuid={}, session_uuid={}'.format(uuid_to_check, self.session_uuid))
             return False
 
     def process_header(self, data, ip, source_port):
         if not self.buffer:
             data_header = self.unpack_header(data)
             if data_header:
-                if self.is_valid_header(data_header['uuid_header']):
+                if self.is_valid_header(data_header['uuid_header'], data_header['type']):
                     # check data size
                     if data_header['size'] == (len(data) - header_size):
                         self.process_d4_data(data, data_header, ip)
@@ -142,20 +170,17 @@ class Echo(Protocol, TimeoutMixin):
                         print('discard data')
                         print(data_header)
                         print(data)
-                        #time.sleep(5)
-                        #sys.exit(1)
+                        logger.warning('Invalid Header, uuid={}, session_uuid={}'.format(data_header['uuid_header'], self.session_uuid))
             else:
                 if len(data) < header_size:
                     self.buffer += data
-                    logger.debug('Not enough data received, the header is incomplete, pushing data to buffer, session_uuid={}, data_received={}'.format(self.session_uuid, len(data)))
+                    #logger.debug('Not enough data received, the header is incomplete, pushing data to buffer, session_uuid={}, data_received={}'.format(self.session_uuid, len(data)))
                 else:
 
                     print('error discard data')
                     print(data_header)
                     print(data)
                     logger.warning('Error unpacking header: incorrect format, session_uuid={}'.format(self.session_uuid))
-                    #time.sleep(5)
-                    #sys.exit(1)
 
         # not a header
         else:
@@ -193,21 +218,39 @@ class Echo(Protocol, TimeoutMixin):
 
         # hmac match
         if data_header['hmac_header'] == HMAC.hexdigest():
+            if not self.stream_max_size:
+                temp = redis_server_metadata.hget('stream_max_size_by_uuid', data_header['uuid_header'])
+                if temp is not None:
+                    self.stream_max_size = int(temp)
+                else:
+                    self.stream_max_size = default_max_entries_by_stream
+
             date = datetime.datetime.now().strftime("%Y%m%d")
-            redis_server.xadd('stream:{}:{}'.format(data_header['type'], self.session_uuid), {'message': data[header_size:], 'uuid': data_header['uuid_header'], 'timestamp': data_header['timestamp'], 'version': data_header['version']})
-            redis_server.zincrby('stat_uuid_ip:{}:{}'.format(date, data_header['uuid_header']), 1, ip)
-            redis_server.zincrby('stat_ip_uuid:{}:{}'.format(date, ip), 1, data_header['uuid_header'])
+            if redis_server_stream.xlen('stream:{}:{}'.format(data_header['type'], self.session_uuid)) < self.stream_max_size:
 
-            redis_server.sadd('daily_uuid:{}'.format(date), data_header['uuid_header'])
-            redis_server.sadd('daily_ip:{}'.format(date), ip)
+                redis_server_stream.xadd('stream:{}:{}'.format(data_header['type'], self.session_uuid), {'message': data[header_size:], 'uuid': data_header['uuid_header'], 'timestamp': data_header['timestamp'], 'version': data_header['version']})
+                redis_server_metadata.zincrby('stat_uuid_ip:{}:{}'.format(date, data_header['uuid_header']), 1, ip)
+                redis_server_metadata.zincrby('stat_ip_uuid:{}:{}'.format(date, ip), 1, data_header['uuid_header'])
 
-            if not self.data_saved:
-                redis_server.sadd('session_uuid:{}'.format(data_header['type']), self.session_uuid.encode())
-                redis_server.hset('map-type:session_uuid-uuid:{}'.format(data_header['type']), self.session_uuid, data_header['uuid_header'])
-                self.data_saved = True
+                redis_server_metadata.zincrby('daily_uuid:{}'.format(date), 1, data_header['uuid_header'])
+                redis_server_metadata.zincrby('daily_ip:{}'.format(date), 1, ip)
+
+                #
+                if not redis_server_metadata.hexists('metadata_uuid:{}'.format(data_header['uuid_header']), 'first_seen'):
+                    redis_server_metadata.hset('metadata_uuid:{}'.format(data_header['uuid_header']), 'first_seen', data_header['timestamp'])
+                redis_server_metadata.hset('metadata_uuid:{}'.format(data_header['uuid_header']), 'last_seen', data_header['timestamp'])
+
+                if not self.data_saved:
+                    redis_server_stream.sadd('session_uuid:{}'.format(data_header['type']), self.session_uuid.encode())
+                    redis_server_stream.hset('map-type:session_uuid-uuid:{}'.format(data_header['type']), self.session_uuid, data_header['uuid_header'])
+                    self.data_saved = True
+            else:
+                logger.warning("stream exceed max entries limit, uuid={}, session_uuid={}, type={}".format(data_header['uuid_header'], self.session_uuid, data_header['type']))
+                self.transport.abortConnection()
         else:
             print('hmac do not match')
             print(data)
+            logger.debug("HMAC don't match, uuid={}, session_uuid={}".format(data_header['uuid_header'], self.session_uuid))
 
 
 
@@ -234,12 +277,12 @@ if __name__ == "__main__":
     if not os.path.isdir(logs_dir):
         os.makedirs(logs_dir)
 
-    log_filename = 'logs/d4-server-logs.log'
+    log_filename = 'logs/d4-server.log'
     logger = logging.getLogger()
     #formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
     handler_log = logging.handlers.TimedRotatingFileHandler(log_filename, when="midnight", interval=1)
-    handler_log.suffix = '%Y-%m-%d-{}'.format(log_filename)
+    handler_log.suffix = '%Y-%m-%d.log'
     handler_log.setFormatter(formatter)
     logger.addHandler(handler_log)
     logger.setLevel(args.verbose)

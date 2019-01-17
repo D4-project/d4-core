@@ -13,7 +13,7 @@ redis_server_stream = redis.StrictRedis(
                     host=host_redis_stream,
                     port=port_redis_stream,
                     db=0)
-type = 1
+type = 4
 
 try:
     redis_server_stream.ping()
@@ -32,7 +32,6 @@ if __name__ == "__main__":
 
                 process = subprocess.Popen(['./worker.py', session_uuid])
                 print('Launching new worker{} ...     session_uuid={}'.format(type, session_uuid))
-
 
         #print('.')
         time.sleep(10)
