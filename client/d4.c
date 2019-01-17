@@ -80,14 +80,14 @@ void  d4_update_uuid(d4_t* d4)
 int d4_check_config(d4_t* d4)
 {
     // TODO implement other sources, file, fifo, unix_socket ...
-    if (strlen(d4->conf[SOURCE]) > strlen(STDIN)) {
+    if (strlen(d4->conf[SOURCE]) >= strlen(STDIN)) {
         if (!strncmp(d4->conf[SOURCE],STDIN, strlen(STDIN))) {
             d4->source.fd = STDIN_FILENO;
         }
     }
 
     //TODO implement other destinations file, fifo unix_socket ...
-    if (strlen(d4->conf[DESTINATION]) > strlen(STDOUT)) {
+    if (strlen(d4->conf[DESTINATION]) >= strlen(STDOUT)) {
         if (!strncmp(d4->conf[DESTINATION],STDOUT, strlen(STDOUT))) {
             d4->destination.fd = STDOUT_FILENO;
         }
