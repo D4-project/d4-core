@@ -112,6 +112,8 @@ int d4_load_config(d4_t* d4)
 {
     int i;
     int fd;
+    int n;
+    int j;
     char *buf;
     buf=calloc(1,2*FILENAME_MAX);
     if (buf) {
@@ -120,7 +122,16 @@ int d4_load_config(d4_t* d4)
             fd = open(buf,O_RDONLY);
             if (fd > 0) {
                 //FIXME error handling
-                read(fd, d4->conf[i], SZCONFVALUE);
+                n = read(fd, d4->conf[i], SZCONFVALUE);
+                if (n > 0) {
+                    //Remove the last new line
+                    for (j=n; j>=0; --j) {
+                        if (d4->conf[i][j]== '\n') {
+                            d4->conf[i][j] = '\0';
+                            break;
+                        }
+                    }
+                }
                 close(fd);
             } else {
                 d4->errno_copy = errno;
