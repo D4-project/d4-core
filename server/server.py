@@ -118,7 +118,7 @@ class Echo(Protocol, TimeoutMixin):
             # Worker: Incorrect type
             if redis_server_stream.sismember('Error:IncorrectType:{}'.format(data_header['type']), self.session_uuid):
                 self.transport.abortConnection()
-                redis_server_stream.delete(stream_name)
+                redis_server_stream.delete('stream:{}:{}'.format(data_header['type'], self.session_uuid))
                 redis_server_stream.srem('Error:IncorrectType:{}'.format(data_header['type']), self.session_uuid)
                 logger.warning('Incorrect type={} detected by worker, uuid={}, session_uuid={}'.format(data_header['type'] ,data_header['uuid_header'], self.session_uuid))
 
