@@ -4,3 +4,6 @@
 *.key
 data/
 logs/
+redis/
+D4ENV/
+dump.rdb

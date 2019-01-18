@@ -3,7 +3,20 @@
 set -e
 set -x
 
-sudo apt-get install python3-pip -y
+sudo apt-get install python3-pip virtualenv screen -y
+
+if [ -z "$VIRTUAL_ENV" ]; then
+    virtualenv -p python3 D4ENV
+    echo export D4_HOME=$(pwd) >> ./D4ENV/bin/activate
+    . ./D4ENV/bin/activate
+fi
+python3 -m pip install -r requirement.txt
+
+pushd web/
+./update_web.sh
+popd
+
+
 python3 -m pip install -r requirement.txt
 
 # REDIS #

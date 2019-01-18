@@ -29,7 +29,7 @@ timeout_time = 30
 
 header_size = 62
 
-data_default_size_limit = 100000
+data_default_size_limit = 1000000
 default_max_entries_by_stream = 10000
 
 host_redis_stream = "localhost"
@@ -113,7 +113,14 @@ class Echo(Protocol, TimeoutMixin):
             # check default size limit
             if data_header['size'] > data_default_size_limit:
                 self.transport.abortConnection()
-                logger.warning('Incorrect data size: the server received more data than expected by default, expected={}, received={} , uuid={}, session_uuid={}'.format(data_default_size_limit, data_header['size'] ,data_header['uuid_header'], self.session_uuid))
+                logger.warning('Incorrect header data size: the server received more data than expected by default, expected={}, received={} , uuid={}, session_uuid={}'.format(data_default_size_limit, data_header['size'] ,data_header['uuid_header'], self.session_uuid))
+
+            # Worker: Incorrect type
+            if redis_server_stream.sismember('Error:IncorrectType:{}'.format(data_header['type']), self.session_uuid):
+                self.transport.abortConnection()
+                redis_server_stream.delete(stream_name)
+                redis_server_stream.srem('Error:IncorrectType:{}'.format(data_header['type']), self.session_uuid)
+                logger.warning('Incorrect type={} detected by worker, uuid={}, session_uuid={}'.format(data_header['type'] ,data_header['uuid_header'], self.session_uuid))
 
         return data_header
 
