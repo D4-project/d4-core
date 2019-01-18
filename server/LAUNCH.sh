@@ -74,7 +74,7 @@ function launching_workers {
 
     screen -S "Workers_D4" -X screen -t "1_workers_manager" bash -c "cd ${D4_HOME}/workers/workers_1; ./workers_manager.py; read x"
     sleep 0.1
-    screen -S "Workers_D4" -X screen -t "2_workers_manager" bash -c "cd ${D4_HOME}/workers/workers_4; ./workers_manager.py; read x"
+    screen -S "Workers_D4" -X screen -t "4_workers_manager" bash -c "cd ${D4_HOME}/workers/workers_4; ./workers_manager.py; read x"
     sleep 0.1
 }
 
@@ -266,7 +266,8 @@ while [ "$1" != "" ]; do
     case $1 in
         -l | --launchAuto )         launch_all;
                                     ;;
-        -k | --killAll )            killall;
+        -k | --killAll )            helptext;
+                                    killall;
                                     ;;
         -h | --help )               helptext;
                                     exit

@@ -8,16 +8,34 @@ import subprocess
 
 import datetime
 
-def data_incorrect_format(session_uuid):
+def data_incorrect_format(stream_name, session_uuid, uuid):
+    redis_server_stream.sadd('Error:IncorrectType:{}'.format(type), session_uuid)
+    redis_server_metadata.hset('metadata_uuid:{}'.format(uuid), 'Error', 'Error: Type={}, Incorrect file format'.format(type))
+    clean_stream(stream_name, session_uuid)
     print('Incorrect format')
     sys.exit(1)
+
+def clean_stream(stream_name, session_uuid):
+    redis_server_stream.srem('ended_session', session_uuid)
+    redis_server_stream.srem('session_uuid:{}'.format(type), session_uuid)
+    redis_server_stream.srem('working_session_uuid:{}'.format(type), session_uuid)
+    redis_server_stream.hdel('map-type:session_uuid-uuid:{}'.format(type), session_uuid)
+    redis_server_stream.delete(stream_name)
 
 host_redis_stream = "localhost"
 port_redis_stream = 6379
 
+host_redis_metadata = "localhost"
+port_redis_metadata = 6380
+
 redis_server_stream = redis.StrictRedis(
                     host=host_redis_stream,
                     port=port_redis_stream,
+                    db=0)
+
+redis_server_metadata = redis.StrictRedis(
+                    host=host_redis_metadata,
+                    port=port_redis_metadata,
                     db=0)
 
 type = 1
@@ -51,7 +69,7 @@ if __name__ == "__main__":
     redis_server_stream.sadd('working_session_uuid:{}'.format(type), session_uuid)
 
     #LAUNCH a tcpdump
-    process = subprocess.Popen(["tcpdump", '-n', '-r', '-', '-G', tcp_dump_cycle, '-w', '{}/%Y/%m/%d/{}-%Y-%m-%d-%H%M%S.cap'.format(tcpdump_path, uuid)], stdin=subprocess.PIPE)
+    process = subprocess.Popen(["tcpdump", '-n', '-r', '-', '-G', tcp_dump_cycle, '-w', '{}/%Y/%m/%d/{}-%Y-%m-%d-%H%M%S.cap'.format(tcpdump_path, uuid)], stdin=subprocess.PIPE, stderr=subprocess.PIPE)
     nb_save = 0
 
     while True:
@@ -78,7 +96,7 @@ if __name__ == "__main__":
                     except:
                         Error_message = process.stderr.read()
                         if Error_message == b'tcpdump: unknown file format\n':
-                            data_incorrect_format(session_uuid)
+                            data_incorrect_format(stream_name, session_uuid, uuid)
 
                         #print(process.stdout.read())
                     nb_save += 1
@@ -95,7 +113,7 @@ if __name__ == "__main__":
                 out, err = process.communicate(timeout= 0.5)
                 #print(out)
                 if err == b'tcpdump: unknown file format\n':
-                    data_incorrect_format(session_uuid)
+                    data_incorrect_format(stream_name, session_uuid, uuid)
                 elif err:
                     print(err)
 
