@@ -1,5 +1,6 @@
 twisted[tls]
 redis
+flask
 
 #sudo python3 -m pip install --upgrade service_identity
 
