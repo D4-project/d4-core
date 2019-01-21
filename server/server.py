@@ -253,14 +253,20 @@ class Echo(Protocol, TimeoutMixin):
                 if not self.data_saved:
                     redis_server_stream.sadd('session_uuid:{}'.format(data_header['type']), self.session_uuid.encode())
                     redis_server_stream.hset('map-type:session_uuid-uuid:{}'.format(data_header['type']), self.session_uuid, data_header['uuid_header'])
+                    redis_server_metadata.hdel('metadata_uuid:{}'.format(data_header['uuid_header']), 'Error')
                     self.data_saved = True
             else:
                 logger.warning("stream exceed max entries limit, uuid={}, session_uuid={}, type={}".format(data_header['uuid_header'], self.session_uuid, data_header['type']))
+                ## TODO: FIXME
+                redis_server_metadata.hset('metadata_uuid:{}'.format(data_header['uuid_header']), 'Error', 'Error: stream exceed max entries limit')
+
                 self.transport.abortConnection()
         else:
             print('hmac do not match')
             print(data)
             logger.debug("HMAC don't match, uuid={}, session_uuid={}".format(data_header['uuid_header'], self.session_uuid))
+            ## TODO: FIXME
+            redis_server_metadata.hset('metadata_uuid:{}'.format(data_header['uuid_header']), 'Error', 'Error: HMAC don\'t match')
 
 
 

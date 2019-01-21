@@ -2,10 +2,13 @@
 
 <html>
 <head>
+	<title>D4-Project</title>
+	<link rel="icon" href="{{ url_for('static', filename='img/d4-logo.png')}}">
 	<!-- Core CSS -->
 	<link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
 
 	<!-- JS -->
+	<script src="{{ url_for('static', filename='js/bootstrap.min.js')}}"></script>
 	<script src="{{ url_for('static', filename='js/d3.min.js')}}"></script>
 
   <style>
@@ -36,7 +39,7 @@
     }
     text.category{
     fill: #666666;
-    font-size: 14px;
+    font-size: 18px;
     }
   </style>
 
@@ -45,18 +48,60 @@
 
 <body>
 
+	<nav class="navbar navbar-expand-sm navbar-dark bg-dark">
+		<a class="navbar-brand" href="{{ url_for('index') }}">
+      <img src="{{ url_for('static', filename='img/d4-logo.png')}}" alt="D4 Project" style="width:80px;">
+    </a>
+	  <ul class="navbar-nav">
+	    <li class="nav-item active">
+	      <a class="nav-link mr-3" href="{{ url_for('index') }}">Home <span class="sr-only">(current)</span></a>
+	    </li>
+	      <li class="nav-item" mr-3>
+	        <a class="nav-link mr-3" href="{{ url_for('sensors_status') }}">Sensors Status</a>
+	      </li>
+	      <li class="nav-item mr-3">
+	        <a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true">Server Management</a>
+	      </li>
+	    </ul>
+	</nav>
 
-		<div class="row">
+
+		<div class="row mr-0">
 			<div class="col">
-				<div id="everything">
-					<div id="chart"></div>
-				</div>
+					<div class="card text-center mt-2 ml-2">
+					  <div class="card-header bg-dark text-white">
+					    UUID
+					  </div>
+					  <div class="card-body">
+							<div id="chart_uuid"></div>
+					  </div>
+					  <div class="card-footer text-muted">
+					    {{date}}
+					  </div>
+					</div>
 			</div>
 			<div class="col">
-				<div id="everything">
-					<div id="charter"></div>
+				<div class="card text-center mt-2 ml-2">
+					<div class="card-header bg-dark text-white">
+						Types
+					</div>
+					<div class="card-body">
+						<div id="chart_type"></div>
+					</div>
+					<div class="card-footer text-muted">
+						{{date}}
+					</div>
 				</div>
 			</div>
+		</div>
+		<div class="d-flex justify-content-center mt-4">
+			<img src="{{ url_for('static', filename='img/circl.png')}}" alt="circl" class="h-75 mt-4">
+			<img src="{{ url_for('static', filename='img/cef.png')}}" alt="cef">
+		</div>
+		<div class="d-flex justify-content-center">
+			<a href="{{ url_for('delete_data') }}">
+				<button type="button" class="btn btn-primary mt-3">Delete All Data (Demo)</button>
+			</a>
 		</div>
 
 
@@ -99,8 +144,8 @@ var setup = function(targetID){
 var redrawChart = function(targetID, newdata) {
 
 	//Import settings
-	var margin=settings.margin, width=settings.width, height=settings.height, categoryIndent=settings.categoryIndent,
-	svg=settings.svg, x=settings.x, y=settings.y;
+	var margin=targetID.margin, width=targetID.width, height=targetID.height, categoryIndent=targetID.categoryIndent,
+	svg=targetID.svg, x=targetID.x, y=targetID.y;
 
 	//Reset domains
 	y.domain(newdata.sort(function(a,b){
@@ -205,8 +250,8 @@ var redrawChart = function(targetID, newdata) {
 		.attr("transform", function(d){ return "translate(0," + y(d.key) + ")"; });
 };
 
-var pullData = function(settings,callback){
-  d3.json("{{ url_for('_json_daily_uuid_stats') }}", function (err, data){
+var pullData = function(json_url,settings,callback){
+  d3.json(json_url, function (err, data){
   if (err) return console.warn(err);
 		callback(settings,data);
   })
@@ -220,17 +265,24 @@ var formatData = function(data){
 	  .slice(0, 15); // linit to 15 items
 }
 
-var redraw = function(settings){
-	pullData(settings,redrawChart)
+var redraw = function(json_url,settings){
+	pullData(json_url,settings,redrawChart)
 }
 
+json_url_uuid = "{{ url_for('_json_daily_uuid_stats') }}"
+json_url_type = "{{ url_for('_json_daily_type_stats') }}"
+
 //setup
-var settings = setup('#chart');
-redraw(settings)
+var settings = setup('#chart_uuid');
+redraw(json_url_uuid,settings)
+
+var settings_type = setup('#chart_type');
+redraw(json_url_type,settings_type)
 
 //Interval
 setInterval(function(){
-	redraw(settings)
+	redraw(json_url_uuid,settings)
+	redraw(json_url_type,settings_type)
 }, 4000);
 ////
 
