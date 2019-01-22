@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+	<title>D4-Project</title>
+	<link rel="icon" href="{{ url_for('static', filename='img/d4-logo.png')}}">
+	<!-- Core CSS -->
+	<link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+
+	<!-- JS -->
+	<script src="{{ url_for('static', filename='js/jquery.js')}}"></script>
+	<script src="{{ url_for('static', filename='js/bootstrap.min.js')}}"></script>
+
+</head>
+
+<body>
+
+	<nav class="navbar navbar-expand-sm navbar-dark bg-dark">
+		<a class="navbar-brand" href="{{ url_for('index') }}">
+      <img src="{{ url_for('static', filename='img/d4-logo.png')}}" alt="D4 Project" style="width:80px;">
+    </a>
+	  <ul class="navbar-nav">
+	    <li class="nav-item">
+	      <a class="nav-link mr-3" href="{{ url_for('index') }}">Home <span class="sr-only">(current)</span></a>
+	    </li>
+	      <li class="nav-item" mr-3>
+	        <a class="nav-link mr-3" href="{{ url_for('sensors_status') }}">Sensors Status</a>
+	      </li>
+	      <li class="nav-item mr-3">
+	        <a class="nav-link" href="{{ url_for('server_management') }}" tabindex="-1" aria-disabled="true">Server Management</a>
+	      </li>
+	    </ul>
+	</nav>
+
+	<div class="card text-center mt-3 ml-2 mr-2">
+		<div class="card-header bg-dark text-white">
+			UUID: {{uuid_sensor}}
+		</div>
+		<div class="card-body">
+			<div class="card-group">
+				<div class="card">
+					<div class="card-header bg-info text-white">
+						First Seen
+					</div>
+					<div class="card-body">
+						<p class="card-text">{{data_uuid['first_seen_gmt']}} - ({{data_uuid['first_seen']}})</p>
+					</div>
+				</div>
+				<div class="card">
+					<div class="card-header bg-info text-white">
+						Last Seen
+					</div>
+					<div class="card-body">
+						<p class="card-text">{{data_uuid['last_seen_gmt']}} - ({{data_uuid['last_seen']}})</p>
+					</div>
+				</div>
+				<div class="card">
+					{% if not data_uuid['Error'] %}
+						<div class="card-header bg-success text-white">
+							Status
+						</div>
+						<div class="card-body text-success">
+							<p class="card-text">OK</p>
+					{% else %}
+						<div class="card-header bg-danger text-white">
+							Status
+						</div>
+						<div class="card-body text-danger">
+							<p class="card-text">{{data_uuid['Error']}}</p>
+					{% endif %}
+						</div>
+				</div>
+			</div>
+
+		</div>
+	</div>
+
+	<div class="card-deck justify-content-center">
+		<div class="card border-dark mt-3" style="max-width: 18rem;">
+		  <div class="card-body text-dark">
+		    <h5 class="card-title">Change Stream Max Size</h5>
+					{% if not data_uuid['blacklisted_uuid'] and not data_uuid['blacklisted_ip_by_uuid'] %}
+						<input class="form-control" type="number" id="max_stream_input" value="{{max_uuid_stream}}" min="0" required>
+						<button type="button" class="btn btn-outline-secondary mt-1">Change Max Size</button>
+					{% else %}
+					<input class="form-control" type="number" id="max_stream_input" value="{{max_uuid_stream}}" min="0" required disabled>
+					<button type="button" class="btn btn-outline-secondary mt-1" disabled>Change Max Size</button>
+					{% endif %}
+			</div>
+		</div>
+		<div class="card text-center border-danger mt-3" style="max-width: 14rem;">
+		  <div class="card-body text-danger">
+		    <h5 class="card-title">UUID Blacklist</h5>
+				{% if not data_uuid['blacklisted_uuid'] %}
+				<a href="{{ url_for('blacklist_uuid') }}?uuid={{uuid_sensor}}&redirect=1" {% if data_uuid['blacklisted_ip_by_uuid'] %}style="pointer-events: none;"{% endif %}>
+			    <button type="button" class="btn btn-danger" {% if data_uuid['blacklisted_ip_by_uuid'] %}disabled{% endif %}>Blacklist UUID</button>
+				</a>
+				{% else %}
+				<a href="{{ url_for('unblacklist_uuid') }}?uuid={{uuid_sensor}}&redirect=1" {% if data_uuid['blacklisted_ip_by_uuid'] %}style="pointer-events: none;"{% endif %}>
+					<button type="button" class="btn btn-warning" {% if data_uuid['blacklisted_ip_by_uuid'] %}disabled{% endif %}>UnBlacklist UUID</button>
+				</a>
+				{% endif %}
+		  </div>
+		</div>
+		<div class="card text-center border-danger mt-3" style="max-width: 20rem;">
+		  <div class="card-body text-danger">
+		    <h5 class="card-title">Blacklist IP Using This UUID</h5>
+				{% if not data_uuid['blacklisted_ip_by_uuid'] %}
+					<a href="{{ url_for('blacklist_ip_by_uuid') }}?uuid={{uuid_sensor}}&redirect=1">
+			    	<button type="button" class="btn btn-danger">Blacklist IP</button>
+					</a>
+				{% else %}
+					<a href="{{ url_for('unblacklist_ip_by_uuid') }}?uuid={{uuid_sensor}}&redirect=1">
+						<button type="button" class="btn btn-warning">UnBlacklist IP</button>
+					</a>
+				{% endif %}
+		  </div>
+		</div>
+	</div>
+
+</body>

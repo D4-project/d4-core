@@ -3,6 +3,7 @@
 
 import os
 import sys
+import uuid
 import time
 import redis
 import flask
@@ -16,6 +17,8 @@ if baseUrl != '':
 
 host_redis_stream = "localhost"
 port_redis_stream = 6379
+
+default_max_entries_by_stream = 10000
 
 redis_server_stream = redis.StrictRedis(
                     host=host_redis_stream,
@@ -33,6 +36,14 @@ redis_server_metadata = redis.StrictRedis(
 
 app = Flask(__name__, static_url_path=baseUrl+'/static/')
 app.config['MAX_CONTENT_LENGTH'] = 900 * 1024 * 1024
+
+# ========== FUNCTIONS ============
+def is_valid_uuid_v4(header_uuid):
+    try:
+        uuid_test = uuid.UUID(hex=header_uuid, version=4)
+        return uuid_test.hex == header_uuid
+    except:
+        return False
 
 # ========== ROUTES ============
 @app.route('/')
@@ -73,12 +84,100 @@ def sensors_status():
         first_seen_gmt = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(int(first_seen)))
         last_seen = redis_server_metadata.hget('metadata_uuid:{}'.format(result), 'last_seen')
         last_seen_gmt = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(int(last_seen)))
-        Error = redis_server_metadata.hget('metadata_uuid:{}'.format(result), 'Error')
+        if redis_server_metadata.sismember('blacklist_ip_by_uuid', result):
+            Error = "All IP using this UUID are Blacklisted"
+        elif redis_server_metadata.sismember('blacklist_uuid', result):
+            Error = "Blacklisted UUID"
+        else:
+            Error = redis_server_metadata.hget('metadata_uuid:{}'.format(result), 'Error')
+
         if first_seen is not None and last_seen is not None:
             status_daily_uuid.append({"uuid": result,"first_seen": first_seen, "last_seen": last_seen,
                                         "first_seen_gmt": first_seen_gmt, "last_seen_gmt": last_seen_gmt, "Error": Error})
 
     return render_template("sensors_status.html", status_daily_uuid=status_daily_uuid)
+
+@app.route('/server_management')
+def server_management():
+    return render_template("server_management.html")
+
+@app.route('/uuid_management')
+def uuid_management():
+    uuid_sensor = request.args.get('uuid')
+    if is_valid_uuid_v4(uuid_sensor):
+
+        first_seen = redis_server_metadata.hget('metadata_uuid:{}'.format(uuid_sensor), 'first_seen')
+        first_seen_gmt = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(int(first_seen)))
+        last_seen = redis_server_metadata.hget('metadata_uuid:{}'.format(uuid_sensor), 'last_seen')
+        last_seen_gmt = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(int(last_seen)))
+        Error = redis_server_metadata.hget('metadata_uuid:{}'.format(uuid_sensor), 'Error')
+        if redis_server_metadata.sismember('blacklist_uuid', uuid_sensor):
+            blacklisted_uuid = True
+            Error = "Blacklisted UUID"
+        else:
+            blacklisted_uuid = False
+        if redis_server_metadata.sismember('blacklist_ip_by_uuid', uuid_sensor):
+            blacklisted_ip_by_uuid = True
+            Error = "All IP using this UUID are Blacklisted"
+        else:
+            blacklisted_ip_by_uuid = False
+        data_uuid= {"first_seen": first_seen, "last_seen": last_seen,
+                    "blacklisted_uuid": blacklisted_uuid, "blacklisted_ip_by_uuid": blacklisted_ip_by_uuid,
+                    "first_seen_gmt": first_seen_gmt, "last_seen_gmt": last_seen_gmt, "Error": Error}
+
+        max_uuid_stream = redis_server_metadata.hget('stream_max_size_by_uuid', uuid_sensor)
+        if max_uuid_stream is not None:
+            max_uuid_stream = int(max_uuid_stream)
+        else:
+            max_uuid_stream = default_max_entries_by_stream
+
+        return render_template("uuid_management.html", uuid_sensor=uuid_sensor, data_uuid=data_uuid, max_uuid_stream=max_uuid_stream)
+    else:
+        return 'Invalid uuid'
+
+@app.route('/blacklist_uuid')
+def blacklist_uuid():
+    uuid_sensor = request.args.get('uuid')
+    user = request.args.get('redirect')
+    if is_valid_uuid_v4(uuid_sensor):
+        redis_server_metadata.sadd('blacklist_uuid', uuid_sensor)
+        if user:
+            return redirect(url_for('uuid_management', uuid=uuid_sensor))
+    else:
+        return 'Invalid uuid'
+
+@app.route('/unblacklist_uuid')
+def unblacklist_uuid():
+    uuid_sensor = request.args.get('uuid')
+    user = request.args.get('redirect')
+    if is_valid_uuid_v4(uuid_sensor):
+        redis_server_metadata.srem('blacklist_uuid', uuid_sensor)
+        if user:
+            return redirect(url_for('uuid_management', uuid=uuid_sensor))
+    else:
+        return 'Invalid uuid'
+
+@app.route('/blacklist_ip_by_uuid')
+def blacklist_ip_by_uuid():
+    uuid_sensor = request.args.get('uuid')
+    user = request.args.get('redirect')
+    if is_valid_uuid_v4(uuid_sensor):
+        redis_server_metadata.sadd('blacklist_ip_by_uuid', uuid_sensor)
+        if user:
+            return redirect(url_for('uuid_management', uuid=uuid_sensor))
+    else:
+        return 'Invalid uuid'
+
+@app.route('/unblacklist_ip_by_uuid')
+def unblacklist_ip_by_uuid():
+    uuid_sensor = request.args.get('uuid')
+    user = request.args.get('redirect')
+    if is_valid_uuid_v4(uuid_sensor):
+        redis_server_metadata.srem('blacklist_ip_by_uuid', uuid_sensor)
+        if user:
+            return redirect(url_for('uuid_management', uuid=uuid_sensor))
+    else:
+        return 'Invalid uuid'
 
 # demo function
 @app.route('/delete_data')

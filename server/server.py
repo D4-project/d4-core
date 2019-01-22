@@ -105,6 +105,12 @@ class Echo(Protocol, TimeoutMixin):
             data_header['hmac_header'] = data[26:58]
             data_header['size'] = struct.unpack('I', data[58:62])[0]
 
+            # blacklist ip by uuid
+            if redis_server_metadata.sismember('blacklist_ip_by_uuid', data_header['uuid_header']):
+                redis_server_metadata.sadd('blacklist_ip', self.transport.client[0])
+                self.transport.abortConnection()
+                logger.warning('Blacklisted IP by UUID={}, connection closed'.format(data_header['uuid_header']))
+
             # uuid blacklist
             if redis_server_metadata.sismember('blacklist_uuid', data_header['uuid_header']):
                 self.transport.abortConnection()

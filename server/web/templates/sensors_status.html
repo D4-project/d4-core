@@ -32,16 +32,18 @@
 	        <a class="nav-link active mr-3" href="{{ url_for('sensors_status') }}">Sensors Status</a>
 	      </li>
 	      <li class="nav-item mr-3">
-	        <a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true">Server Management</a>
+	        <a class="nav-link" href="{{ url_for('server_management') }}" tabindex="-1" aria-disabled="true">Server Management</a>
 	      </li>
 	    </ul>
 	</nav>
 
 	{% for row_uuid in status_daily_uuid %}
 		<div class="card text-center mt-3 ml-2 mr-2">
-			<div class="card-header bg-dark text-white">
-				UUID: {{row_uuid['uuid']}}
-			</div>
+			<a href="{{ url_for('uuid_management') }}?uuid={{row_uuid['uuid']}}">
+				<div class="card-header bg-dark text-white">
+					UUID: {{row_uuid['uuid']}}
+				</div>
+			</a>
 			<div class="card-body">
 				<div class="card-group">
 				  <div class="card">
