@@ -6,10 +6,12 @@
 	<link rel="icon" href="{{ url_for('static', filename='img/d4-logo.png')}}">
 	<!-- Core CSS -->
 	<link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+	<link href="{{ url_for('static', filename='css/dataTables.bootstrap.min.css') }}" rel="stylesheet">
 
 	<!-- JS -->
 	<script src="{{ url_for('static', filename='js/jquery.js')}}"></script>
-	<script src="{{ url_for('static', filename='js/bootstrap.min.js')}}"></script>
+	<script src="{{ url_for('static', filename='js/jquery.dataTables.min.js')}}"></script>
+	<script src="{{ url_for('static', filename='js/dataTables.bootstrap.min.js')}}"></script>
 
   <style>
 
@@ -37,6 +39,173 @@
 	    </ul>
 	</nav>
 
+	<div class="card-deck justify-content-center">
+		<div class="card text-center mt-3 ml-4">
+			<div class="card-header bg-danger text-white">
+				Blacklist IP
+			</div>
+			<div class="card-body">
+					<div class="card-deck justify-content-center">
+						<div class="card text-center border-danger" style="max-width: 20rem;">
+						  <div class="card-body text-danger">
+						    <h5 class="card-title">Blacklist IP</h5>
+									<input type="text" class="form-control {%if blacklisted_ip is not none %}{%if blacklisted_ip==1 %}is-valid{% else %}is-invalid{%endif%}{%endif%}" id="blacklist_ip_input" placeholder="IP Address">
+									<div class="invalid-feedback">
+										{%if blacklisted_ip==2 %}
+											This IP is already blacklisted
+										{% else %}
+											Incorrect IP address
+										{% endif %}
+					        </div>
+									<div class="valid-feedback">
+					          IP Blacklisted
+					        </div>
+							    <button type="button" class="btn btn-danger mt-2" onclick="window.location.href ='{{ url_for('blacklist_ip') }}?redirect=0&ip='+$('#blacklist_ip_input').val();">Blacklist IP</button>
+						  </div>
+						</div>
+						<div class="card text-center border-light" style="max-width: 20rem;">
+						  <div class="card-body">
+						    <h5 class="card-title">Manage IP Blacklist</h5>
+									<a href="#">
+							    	<button type="button" class="btn btn-outline-primary">Show Blacklisted IP</button>
+									</a>
+						  </div>
+						</div>
+						<div class="card text-center border-success" style="max-width: 20rem;">
+						  <div class="card-body">
+						    <h5 class="card-title">Unblacklist IP</h5>
+									<input type="text" class="form-control {%if unblacklisted_ip is not none %}{%if unblacklisted_ip==1 %}is-valid{% else %}is-invalid{%endif%}{%endif%}" id="unblacklist_ip_input" placeholder="IP Address">
+									<div class="invalid-feedback">
+										{%if unblacklisted_ip==2 %}
+											This IP is not blacklisted
+										{% else %}
+											Incorrect IP address
+										{% endif %}
+					        </div>
+									<div class="valid-feedback">
+					          IP Unblacklisted
+					        </div>
+							   	<button type="button" class="btn btn-outline-secondary mt-2" onclick="window.location.href ='{{ url_for('unblacklist_ip') }}?redirect=0&ip='+$('#unblacklist_ip_input').val();">Unblacklist IP</button>
+						  </div>
+						</div>
+					</div>
+			</div>
+		</div>
 
+		<div class="card text-center mt-3 mr-4">
+			<div class="card-header bg-danger text-white">
+				Blacklist UUID
+			</div>
+			<div class="card-body">
+				<div class="card-deck justify-content-center">
+					<div class="card text-center border-danger" style="max-width: 20rem;">
+						<div class="card-body text-danger">
+							<h5 class="card-title">Blacklist UUID</h5>
+								<input type="text" class="form-control {%if blacklisted_uuid is not none %}{%if blacklisted_uuid==1 %}is-valid{% else %}is-invalid{%endif%}{%endif%}" id="blacklist_uuid_input" placeholder="UUID">
+								<div class="invalid-feedback">
+									{%if blacklisted_uuid==2 %}
+										This UUID is already blacklisted
+									{% else %}
+										Incorrect UUID
+									{% endif %}
+								</div>
+								<div class="valid-feedback">
+									UUID Blacklisted
+								</div>
+								<button type="button" class="btn btn-danger mt-2" onclick="window.location.href ='{{ url_for('blacklist_uuid') }}?redirect=0&uuid='+$('#blacklist_uuid_input').val();">Blacklist UUID</button>
+						</div>
+					</div>
+					<div class="card text-center border-light" style="max-width: 20rem;">
+						<div class="card-body">
+							<h5 class="card-title">Manage UUID Blacklist</h5>
+								<a href="#">
+									<button type="button" class="btn btn-outline-primary">Show Blacklisted UUID</button>
+								</a>
+						</div>
+					</div>
+					<div class="card text-center border-success" style="max-width: 20rem;">
+						<div class="card-body">
+							<h5 class="card-title">Unblacklist UUID</h5>
+								<input type="text" class="form-control {%if unblacklisted_uuid is not none %}{%if unblacklisted_uuid==1 %}is-valid{% else %}is-invalid{%endif%}{%endif%}" id="unblacklist_uuid_input" placeholder="UUID">
+								<div class="invalid-feedback">
+									{%if unblacklisted_uuid==2 %}
+										This UUID is not Blacklisted
+									{% else %}
+										Incorrect UUID
+									{% endif %}
+								</div>
+								<div class="valid-feedback">
+									UUID Unblacklisted
+								</div>
+									<button type="button" class="btn btn-outline-secondary mt-2" onclick="window.location.href ='{{ url_for('unblacklist_uuid') }}?redirect=0&uuid='+$('#unblacklist_uuid_input').val();">Unblacklist UUID</button>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="card-deck justify-content-center">
+		<div class="card border-dark mt-3 ml-4 mr-4">
+			<div class="card-header bg-dark text-white">
+				Header Accepted Types
+			</div>
+		  <div class="card-body text-dark">
+
+				<div class="row">
+			    <div class="col-sm-8">
+						<table class="table table-striped table-bordered table-hover" id="myTable_">
+							<thead class="thead-dark">
+								<tr>
+									<th>Type</th>
+									<th style="max-width: 800px;">Description</th>
+									<th style="max-width: 800px;">Remove Type</th>
+								</tr>
+							</thead>
+							<tbody>
+								{% for type in list_accepted_types %}
+								<tr>
+									<td>{{type['id']}}</td>
+									<td>{{type['description']}}</td>
+									<td>
+										<a href="{{ url_for('remove_accepted_type') }}?redirect=1&type={{type['id']}}">
+											<button type="button" class="btn btn-outline-danger">Remove Type</button>
+										</a>
+									</td>
+								</tr>
+								{% endfor %}
+							</tbody>
+						</table>
+					</div>
+			    <div class="col-sm-4">
+						<div class="card border-dark mt-3" style="max-width: 18rem;">
+						  <div class="card-body text-dark">
+						    <h5 class="card-title">Add New Types</h5>
+									<input class="form-control" type="number" id="accepted_type" value="1" min="1" max="7" required>
+									<button type="button" class="btn btn-outline-primary mt-1" onclick="window.location.href ='{{ url_for('add_accepted_type') }}?redirect=1&type='+$('#accepted_type').val();">Add New Type</button>
+							</div>
+						</div>
+					</div>
+			  </div>
+
+			</div>
+		</div>
+
+	</div>
 
 </body>
+
+<script>
+var table
+$(document).ready(function(){
+
+		table = $('#myTable_').DataTable(
+			{
+				/*"aLengthMenu": [[5, 10, 15, 20, -1], [5, 10, 15, 20, "All"]],
+				"iDisplayLength": 10,*/
+				"order": [[ 0, "asc" ]]
+			}
+		);
+
+});
+</script>

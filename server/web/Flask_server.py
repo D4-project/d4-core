@@ -8,6 +8,7 @@ import time
 import redis
 import flask
 import datetime
+import ipaddress
 
 from flask import Flask, render_template, jsonify, request, Blueprint, redirect, url_for
 
@@ -19,6 +20,16 @@ host_redis_stream = "localhost"
 port_redis_stream = 6379
 
 default_max_entries_by_stream = 10000
+
+json_type_description = {
+                            "1": "pcap (libpcap 2.4)",
+                            "2": "meta header (JSON)",
+                            "3": "generic log line",
+                            "4": "dnscap output",
+                            "5": "pcapng (diagnostic)",
+                            "6": "generic NDJSON or JSON Lines",
+                            "7": "generic YAF (Yet Another Flowmeter)",
+                        }
 
 redis_server_stream = redis.StrictRedis(
                     host=host_redis_stream,
@@ -44,6 +55,25 @@ def is_valid_uuid_v4(header_uuid):
         return uuid_test.hex == header_uuid
     except:
         return False
+
+def is_valid_ip(ip):
+    try:
+        ipaddress.ip_address(ip)
+        return True
+    except ValueError:
+        return False
+
+# server_management input handler
+def get_server_management_input_handler_value(value):
+    if value is not None:
+        if value !="0":
+            try:
+                value=int(value)
+            except:
+                value=0
+        else:
+            value=0
+    return value
 
 # ========== ROUTES ============
 @app.route('/')
@@ -99,7 +129,23 @@ def sensors_status():
 
 @app.route('/server_management')
 def server_management():
-    return render_template("server_management.html")
+    blacklisted_ip = request.args.get('blacklisted_ip')
+    unblacklisted_ip = request.args.get('unblacklisted_ip')
+    blacklisted_uuid = request.args.get('blacklisted_uuid')
+    unblacklisted_uuid = request.args.get('unblacklisted_uuid')
+
+    blacklisted_ip = get_server_management_input_handler_value(blacklisted_ip)
+    unblacklisted_ip = get_server_management_input_handler_value(unblacklisted_ip)
+    blacklisted_uuid = get_server_management_input_handler_value(blacklisted_uuid)
+    unblacklisted_uuid = get_server_management_input_handler_value(unblacklisted_uuid)
+
+    list_accepted_types = []
+    for type in redis_server_metadata.smembers('server:accepted_type'):
+        list_accepted_types.append({"id": int(type), "description": json_type_description[type]})
+
+    return render_template("server_management.html", list_accepted_types=list_accepted_types,
+                            blacklisted_ip=blacklisted_ip, unblacklisted_ip=unblacklisted_ip,
+                            blacklisted_uuid=blacklisted_uuid, unblacklisted_uuid=unblacklisted_uuid)
 
 @app.route('/uuid_management')
 def uuid_management():
@@ -135,15 +181,42 @@ def uuid_management():
     else:
         return 'Invalid uuid'
 
+@app.route('/uuid_change_stream_max_size')
+def uuid_change_stream_max_size():
+    uuid_sensor = request.args.get('uuid')
+    user = request.args.get('redirect')
+    max_uuid_stream = request.args.get('max_uuid_stream')
+    if is_valid_uuid_v4(uuid_sensor):
+        try:
+            max_uuid_stream = int(max_uuid_stream)
+            if max_uuid_stream < 0:
+                return 'stream max size, Invalid Integer'
+        except:
+            return 'stream max size, Invalid Integer'
+        redis_server_metadata.hset('stream_max_size_by_uuid', uuid_sensor, max_uuid_stream)
+        if user:
+            return redirect(url_for('uuid_management', uuid=uuid_sensor))
+    else:
+        return 'Invalid uuid'
+
 @app.route('/blacklist_uuid')
 def blacklist_uuid():
     uuid_sensor = request.args.get('uuid')
     user = request.args.get('redirect')
     if is_valid_uuid_v4(uuid_sensor):
-        redis_server_metadata.sadd('blacklist_uuid', uuid_sensor)
-        if user:
+        res = redis_server_metadata.sadd('blacklist_uuid', uuid_sensor)
+        if user=="0":
+            if res==0:
+                return redirect(url_for('server_management', blacklisted_uuid=2))
+            else:
+                return redirect(url_for('server_management', blacklisted_uuid=1))
+        elif user=="1":
             return redirect(url_for('uuid_management', uuid=uuid_sensor))
+        else:
+            return "404"
     else:
+        if user=="0":
+            return redirect(url_for('server_management', blacklisted_uuid=0))
         return 'Invalid uuid'
 
 @app.route('/unblacklist_uuid')
@@ -151,11 +224,52 @@ def unblacklist_uuid():
     uuid_sensor = request.args.get('uuid')
     user = request.args.get('redirect')
     if is_valid_uuid_v4(uuid_sensor):
-        redis_server_metadata.srem('blacklist_uuid', uuid_sensor)
-        if user:
+        res = redis_server_metadata.srem('blacklist_uuid', uuid_sensor)
+        if user=="0":
+            if res==0:
+                return redirect(url_for('server_management', unblacklisted_uuid=2))
+            else:
+                return redirect(url_for('server_management', unblacklisted_uuid=1))
+        elif user=="1":
             return redirect(url_for('uuid_management', uuid=uuid_sensor))
+        else:
+            return "404"
     else:
+        if user=="0":
+            return redirect(url_for('server_management', unblacklisted_uuid=0))
         return 'Invalid uuid'
+
+@app.route('/blacklist_ip')
+def blacklist_ip():
+    ip = request.args.get('ip')
+    user = request.args.get('redirect')
+    if is_valid_ip(ip):
+        res = redis_server_metadata.sadd('blacklist_ip', ip)
+        if user:
+            if res==0:
+                return redirect(url_for('server_management', blacklisted_ip=2))
+            else:
+                return redirect(url_for('server_management', blacklisted_ip=1))
+    else:
+        if user:
+            return redirect(url_for('server_management', blacklisted_ip=0))
+        return 'Invalid ip'
+
+@app.route('/unblacklist_ip')
+def unblacklist_ip():
+    ip = request.args.get('ip')
+    user = request.args.get('redirect')
+    if is_valid_ip(ip):
+        res = redis_server_metadata.srem('blacklist_ip', ip)
+        if user:
+            if res==0:
+                return redirect(url_for('server_management', unblacklisted_ip=2))
+            else:
+                return redirect(url_for('server_management', unblacklisted_ip=1))
+    else:
+        if user:
+            return redirect(url_for('server_management', unblacklisted_ip=0))
+        return 'Invalid ip'
 
 @app.route('/blacklist_ip_by_uuid')
 def blacklist_ip_by_uuid():
@@ -178,6 +292,28 @@ def unblacklist_ip_by_uuid():
             return redirect(url_for('uuid_management', uuid=uuid_sensor))
     else:
         return 'Invalid uuid'
+
+@app.route('/add_accepted_type')
+def add_accepted_type():
+    type = request.args.get('type')
+    user = request.args.get('redirect')
+    if json_type_description[type]:
+        redis_server_metadata.sadd('server:accepted_type', type)
+        if user:
+            return redirect(url_for('server_management'))
+    else:
+        return 'Invalid type'
+
+@app.route('/remove_accepted_type')
+def remove_accepted_type():
+    type = request.args.get('type')
+    user = request.args.get('redirect')
+    if json_type_description[type]:
+        redis_server_metadata.srem('server:accepted_type', type)
+        if user:
+            return redirect(url_for('server_management'))
+    else:
+        return 'Invalid type'
 
 # demo function
 @app.route('/delete_data')

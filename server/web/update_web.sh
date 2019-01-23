@@ -55,7 +55,8 @@ JQVERSION="3.3.1"
 wget http://code.jquery.com/jquery-${JQVERSION}.min.js -O ./static/js/jquery.js
 
 #Ressources for dataTable
-wget https://cdn.datatables.net/v/bs4/dt-1.10.18/datatables.min.css -O ./static/css/dataTables.bootstrap.css
-wget https://cdn.datatables.net/v/bs4/dt-1.10.18/datatables.min.js -O ./static/js/dataTables.bootstrap.js
+wget https://cdn.datatables.net/1.10.18/css/dataTables.bootstrap4.min.css -O ./static/css/dataTables.bootstrap.min.css
+wget https://cdn.datatables.net/1.10.18/js/dataTables.bootstrap4.min.js -O ./static/js/dataTables.bootstrap.min.js
+wget https://cdn.datatables.net/1.10.18/js/jquery.dataTables.min.js -O ./static/js/jquery.dataTables.min.js
 
 rm -rf temp

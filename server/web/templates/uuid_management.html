@@ -81,7 +81,7 @@
 		    <h5 class="card-title">Change Stream Max Size</h5>
 					{% if not data_uuid['blacklisted_uuid'] and not data_uuid['blacklisted_ip_by_uuid'] %}
 						<input class="form-control" type="number" id="max_stream_input" value="{{max_uuid_stream}}" min="0" required>
-						<button type="button" class="btn btn-outline-secondary mt-1">Change Max Size</button>
+						<button type="button" class="btn btn-outline-secondary mt-1" onclick="window.location.href ='{{ url_for('uuid_change_stream_max_size') }}?uuid={{uuid_sensor}}&redirect=1&max_uuid_stream='+$('#max_stream_input').val();">Change Max Size</button>
 					{% else %}
 					<input class="form-control" type="number" id="max_stream_input" value="{{max_uuid_stream}}" min="0" required disabled>
 					<button type="button" class="btn btn-outline-secondary mt-1" disabled>Change Max Size</button>
