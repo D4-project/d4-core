@@ -75,3 +75,8 @@ cd server
 
 The web interface is accessible via `http://127.0.0.1:7000/`
 
+### Screenshots of D4 core server management
+
+![](https://raw.githubusercontent.com/D4-project/d4-core/master/doc/images/main.png)
+![](https://raw.githubusercontent.com/D4-project/d4-core/master/doc/images/sensor-mgmt.png)
+![](https://raw.githubusercontent.com/D4-project/d4-core/master/doc/images/server-mgmt.png)
