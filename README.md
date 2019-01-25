@@ -1,5 +1,7 @@
 # D4 core
 
+![](https://www.d4-project.org/assets/images/logo.png)
+
 D4 core are software components used in the D4 project. The software includes everything to create your own sensor network or connect
 to an existing sensor network using simple clients.
 
