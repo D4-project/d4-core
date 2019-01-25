@@ -60,6 +60,9 @@ except redis.exceptions.ConnectionError:
     print('Error: Redis server {}:{}, ConnectionError'.format(host_redis_metadata, port_redis_metadata))
     sys.exit(1)
 
+# set hmac default key
+redis_server_metadata.set('server:hmac_default_key', hmac_key)
+
 # init redis_server_metadata
 redis_server_metadata.delete('server:accepted_type')
 for type in accepted_type:
@@ -73,6 +76,7 @@ class Echo(Protocol, TimeoutMixin):
         self.session_uuid = str(uuid.uuid4())
         self.data_saved = False
         self.stream_max_size = None
+        self.hmac_key = None
         logger.debug('New session: session_uuid={}'.format(self.session_uuid))
 
     def dataReceived(self, data):
@@ -218,7 +222,12 @@ class Echo(Protocol, TimeoutMixin):
         self.buffer = b''
         # set hmac_header to 0
         data = data.replace(data_header['hmac_header'], hmac_reset, 1)
-        HMAC = hmac.new(hmac_key, msg=data, digestmod='sha256')
+        if self.hmac_key is None:
+            self.hmac_key = redis_server_metadata.hget('metadata_uuid:{}'.format(data_header['uuid_header']), 'hmac_key')
+            if self.hmac_key is None:
+                self.hmac_key = redis_server_metadata.get('server:hmac_default_key')
+
+        HMAC = hmac.new(self.hmac_key, msg=data, digestmod='sha256')
         data_header['hmac_header'] = data_header['hmac_header'].hex()
 
         ### Debug ###

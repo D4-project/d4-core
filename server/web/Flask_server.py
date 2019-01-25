@@ -187,14 +187,17 @@ def uuid_management():
         else:
             max_uuid_stream = default_max_entries_by_stream
 
+        uuid_key = redis_server_metadata.hget('metadata_uuid:{}'.format(uuid_sensor), 'hmac_key')
+        if uuid_key is None:
+            uuid_key = redis_server_metadata.get('server:hmac_default_key')
+
         list_ip = redis_server_metadata.lrange('list_uuid_ip:{}'.format(uuid_sensor), 0, -1)
         all_ip = []
         for elem in list_ip:
             ip, d_time = elem.split('-')
             all_ip.append({'ip': ip,'datetime': '{}/{}/{} - {}:{}.{}'.format(d_time[0:4], d_time[5:6], d_time[6:8], d_time[8:10], d_time[10:12], d_time[12:14])})
-        print(all_ip)
 
-        return render_template("uuid_management.html", uuid_sensor=uuid_sensor, data_uuid=data_uuid, max_uuid_stream=max_uuid_stream, all_ip=all_ip)
+        return render_template("uuid_management.html", uuid_sensor=uuid_sensor, uuid_key=uuid_key, data_uuid=data_uuid, max_uuid_stream=max_uuid_stream, all_ip=all_ip)
     else:
         return 'Invalid uuid'
 
@@ -341,6 +344,17 @@ def delete_data():
     redis_server_metadata.delete('daily_type:{}'.format(date))
     redis_server_metadata.delete('daily_uuid:{}'.format(date))
     return render_template("index.html")
+
+# demo function
+@app.route('/set_uuid_hmac_key')
+def set_uuid_hmac_key():
+    uuid_sensor = request.args.get('uuid')
+    user = request.args.get('redirect')
+    key = request.args.get('key')
+    redis_server_metadata.hset('metadata_uuid:{}'.format(uuid_sensor), 'hmac_key', key)
+    if user:
+        return redirect(url_for('uuid_management', uuid=uuid_sensor))
+
 
 # demo function
 @app.route('/whois_data')

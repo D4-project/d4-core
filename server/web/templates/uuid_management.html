@@ -117,6 +117,13 @@
 				{% endif %}
 		  </div>
 		</div>
+		<div class="card border-dark mt-3" style="max-width: 18rem;">
+		  <div class="card-body text-dark">
+		    <h5 class="card-title">Change UUID Key</h5>
+				<input class="form-control" type="text" id="uuid_key" value="{{uuid_key}}" required>
+				<button type="button" class="btn btn-outline-secondary mt-1" onclick="window.location.href ='{{ url_for('set_uuid_hmac_key') }}?uuid={{uuid_sensor}}&redirect=1&key='+$('#uuid_key').val();">Change UUID Key</button>
+			</div>
+		</div>
 	</div>
 
 	<div class="row ml-0 mr-0">
