@@ -2,6 +2,7 @@
 # -*-coding:UTF-8 -*
 
 import os
+import re
 import sys
 import uuid
 import time
@@ -10,6 +11,8 @@ import redis
 import flask
 import datetime
 import ipaddress
+
+import subprocess
 
 from flask import Flask, render_template, jsonify, request, Blueprint, redirect, url_for
 
@@ -72,6 +75,13 @@ def get_json_type_description():
     with open(json_type_description_path, 'r') as f:
         json_type_description = json.loads(f.read())
     return json_type_description
+
+def get_whois_ouput(ip):
+    if is_valid_ip(ip):
+        process = subprocess.run(["whois", ip], stdout=subprocess.PIPE)
+        return re.sub(r"#.*\n?", '', process.stdout.decode()).lstrip('\n').rstrip('\n')
+    else:
+        return ''
 
 # ========== ROUTES ============
 @app.route('/')
@@ -177,7 +187,14 @@ def uuid_management():
         else:
             max_uuid_stream = default_max_entries_by_stream
 
-        return render_template("uuid_management.html", uuid_sensor=uuid_sensor, data_uuid=data_uuid, max_uuid_stream=max_uuid_stream)
+        list_ip = redis_server_metadata.lrange('list_uuid_ip:{}'.format(uuid_sensor), 0, -1)
+        all_ip = []
+        for elem in list_ip:
+            ip, d_time = elem.split('-')
+            all_ip.append({'ip': ip,'datetime': '{}/{}/{} - {}:{}.{}'.format(d_time[0:4], d_time[5:6], d_time[6:8], d_time[8:10], d_time[10:12], d_time[12:14])})
+        print(all_ip)
+
+        return render_template("uuid_management.html", uuid_sensor=uuid_sensor, data_uuid=data_uuid, max_uuid_stream=max_uuid_stream, all_ip=all_ip)
     else:
         return 'Invalid uuid'
 
@@ -324,6 +341,15 @@ def delete_data():
     redis_server_metadata.delete('daily_type:{}'.format(date))
     redis_server_metadata.delete('daily_uuid:{}'.format(date))
     return render_template("index.html")
+
+# demo function
+@app.route('/whois_data')
+def whois_data():
+    ip = request.args.get('ip')
+    if is_valid_ip:
+        return jsonify(get_whois_ouput(ip))
+    else:
+        return 'Invalid IP'
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=7000, threaded=True)

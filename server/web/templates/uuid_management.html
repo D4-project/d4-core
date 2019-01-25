@@ -6,6 +6,7 @@
 	<link rel="icon" href="{{ url_for('static', filename='img/d4-logo.png')}}">
 	<!-- Core CSS -->
 	<link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+	<link href="{{ url_for('static', filename='font-awesome/css/font-awesome.css') }}" rel="stylesheet">
 
 	<!-- JS -->
 	<script src="{{ url_for('static', filename='js/jquery.js')}}"></script>
@@ -75,7 +76,7 @@
 		</div>
 	</div>
 
-	<div class="card-deck justify-content-center">
+	<div class="card-deck justify-content-center ml-0 mr-0">
 		<div class="card border-dark mt-3" style="max-width: 18rem;">
 		  <div class="card-body text-dark">
 		    <h5 class="card-title">Change Stream Max Size</h5>
@@ -104,6 +105,20 @@
 		</div>
 		<div class="card text-center border-danger mt-3" style="max-width: 20rem;">
 		  <div class="card-body text-danger">
+		    <h5 class="card-title">Blacklist Last IP</h5>
+				{% if not data_uuid['blacklisted_ip_by_uuid'] %}
+					<a href="{{ url_for('blacklist_ip_by_uuid') }}?uuid={{uuid_sensor}}&redirect=1">
+			    	<button type="button" class="btn btn-danger">Blacklist IP</button>
+					</a>
+				{% else %}
+					<a href="{{ url_for('unblacklist_ip_by_uuid') }}?uuid={{uuid_sensor}}&redirect=1">
+						<button type="button" class="btn btn-warning">UnBlacklist IP</button>
+					</a>
+				{% endif %}
+		  </div>
+		</div>
+		<div class="card text-center border-danger mt-3" style="max-width: 20rem;">
+		  <div class="card-body text-danger">
 		    <h5 class="card-title">Blacklist IP Using This UUID</h5>
 				{% if not data_uuid['blacklisted_ip_by_uuid'] %}
 					<a href="{{ url_for('blacklist_ip_by_uuid') }}?uuid={{uuid_sensor}}&redirect=1">
@@ -118,4 +133,54 @@
 		</div>
 	</div>
 
+	<div class="row ml-0 mr-0">
+		<div class="col-6">
+			<div class="card text-center mt-3">
+				<div class="card-header bg-dark text-white">
+					Last IP Used:
+				</div>
+				<ul class="list-group list-group-flush">
+					{%for row in all_ip%}
+			    <li class="list-group-item">
+							{{row['ip']}} - {{row['datetime']}} <button class="fa fa-info-circle btn text-secondary" onclick="get_whois_data('{{row['ip']}}');"></button>
+					</li>
+					{%endfor%}
+			  </ul>
+			</div>
+		</div>
+		<div class="col-6">
+			<div class="d-none card mt-3 mb-3" id="whois_data">
+				<div class="card-header bg-dark text-center text-white">
+					Whois Info:
+				</div>
+				<pre class="ml-2" id="whois_output">
+				</pre>
+			</div>
+		</div>
+	</div>
+
 </body>
+
+<script>
+	function get_whois_data(ip){
+
+		$.getJSON( "{{url_for('whois_data')}}?ip="+ip, function( data ) {
+			console.log(data)
+			$( "#whois_data" ).removeClass( "d-none" );
+			$( "#whois_output" ).text(data);
+
+		});
+	}
+
+
+
+
+
+
+
+
+
+
+
+
+</script>

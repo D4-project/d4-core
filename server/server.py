@@ -78,6 +78,8 @@ class Echo(Protocol, TimeoutMixin):
     def dataReceived(self, data):
         self.resetTimeout()
         ip, source_port = self.transport.client
+        if self.data_saved == False:
+            logger.debug('New connection, ip={}, port={} session_uuid={}'.format(ip, source_port, self.session_uuid))
         # check blacklisted_ip
         if redis_server_metadata.sismember('blacklist_ip', ip):
             self.transport.abortConnection()
@@ -260,6 +262,11 @@ class Echo(Protocol, TimeoutMixin):
                     redis_server_stream.sadd('session_uuid:{}'.format(data_header['type']), self.session_uuid.encode())
                     redis_server_stream.hset('map-type:session_uuid-uuid:{}'.format(data_header['type']), self.session_uuid, data_header['uuid_header'])
                     redis_server_metadata.hdel('metadata_uuid:{}'.format(data_header['uuid_header']), 'Error')
+
+                    #UUID IP:           ## TODO: use d4 timestamp ?
+                    redis_server_metadata.lpush('list_uuid_ip:{}'.format(data_header['uuid_header']), '{}-{}'.format(ip, datetime.datetime.now().strftime("%Y%m%d%H%M%S")))
+                    redis_server_metadata.ltrim('list_uuid_ip:{}'.format(data_header['uuid_header']), 0, 15)
+
                     self.data_saved = True
             else:
                 logger.warning("stream exceed max entries limit, uuid={}, session_uuid={}, type={}".format(data_header['uuid_header'], self.session_uuid, data_header['type']))
