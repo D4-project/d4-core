@@ -12,6 +12,9 @@ fi
 if [ ! -d static/js ]; then
   mkdir static/js
 fi
+if [ ! -d static/json ]; then
+  mkdir static/json
+fi
 
 rm -rf temp
 mkdir temp
@@ -58,5 +61,8 @@ wget http://code.jquery.com/jquery-${JQVERSION}.min.js -O ./static/js/jquery.js
 wget https://cdn.datatables.net/1.10.18/css/dataTables.bootstrap4.min.css -O ./static/css/dataTables.bootstrap.min.css
 wget https://cdn.datatables.net/1.10.18/js/dataTables.bootstrap4.min.js -O ./static/js/dataTables.bootstrap.min.js
 wget https://cdn.datatables.net/1.10.18/js/jquery.dataTables.min.js -O ./static/js/jquery.dataTables.min.js
+
+#Update json
+wget https://raw.githubusercontent.com/D4-project/architecture/master/format/type.json -O ./static/json/type.json
 
 rm -rf temp
