@@ -5,6 +5,7 @@ import os
 import sys
 import uuid
 import time
+import json
 import redis
 import flask
 import datetime
@@ -21,15 +22,7 @@ port_redis_stream = 6379
 
 default_max_entries_by_stream = 10000
 
-json_type_description = {
-                            "1": "pcap (libpcap 2.4)",
-                            "2": "meta header (JSON)",
-                            "3": "generic log line",
-                            "4": "dnscap output",
-                            "5": "pcapng (diagnostic)",
-                            "6": "generic NDJSON or JSON Lines",
-                            "7": "generic YAF (Yet Another Flowmeter)",
-                        }
+json_type_description_path = os.path.join(os.environ['D4_HOME'], 'web/static/json/type.json')
 
 redis_server_stream = redis.StrictRedis(
                     host=host_redis_stream,
@@ -74,6 +67,11 @@ def get_server_management_input_handler_value(value):
         else:
             value=0
     return value
+
+def get_json_type_description():
+    with open(json_type_description_path, 'r') as f:
+        json_type_description = json.loads(f.read())
+    return json_type_description
 
 # ========== ROUTES ============
 @app.route('/')
@@ -139,9 +137,11 @@ def server_management():
     blacklisted_uuid = get_server_management_input_handler_value(blacklisted_uuid)
     unblacklisted_uuid = get_server_management_input_handler_value(unblacklisted_uuid)
 
+    json_type_description = get_json_type_description()
+
     list_accepted_types = []
     for type in redis_server_metadata.smembers('server:accepted_type'):
-        list_accepted_types.append({"id": int(type), "description": json_type_description[type]})
+        list_accepted_types.append({"id": int(type), "description": json_type_description[int(type)]['description']})
 
     return render_template("server_management.html", list_accepted_types=list_accepted_types,
                             blacklisted_ip=blacklisted_ip, unblacklisted_ip=unblacklisted_ip,
@@ -297,7 +297,8 @@ def unblacklist_ip_by_uuid():
 def add_accepted_type():
     type = request.args.get('type')
     user = request.args.get('redirect')
-    if json_type_description[type]:
+    json_type_description = get_json_type_description()
+    if json_type_description[int(type)]:
         redis_server_metadata.sadd('server:accepted_type', type)
         if user:
             return redirect(url_for('server_management'))
@@ -308,7 +309,8 @@ def add_accepted_type():
 def remove_accepted_type():
     type = request.args.get('type')
     user = request.args.get('redirect')
-    if json_type_description[type]:
+    json_type_description = get_json_type_description()
+    if json_type_description[int(type)]:
         redis_server_metadata.srem('server:accepted_type', type)
         if user:
             return redirect(url_for('server_management'))
