@@ -75,14 +75,18 @@ class Echo(Protocol, TimeoutMixin):
         self.setTimeout(timeout_time)
         self.session_uuid = str(uuid.uuid4())
         self.data_saved = False
+        self.first_connection = True
         self.stream_max_size = None
         self.hmac_key = None
+        #self.version = None
+        self.type = None
+        self.uuid = None
         logger.debug('New session: session_uuid={}'.format(self.session_uuid))
 
     def dataReceived(self, data):
         self.resetTimeout()
         ip, source_port = self.transport.client
-        if self.data_saved == False:
+        if self.first_connection:
             logger.debug('New connection, ip={}, port={} session_uuid={}'.format(ip, source_port, self.session_uuid))
         # check blacklisted_ip
         if redis_server_metadata.sismember('blacklist_ip', ip):
@@ -99,6 +103,7 @@ class Echo(Protocol, TimeoutMixin):
     def connectionLost(self, reason):
             redis_server_stream.sadd('ended_session', self.session_uuid)
             self.setTimeout(None)
+            redis_server_stream.srem('active_connection:{}'.format(self.type), '{}:{}'.format(self.transport.client[0], self.uuid))
             logger.debug('Connection closed: session_uuid={}'.format(self.session_uuid))
 
     def unpack_header(self, data):
@@ -160,6 +165,24 @@ class Echo(Protocol, TimeoutMixin):
             data_header = self.unpack_header(data)
             if data_header:
                 if self.is_valid_header(data_header['uuid_header'], data_header['type']):
+
+                    # auto kill connection # TODO: map type
+                    if self.first_connection:
+                        self.first_connection = False
+                        if redis_server_stream.sismember('active_connection:{}'.format(data_header['type']), '{}:{}'.format(ip, data_header['uuid_header'])):
+                            # same IP-type for an UUID
+                            logger.warning('is using the same UUID for one type, ip={} uuid={} type={} session_uuid={}'.format(ip, data_header['uuid_header'], data_header['type'], self.session_uuid))
+                            redis_server_metadata.hset('metadata_uuid:{}'.format(data_header['uuid_header']), 'Error', 'Error: This UUID is using the same UUID for one type={}'.format(data_header['type']))
+                            self.transport.abortConnection()
+                        else:
+                            #self.version = None
+                            self.type = data_header['type']
+                            self.uuid = data_header['uuid_header']
+                            #active Connection
+                            redis_server_stream.sadd('active_connection:{}'.format(self.type), '{}:{}'.format(ip, self.uuid))
+                            # Clean Error Message
+                            redis_server_metadata.hdel('metadata_uuid:{}'.format(data_header['uuid_header']), 'Error')
+
                     # check data size
                     if data_header['size'] == (len(data) - header_size):
                         self.process_d4_data(data, data_header, ip)
@@ -270,7 +293,6 @@ class Echo(Protocol, TimeoutMixin):
                 if not self.data_saved:
                     redis_server_stream.sadd('session_uuid:{}'.format(data_header['type']), self.session_uuid.encode())
                     redis_server_stream.hset('map-type:session_uuid-uuid:{}'.format(data_header['type']), self.session_uuid, data_header['uuid_header'])
-                    redis_server_metadata.hdel('metadata_uuid:{}'.format(data_header['uuid_header']), 'Error')
 
                     #UUID IP:           ## TODO: use d4 timestamp ?
                     redis_server_metadata.lpush('list_uuid_ip:{}'.format(data_header['uuid_header']), '{}-{}'.format(ip, datetime.datetime.now().strftime("%Y%m%d%H%M%S")))
