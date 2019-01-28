@@ -128,9 +128,14 @@ def sensors_status():
             Error = "Blacklisted UUID"
         else:
             Error = redis_server_metadata.hget('metadata_uuid:{}'.format(result), 'Error')
+        if redis_server_stream.sismember('active_connection', result):
+            active_connection = True
+        else:
+            active_connection = False
 
         if first_seen is not None and last_seen is not None:
             status_daily_uuid.append({"uuid": result,"first_seen": first_seen, "last_seen": last_seen,
+                                        "active_connection": active_connection,
                                         "first_seen_gmt": first_seen_gmt, "last_seen_gmt": last_seen_gmt, "Error": Error})
 
     return render_template("sensors_status.html", status_daily_uuid=status_daily_uuid)
@@ -181,6 +186,11 @@ def uuid_management():
                     "blacklisted_uuid": blacklisted_uuid, "blacklisted_ip_by_uuid": blacklisted_ip_by_uuid,
                     "first_seen_gmt": first_seen_gmt, "last_seen_gmt": last_seen_gmt, "Error": Error}
 
+        if redis_server_stream.sismember('active_connection', uuid_sensor):
+            active_connection = True
+        else:
+            active_connection = False
+
         max_uuid_stream = redis_server_metadata.hget('stream_max_size_by_uuid', uuid_sensor)
         if max_uuid_stream is not None:
             max_uuid_stream = int(max_uuid_stream)
@@ -197,7 +207,8 @@ def uuid_management():
             ip, d_time = elem.split('-')
             all_ip.append({'ip': ip,'datetime': '{}/{}/{} - {}:{}.{}'.format(d_time[0:4], d_time[5:6], d_time[6:8], d_time[8:10], d_time[10:12], d_time[12:14])})
 
-        return render_template("uuid_management.html", uuid_sensor=uuid_sensor, uuid_key=uuid_key, data_uuid=data_uuid, max_uuid_stream=max_uuid_stream, all_ip=all_ip)
+        return render_template("uuid_management.html", uuid_sensor=uuid_sensor, active_connection=active_connection,
+                                uuid_key=uuid_key, data_uuid=data_uuid, max_uuid_stream=max_uuid_stream, all_ip=all_ip)
     else:
         return 'Invalid uuid'
 

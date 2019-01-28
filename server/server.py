@@ -104,6 +104,7 @@ class Echo(Protocol, TimeoutMixin):
             redis_server_stream.sadd('ended_session', self.session_uuid)
             self.setTimeout(None)
             redis_server_stream.srem('active_connection:{}'.format(self.type), '{}:{}'.format(self.transport.client[0], self.uuid))
+            redis_server_stream.srem('active_connection', '{}'.format(self.uuid))
             logger.debug('Connection closed: session_uuid={}'.format(self.session_uuid))
 
     def unpack_header(self, data):
@@ -180,6 +181,7 @@ class Echo(Protocol, TimeoutMixin):
                             self.uuid = data_header['uuid_header']
                             #active Connection
                             redis_server_stream.sadd('active_connection:{}'.format(self.type), '{}:{}'.format(ip, self.uuid))
+                            redis_server_stream.sadd('active_connection', '{}'.format(self.uuid))
                             # Clean Error Message
                             redis_server_metadata.hdel('metadata_uuid:{}'.format(data_header['uuid_header']), 'Error')
 

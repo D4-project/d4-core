@@ -69,6 +69,11 @@
 						<div class="card-body text-danger">
 							<p class="card-text">{{data_uuid['Error']}}</p>
 					{% endif %}
+						{% if active_connection %}
+							<div style="color:Green; display:inline-block">
+								<i class="fa fa-check-circle"></i> Connected
+							</div>
+						{% endif %}
 						</div>
 				</div>
 			</div>
