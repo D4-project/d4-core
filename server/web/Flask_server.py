@@ -30,7 +30,8 @@ json_type_description_path = os.path.join(os.environ['D4_HOME'], 'web/static/jso
 redis_server_stream = redis.StrictRedis(
                     host=host_redis_stream,
                     port=port_redis_stream,
-                    db=0)
+                    db=0,
+                    decode_responses=True)
 
 host_redis_metadata = "localhost"
 port_redis_metadata= 6380
@@ -113,8 +114,21 @@ def _json_daily_type_stats():
 
 @app.route('/sensors_status')
 def sensors_status():
+    active_connection_filter = request.args.get('active_connection_filter')
+    if active_connection_filter is None:
+        active_connection_filter = False
+    else:
+        if active_connection_filter=='True':
+            active_connection_filter = True
+        else:
+            active_connection_filter = False
+
     date = datetime.datetime.now().strftime("%Y%m%d")
-    daily_uuid = redis_server_metadata.zrange('daily_uuid:{}'.format(date), 0, -1)
+
+    if not active_connection_filter:
+        daily_uuid = redis_server_metadata.zrange('daily_uuid:{}'.format(date), 0, -1)
+    else:
+        daily_uuid = redis_server_stream.smembers('active_connection')
 
     status_daily_uuid = []
     for result in daily_uuid:
@@ -138,7 +152,22 @@ def sensors_status():
                                         "active_connection": active_connection,
                                         "first_seen_gmt": first_seen_gmt, "last_seen_gmt": last_seen_gmt, "Error": Error})
 
-    return render_template("sensors_status.html", status_daily_uuid=status_daily_uuid)
+    return render_template("sensors_status.html", status_daily_uuid=status_daily_uuid,
+                                active_connection_filter=active_connection_filter)
+
+@app.route('/show_active_uuid')
+def show_active_uuid():
+    #swap switch value
+    active_connection_filter = request.args.get('show_active_connection')
+    if active_connection_filter is None:
+        active_connection_filter = True
+    else:
+        if active_connection_filter=='True':
+            active_connection_filter = False
+        else:
+            active_connection_filter = True
+
+    return redirect(url_for('sensors_status', active_connection_filter=active_connection_filter))
 
 @app.route('/server_management')
 def server_management():

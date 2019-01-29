@@ -38,6 +38,31 @@
 	    </ul>
 	</nav>
 
+	<div class="card mt-2 mb-2">
+		<div class="card-body bg-dark text-white">
+			<div class="row">
+				<div class="col-8">
+					<div class="custom-control custom-switch mt-2">
+					  <input type="checkbox" class="custom-control-input" id="show_active_connection" {%if active_connection_filter%}checked value="True"{%else%}value=""{%endif%} onclick="window.location.href ='{{ url_for('show_active_uuid') }}?&show_active_connection='+$('#show_active_connection').val();">
+					  <label class="custom-control-label" for="show_active_connection">Active Connection</label>
+					</div>
+				</div>
+				<div class="col-4">
+					<div class="form-row">
+						<div class="col-10">
+				  		<input type="text" class="form-control mt-1" id="search_uuid" placeholder="Search UUID">
+						</div>
+						<div class="col-2">
+							<button type="button" class="btn btn-outline-light" onclick="window.location.href ='{{ url_for('uuid_management') }}?redirect=0&uuid='+$('#search_uuid').val();">
+								<i class="fa fa-search fa-2x"></i>
+							</button>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
 	{% for row_uuid in status_daily_uuid %}
 		<div class="card text-center mt-3 ml-2 mr-2">
 			<a href="{{ url_for('uuid_management') }}?uuid={{row_uuid['uuid']}}">
@@ -88,5 +113,10 @@
 			</div>
 		</div>
 	{% endfor %}
+
+	<script>
+		var res = $('#show_active_connection').val();
+		console.log(res)
+	</script>
 
 </body>
