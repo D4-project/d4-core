@@ -6,6 +6,7 @@
 	<link rel="icon" href="{{ url_for('static', filename='img/d4-logo.png')}}">
 	<!-- Core CSS -->
 	<link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+	<link href="{{ url_for('static', filename='font-awesome/css/font-awesome.css') }}" rel="stylesheet">
 	<link href="{{ url_for('static', filename='css/dataTables.bootstrap.min.css') }}" rel="stylesheet">
 
 	<!-- JS -->
@@ -39,7 +40,7 @@
 	    </ul>
 	</nav>
 
-	<div class="card-deck justify-content-center">
+	<div class="card-deck justify-content-center ml-0 mr-0">
 		<div class="card text-center mt-3 ml-4">
 			<div class="card-header bg-danger text-white">
 				Blacklist IP
@@ -145,7 +146,7 @@
 		</div>
 	</div>
 
-	<div class="card-deck justify-content-center">
+	<div class="card-deck justify-content-center ml-0 mr-0">
 		<div class="card border-dark mt-3 ml-4 mr-4">
 			<div class="card-header bg-dark text-white">
 				Header Accepted Types
@@ -193,6 +194,7 @@
 
 	</div>
 
+	{% include 'navfooter.html' %}
 </body>
 
 <script>

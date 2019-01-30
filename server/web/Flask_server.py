@@ -60,6 +60,13 @@ def is_valid_ip(ip):
     except ValueError:
         return False
 
+def is_valid_network(ip_network):
+    try:
+        ipaddress.ip_network(ip_network)
+        return True
+    except ValueError:
+        return False
+
 # server_management input handler
 def get_server_management_input_handler_value(value):
     if value is not None:
@@ -303,8 +310,17 @@ def unblacklist_uuid():
 def blacklist_ip():
     ip = request.args.get('ip')
     user = request.args.get('redirect')
+
     if is_valid_ip(ip):
         res = redis_server_metadata.sadd('blacklist_ip', ip)
+        if user:
+            if res==0:
+                return redirect(url_for('server_management', blacklisted_ip=2))
+            else:
+                return redirect(url_for('server_management', blacklisted_ip=1))
+    elif is_valid_network(ip):
+        for addr in ipaddress.ip_network(ip):
+            res = redis_server_metadata.sadd('blacklist_ip', str(addr))
         if user:
             if res==0:
                 return redirect(url_for('server_management', blacklisted_ip=2))
@@ -321,6 +337,14 @@ def unblacklist_ip():
     user = request.args.get('redirect')
     if is_valid_ip(ip):
         res = redis_server_metadata.srem('blacklist_ip', ip)
+        if user:
+            if res==0:
+                return redirect(url_for('server_management', unblacklisted_ip=2))
+            else:
+                return redirect(url_for('server_management', unblacklisted_ip=1))
+    elif is_valid_network(ip):
+        for addr in ipaddress.ip_network(ip):
+            res = redis_server_metadata.srem('blacklist_ip', str(addr))
         if user:
             if res==0:
                 return redirect(url_for('server_management', unblacklisted_ip=2))
