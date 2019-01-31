@@ -91,6 +91,12 @@ def get_whois_ouput(ip):
     else:
         return ''
 
+# ========== ERRORS ============
+
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template('404.html'), 404
+
 # ========== ROUTES ============
 @app.route('/')
 def index():
