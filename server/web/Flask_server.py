@@ -258,13 +258,13 @@ def blacklisted_ip():
         page = 1
     if page <= 0:
         page = 1
-    start = 1000*(page -1)
-    stop = 1000*page
     nb_page_max = redis_server_metadata.scard('blacklist_ip')/(1000*2)
     if isinstance(nb_page_max, float):
         nb_page_max = int(nb_page_max)+1
     if page > nb_page_max:
         page = nb_page_max
+    start = 1000*(page -1)
+    stop = 1000*page
 
     list_blacklisted_ip = list(redis_server_metadata.smembers('blacklist_ip'))
     list_blacklisted_ip_1 = list_blacklisted_ip[start:stop]
