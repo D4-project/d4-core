@@ -67,7 +67,7 @@
 						<div class="card text-center border-light" style="max-width: 20rem;">
 						  <div class="card-body">
 						    <h5 class="card-title">Manage IP Blacklist</h5>
-									<a href="#">
+									<a href="{{ url_for('blacklisted_ip') }}">
 							    	<button type="button" class="btn btn-outline-primary">Show Blacklisted IP</button>
 									</a>
 						  </div>
@@ -119,7 +119,7 @@
 					<div class="card text-center border-light" style="max-width: 20rem;">
 						<div class="card-body">
 							<h5 class="card-title">Manage UUID Blacklist</h5>
-								<a href="#">
+								<a href="{{ url_for('blacklisted_uuid') }}">
 									<button type="button" class="btn btn-outline-primary">Show Blacklisted UUID</button>
 								</a>
 						</div>

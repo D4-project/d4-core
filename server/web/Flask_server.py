@@ -248,6 +248,57 @@ def uuid_management():
     else:
         return 'Invalid uuid'
 
+@app.route('/blacklisted_ip')
+def blacklisted_ip():
+    blacklisted_ip = request.args.get('blacklisted_ip')
+    unblacklisted_ip = request.args.get('unblacklisted_ip')
+    try:
+        page = int(request.args.get('page'))
+    except:
+        page = 1
+    if page <= 0:
+        page = 1
+    start = 1000*(page -1)
+    stop = 1000*page
+    nb_page_max = redis_server_metadata.scard('blacklist_ip')/(1000*2)
+    if isinstance(nb_page_max, float):
+        nb_page_max = int(nb_page_max)+1
+    if page > nb_page_max:
+        page = nb_page_max
+
+    list_blacklisted_ip = list(redis_server_metadata.smembers('blacklist_ip'))
+    list_blacklisted_ip_1 = list_blacklisted_ip[start:stop]
+    list_blacklisted_ip_2 = list_blacklisted_ip[stop:stop+1000]
+    return render_template("blacklisted_ip.html", list_blacklisted_ip_1=list_blacklisted_ip_1, list_blacklisted_ip_2=list_blacklisted_ip_2,
+                            page=page, nb_page_max=nb_page_max,
+                            unblacklisted_ip=unblacklisted_ip, blacklisted_ip=blacklisted_ip)
+
+@app.route('/blacklisted_uuid')
+def blacklisted_uuid():
+    blacklisted_uuid = request.args.get('blacklisted_uuid')
+    unblacklisted_uuid = request.args.get('unblacklisted_uuid')
+    try:
+        page = int(request.args.get('page'))
+    except:
+        page = 1
+    if page <= 0:
+        page = 1
+    nb_page_max = redis_server_metadata.scard('blacklist_uuid')/(1000*2)
+    if isinstance(nb_page_max, float):
+        nb_page_max = int(nb_page_max)+1
+    if page > nb_page_max:
+        page = nb_page_max
+    start = 1000*(page -1)
+    stop = 1000*page
+
+    list_blacklisted_uuid = list(redis_server_metadata.smembers('blacklist_uuid'))
+    list_blacklisted_uuid_1 = list_blacklisted_uuid[start:stop]
+    list_blacklisted_uuid_2 = list_blacklisted_uuid[stop:stop+1000]
+    return render_template("blacklisted_uuid.html", list_blacklisted_uuid_1=list_blacklisted_uuid_1, list_blacklisted_uuid_2=list_blacklisted_uuid_2,
+                            page=page, nb_page_max=nb_page_max,
+                            unblacklisted_uuid=unblacklisted_uuid, blacklisted_uuid=blacklisted_uuid)
+
+
 @app.route('/uuid_change_stream_max_size')
 def uuid_change_stream_max_size():
     uuid_sensor = request.args.get('uuid')
@@ -290,8 +341,11 @@ def blacklist_uuid():
 def unblacklist_uuid():
     uuid_sensor = request.args.get('uuid')
     user = request.args.get('redirect')
+    page = request.args.get('page')
     if is_valid_uuid_v4(uuid_sensor):
         res = redis_server_metadata.srem('blacklist_uuid', uuid_sensor)
+        if page:
+            return redirect(url_for('blacklisted_uuid', page=page))
         if user=="0":
             if res==0:
                 return redirect(url_for('server_management', unblacklisted_uuid=2))
@@ -335,8 +389,11 @@ def blacklist_ip():
 def unblacklist_ip():
     ip = request.args.get('ip')
     user = request.args.get('redirect')
+    page = request.args.get('page')
     if is_valid_ip(ip):
         res = redis_server_metadata.srem('blacklist_ip', ip)
+        if page:
+            return redirect(url_for('blacklisted_ip', page=page))
         if user:
             if res==0:
                 return redirect(url_for('server_management', unblacklisted_ip=2))
