@@ -23,7 +23,7 @@ from twisted.protocols.policies import TimeoutMixin
 hmac_reset = bytearray(32)
 hmac_key = b'private key to change'
 
-accepted_type = [1, 4]
+accepted_type = [1, 4, 8]
 
 timeout_time = 30
 
