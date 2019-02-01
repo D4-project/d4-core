@@ -24,6 +24,7 @@ host_redis_stream = "localhost"
 port_redis_stream = 6379
 
 default_max_entries_by_stream = 10000
+analyzer_list_max_default_size = 10000
 
 json_type_description_path = os.path.join(os.environ['D4_HOME'], 'web/static/json/type.json')
 
@@ -197,8 +198,24 @@ def server_management():
     json_type_description = get_json_type_description()
 
     list_accepted_types = []
+    list_analyzer_types = []
     for type in redis_server_metadata.smembers('server:accepted_type'):
-        list_accepted_types.append({"id": int(type), "description": json_type_description[int(type)]['description']})
+        try:
+            description = json_type_description[int(type)]['description']
+        except:
+            description = 'Please update your web server'
+
+        list_analyzer_uuid = []
+        for analyzer_uuid in redis_server_metadata.smembers('analyzer:{}'.format(type)):
+            size_limit = redis_server_metadata.hget('analyzer:{}'.format(analyzer_uuid), 'max_size')
+            if size_limit is None:
+                size_limit = analyzer_list_max_default_size
+            last_updated = redis_server_metadata.hget('analyzer:{}'.format(analyzer_uuid), 'last_updated')
+            if last_updated is None:
+                last_updated = 'Never'
+            list_analyzer_uuid.append({'uuid': analyzer_uuid, 'size_limit': size_limit,'last_updated': last_updated})
+
+        list_accepted_types.append({"id": int(type), "description": description, 'list_analyzer_uuid': list_analyzer_uuid})
 
     return render_template("server_management.html", list_accepted_types=list_accepted_types,
                             blacklisted_ip=blacklisted_ip, unblacklisted_ip=unblacklisted_ip,
@@ -320,6 +337,61 @@ def uuid_change_stream_max_size():
         redis_server_metadata.hset('stream_max_size_by_uuid', uuid_sensor, max_uuid_stream)
         if user:
             return redirect(url_for('uuid_management', uuid=uuid_sensor))
+    else:
+        return 'Invalid uuid'
+
+@app.route('/add_new_analyzer')
+def add_new_analyzer():
+    type = request.args.get('type')
+    user = request.args.get('redirect')
+    analyzer_uuid = request.args.get('analyzer_uuid')
+    if is_valid_uuid_v4(analyzer_uuid):
+        try:
+            type = int(type)
+            if type < 0:
+                return 'type, Invalid Integer'
+        except:
+            return 'type, Invalid Integer'
+        redis_server_metadata.sadd('analyzer:{}'.format(type), analyzer_uuid)
+        if user:
+            return redirect(url_for('server_management'))
+    else:
+        return 'Invalid uuid'
+
+@app.route('/remove_analyzer')
+def remove_analyzer():
+    analyzer_uuid = request.args.get('analyzer_uuid')
+    type = request.args.get('type')
+    user = request.args.get('redirect')
+    if is_valid_uuid_v4(analyzer_uuid):
+        try:
+            type = int(type)
+            if type < 0:
+                return 'type, Invalid Integer'
+        except:
+            return 'type, Invalid Integer'
+        redis_server_metadata.srem('analyzer:{}'.format(type), analyzer_uuid)
+        print(user)
+        if user:
+            return redirect(url_for('server_management'))
+    else:
+        return 'Invalid uuid'
+
+@app.route('/analyzer_change_max_size')
+def analyzer_change_max_size():
+    analyzer_uuid = request.args.get('analyzer_uuid')
+    user = request.args.get('redirect')
+    max_size_analyzer = request.args.get('max_size_analyzer')
+    if is_valid_uuid_v4(analyzer_uuid):
+        try:
+            max_size_analyzer = int(max_size_analyzer)
+            if max_size_analyzer < 0:
+                return 'analyzer max size, Invalid Integer'
+        except:
+            return 'analyzer max size, Invalid Integer'
+        redis_server_metadata.hset('analyzer:{}'.format(analyzer_uuid), 'max_size', max_size_analyzer)
+        if user:
+            return redirect(url_for('server_management'))
     else:
         return 'Invalid uuid'
 

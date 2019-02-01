@@ -33,7 +33,7 @@ redis_server_analyzer = redis.StrictRedis(
                     db=2)
 
 type = 8
-rotation_save_cycle = 10 #seconds
+rotation_save_cycle = 300 #seconds
 
 save_to_file = True
 
@@ -96,10 +96,10 @@ if __name__ == "__main__":
                     if b'\n' in data[b'message']:
                         all_line = data[b'message'].split(b'\n')
                         for line in all_line[:-1]:
-                            for analyzer_uuid in redis_server_metadata.smembers('analyser:{}'.format(type)):
+                            for analyzer_uuid in redis_server_metadata.smembers('analyzer:{}'.format(type)):
                                 analyzer_uuid = analyzer_uuid.decode()
                                 redis_server_analyzer.lpush('analyzer:{}:{}'.format(type, analyzer_uuid), line)
-                                redis_server_metadata.hset('analyser:{}'.format(analyzer_uuid), 'last_updated', time.time())
+                                redis_server_metadata.hset('analyzer:{}'.format(analyzer_uuid), 'last_updated', time.time())
                         # keep incomplete line
                         if all_line[-1] != b'':
                             buffer += data[b'message']
