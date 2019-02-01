@@ -219,8 +219,8 @@
 												<td>{{analyzer['last_updated']}}</td>
 												<td>
 													<div class="d-flex justify-content-center">
-														<input class="form-control mt-1 mr-1" style="max-width: 100px;" type="number" id="max_size_analyzer_{{analyzer['uuid']}}" value="{{analyzer['size_limit']}}" min="0" required="">
-														<button type="button" class="btn btn-outline-secondary mt-1" onclick="window.location.href ='{{ url_for('analyzer_change_max_size') }}?analyzer_uuid={{analyzer['uuid']}}&redirect=0&max_size_analyzer='+$('#max_size_analyzer_{{analyzer['uuid']}}').val();">Change Max Size</button>
+														<input class="form-control mr-1" style="max-width: 100px;" type="number" id="max_size_analyzer_{{analyzer['uuid']}}" value="{{analyzer['size_limit']}}" min="0" required="">
+														<button type="button" class="btn btn-outline-secondary" onclick="window.location.href ='{{ url_for('analyzer_change_max_size') }}?analyzer_uuid={{analyzer['uuid']}}&redirect=0&max_size_analyzer='+$('#max_size_analyzer_{{analyzer['uuid']}}').val();">Change Max Size</button>
 													</div>
 												</td>
 												<td>
