@@ -35,6 +35,8 @@ redis_server_analyzer = redis.StrictRedis(
 type = 8
 rotation_save_cycle = 300 #seconds
 
+analyzer_list_max_default_size = 10000
+
 save_to_file = True
 
 def get_save_dir(dir_data_uuid, year, month, day):
@@ -100,6 +102,10 @@ if __name__ == "__main__":
                                 analyzer_uuid = analyzer_uuid.decode()
                                 redis_server_analyzer.lpush('analyzer:{}:{}'.format(type, analyzer_uuid), line)
                                 redis_server_metadata.hset('analyzer:{}'.format(analyzer_uuid), 'last_updated', time.time())
+                                analyser_queue_max_size = redis_server_metadata.hget('analyzer:{}'.format(analyzer_uuid), 'max_size')
+                                if analyser_queue_max_size is None:
+                                    analyser_queue_max_size = analyzer_list_max_default_size
+                                redis_server_analyzer.ltrim('analyzer:{}:{}'.format(type, analyzer_uuid), 0, analyser_queue_max_size)
                         # keep incomplete line
                         if all_line[-1] != b'':
                             buffer += data[b'message']

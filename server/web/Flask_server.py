@@ -43,12 +43,19 @@ redis_server_metadata = redis.StrictRedis(
                     db=0,
                     decode_responses=True)
 
+redis_server_analyzer = redis.StrictRedis(
+                    host=host_redis_metadata,
+                    port=port_redis_metadata,
+                    db=2,
+                    decode_responses=True)
+
 app = Flask(__name__, static_url_path=baseUrl+'/static/')
 app.config['MAX_CONTENT_LENGTH'] = 900 * 1024 * 1024
 
 # ========== FUNCTIONS ============
 def is_valid_uuid_v4(header_uuid):
     try:
+        header_uuid=header_uuid.replace('-', '')
         uuid_test = uuid.UUID(hex=header_uuid, version=4)
         return uuid_test.hex == header_uuid
     except:
@@ -371,7 +378,8 @@ def remove_analyzer():
         except:
             return 'type, Invalid Integer'
         redis_server_metadata.srem('analyzer:{}'.format(type), analyzer_uuid)
-        print(user)
+        redis_server_analyzer.delete('analyzer:{}:{}'.format(type, analyzer_uuid))
+        redis_server_metadata.delete('analyzer:{}'.format(analyzer_uuid))
         if user:
             return redirect(url_for('server_management'))
     else:
