@@ -11,6 +11,7 @@
 
 	<!-- JS -->
 	<script src="{{ url_for('static', filename='js/jquery.js')}}"></script>
+	<script src="{{ url_for('static', filename='js/bootstrap.min.js')}}"></script>
 	<script src="{{ url_for('static', filename='js/jquery.dataTables.min.js')}}"></script>
 	<script src="{{ url_for('static', filename='js/dataTables.bootstrap.min.js')}}"></script>
 
@@ -206,7 +207,7 @@
 									<th style="max-width: 800px;">uuid</th>
 									<th style="max-width: 800px;">last updated</th>
 									<th style="max-width: 800px;">Change max size limit</th>
-									<th style="max-width: 800px;">Delete Analyzer Queue</th>
+									<th style="max-width: 800px;">Analyzer Queue</th>
 								</tr>
 							</thead>
 							<tbody>
@@ -225,8 +226,9 @@
 												</td>
 												<td>
 													<a href="{{ url_for('remove_analyzer') }}?redirect=1&type={{type['id']}}&analyzer_uuid={{analyzer['uuid']}}">
-														<button type="button mt-2" class="btn btn-outline-danger">Remove</button>
+														<button type="button" class="btn btn-outline-danger"><i class="fa fa-trash"></i></button>
 													</a>
+													<button type="button" class="btn btn-outline-info ml-3" onclick="get_analyser_sample('{{type['id']}}', '{{analyzer['uuid']}}');"><i class="fa fa-database"></i> {{analyzer['length']}}</button>
 												</td>
 											</tr>
 										{% endfor %}
@@ -250,6 +252,26 @@
 			</div>
 		</div>
 
+	</div>
+
+	<div class="modal fade" id="modal_analyser_sample" tabindex="-1" role="dialog" aria-labelledby="AnalyserModalLabel" aria-hidden="true">
+	  <div class="modal-dialog modal-xl" role="document">
+	    <div class="modal-content">
+	      <div class="modal-header">
+	        <h5 class="modal-title" id="modal_analyser_sample_label"></h5>
+	        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+	          <span aria-hidden="true">&times;</span>
+	        </button>
+	      </div>
+	      <div class="d-flex modal-body justify-content-center">
+	        <pre id="analyzer_content">
+					</pre>
+	      </div>
+	      <div class="modal-footer">
+	        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+	      </div>
+	    </div>
+	  </div>
 	</div>
 
 	{% include 'navfooter.html' %}
@@ -276,4 +298,13 @@ $(document).ready(function(){
 		);
 
 });
+
+
+function get_analyser_sample(type, analyzer_uuid){
+	$.getJSON( "{{url_for('get_analyser_sample')}}?type="+type+"&analyzer_uuid="+analyzer_uuid, function( data ) {
+		$( "#modal_analyser_sample_label" ).text("analyzer:"+type+":"+analyzer_uuid);
+		$( "#analyzer_content" ).text(data);
+		$( "#modal_analyser_sample" ).modal('show');
+	});
+}
 </script>

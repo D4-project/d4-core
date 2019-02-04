@@ -220,7 +220,10 @@ def server_management():
             last_updated = redis_server_metadata.hget('analyzer:{}'.format(analyzer_uuid), 'last_updated')
             if last_updated is None:
                 last_updated = 'Never'
-            list_analyzer_uuid.append({'uuid': analyzer_uuid, 'size_limit': size_limit,'last_updated': last_updated})
+            len_queue = redis_server_analyzer.llen('analyzer:{}:{}'.format(type, analyzer_uuid))
+            if len_queue is None:
+                len_queue = 0
+            list_analyzer_uuid.append({'uuid': analyzer_uuid, 'size_limit': size_limit,'last_updated': last_updated, 'length': len_queue})
 
         list_accepted_types.append({"id": int(type), "description": description, 'list_analyzer_uuid': list_analyzer_uuid})
 
@@ -571,6 +574,20 @@ def whois_data():
         return jsonify(get_whois_ouput(ip))
     else:
         return 'Invalid IP'
+
+# demo function
+@app.route('/get_analyser_sample')
+def get_analyser_sample():
+    type = request.args.get('type')
+    analyzer_uuid = request.args.get('analyzer_uuid')
+    if is_valid_uuid_v4(analyzer_uuid):
+        list_queue = redis_server_analyzer.lrange('analyzer:{}:{}'.format(type, analyzer_uuid), 0 ,10)
+        list_queue_res = []
+        for res in list_queue:
+            list_queue_res.append('{}\n'.format(res))
+        return jsonify(''.join(list_queue_res))
+    else:
+        return jsonify('Incorrect UUID')
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=7000, threaded=True)
