@@ -37,6 +37,8 @@ rotation_save_cycle = 300 #seconds
 
 analyzer_list_max_default_size = 10000
 
+max_buffer_length = 10000
+
 save_to_file = True
 
 def get_save_dir(dir_data_uuid, year, month, day):
@@ -54,7 +56,7 @@ if __name__ == "__main__":
     session_uuid = sys.argv[1]
     stream_name = 'stream:{}:{}'.format(type, session_uuid)
     id = '0'
-    buffer = None
+    buffer = b''
 
     # track launched worker
     redis_server_stream.sadd('working_session_uuid:{}'.format(type), session_uuid)
@@ -89,9 +91,9 @@ if __name__ == "__main__":
 
                 if id and data:
                     # reconstruct data
-                    if buffer:
+                    if buffer != b'':
                         data[b'message'] = '{}{}'.format(buffer, data[b'message'])
-                        buffer = None
+                        buffer = b''
 
                     # send data to redis
                     # new line in received data
@@ -110,7 +112,12 @@ if __name__ == "__main__":
                         if all_line[-1] != b'':
                             buffer += data[b'message']
                     else:
-                        buffer += data[b'message']
+                        if len(buffer) < max_buffer_length:
+                            buffer += data[b'message']
+                        else:
+                            print('Error, infinite loop, buffer may length reached')
+                            # force new line
+                            buffer += b'{}\n'.format(data[b'message'])
 
 
                     # save data on disk
