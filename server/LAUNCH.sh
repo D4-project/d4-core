@@ -51,7 +51,7 @@ function launching_redis {
 
     screen -dmS "Redis_D4"
     sleep 0.1
-    echo -e $GREEN"\t* Launching D4 Redis ervers"$DEFAULT
+    echo -e $GREEN"\t* Launching D4 Redis Servers"$DEFAULT
     screen -S "Redis_D4" -X screen -t "6379" bash -c $redis_dir'redis-server '$conf_dir'6379.conf ; read x'
     sleep 0.1
     screen -S "Redis_D4" -X screen -t "6380" bash -c $redis_dir'redis-server '$conf_dir'6380.conf ; read x'

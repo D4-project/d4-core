@@ -3,10 +3,11 @@
 import os
 import sys
 import time
+import gzip
 import redis
-import subprocess
-
+import shutil
 import datetime
+import subprocess
 
 def data_incorrect_format(stream_name, session_uuid, uuid):
     redis_server_stream.sadd('Error:IncorrectType:{}'.format(type), session_uuid)
@@ -21,6 +22,28 @@ def clean_stream(stream_name, session_uuid):
     redis_server_stream.srem('working_session_uuid:{}'.format(type), session_uuid)
     redis_server_stream.hdel('map-type:session_uuid-uuid:{}'.format(type), session_uuid)
     redis_server_stream.delete(stream_name)
+
+def compress_file(file_full_path, i=0):
+    if i==0:
+        compressed_filename = '{}.gz'.format(file_full_path)
+    else:
+        compressed_filename = '{}.{}.gz'.format(file_full_path, i)
+    if os.path.isfile(compressed_filename):
+        compress_file(file_full_path, i+1)
+    else:
+        with open(file_full_path, 'rb') as f_in:
+            with gzip.open(compressed_filename, 'wb') as f_out:
+                shutil.copyfileobj(f_in, f_out)
+        os.remove(file_full_path)
+        # save full path in anylyzer queue
+        for analyzer_uuid in redis_server_metadata.smembers('analyzer:{}'.format(type)):
+            analyzer_uuid = analyzer_uuid.decode()
+            redis_server_analyzer.lpush('analyzer:{}:{}'.format(type, analyzer_uuid), compressed_filename)
+            redis_server_metadata.hset('analyzer:{}'.format(analyzer_uuid), 'last_updated', time.time())
+            analyser_queue_max_size = redis_server_metadata.hget('analyzer:{}'.format(analyzer_uuid), 'max_size')
+            if analyser_queue_max_size is None:
+                analyser_queue_max_size = analyzer_list_max_default_size
+            redis_server_analyzer.ltrim('analyzer:{}:{}'.format(type, analyzer_uuid), 0, analyser_queue_max_size)
 
 host_redis_stream = "localhost"
 port_redis_stream = 6379
@@ -38,9 +61,17 @@ redis_server_metadata = redis.StrictRedis(
                     port=port_redis_metadata,
                     db=0)
 
+redis_server_analyzer = redis.StrictRedis(
+                    host=host_redis_metadata,
+                    port=port_redis_metadata,
+                    db=2)
+
 type = 1
 tcp_dump_cycle = '300'
+tcp_dump_cycle = '10'
 stream_buffer = 100
+
+analyzer_list_max_default_size = 10000
 
 id_to_delete = []
 
@@ -59,6 +90,7 @@ if __name__ == "__main__":
         uuid = res[0][1][0][1][b'uuid'].decode()
         date = datetime.datetime.now().strftime("%Y%m%d")
         tcpdump_path = os.path.join('../../data', uuid, str(type))
+        full_tcpdump_path = os.path.join(os.environ['D4_HOME'], 'data', uuid, str(type))
         rel_path = os.path.join(tcpdump_path, date[0:4], date[4:6], date[6:8])
         if not os.path.isdir(rel_path):
             os.makedirs(rel_path)
@@ -71,6 +103,8 @@ if __name__ == "__main__":
     #LAUNCH a tcpdump
     process = subprocess.Popen(["tcpdump", '-n', '-r', '-', '-G', tcp_dump_cycle, '-w', '{}/%Y/%m/%d/{}-%Y-%m-%d-%H%M%S.cap'.format(tcpdump_path, uuid)], stdin=subprocess.PIPE, stderr=subprocess.PIPE)
     nb_save = 0
+
+    process_compressor = subprocess.Popen(['./file_compressor.py', session_uuid, full_tcpdump_path, date])
 
     while True:
 
@@ -108,7 +142,7 @@ if __name__ == "__main__":
                         nb_save = 0
 
         else:
-            # sucess, all data are saved
+            # success, all data are saved
             if redis_server_stream.sismember('ended_session', session_uuid):
                 out, err = process.communicate(timeout= 0.5)
                 #print(out)
@@ -117,12 +151,31 @@ if __name__ == "__main__":
                 elif err:
                     print(err)
 
+                # close child
+                try:
+                    process_compressor.communicate(timeout= 0.5)
+                except subprocess.TimeoutExpired:
+                    process_compressor.kill()
+                    ### compress all files ###
+                    date = datetime.datetime.now().strftime("%Y%m%d")
+                    worker_data_directory = os.path.join(full_tcpdump_path, date[0:4], date[4:6], date[6:8])
+                    all_files = os.listdir(worker_data_directory)
+                    all_files.sort()
+                    if all_files:
+                        for file in all_files:
+                            if file.endswith('.cap'):
+                                full_path = os.path.join(worker_data_directory, file)
+                                if redis_server_stream.get('data_in_process:{}'.format(session_uuid)) != full_path:
+                                    compress_file(full_path)
+                    ### ###
+
                 #print(process.stderr.read())
                 redis_server_stream.srem('ended_session', session_uuid)
                 redis_server_stream.srem('session_uuid:{}'.format(type), session_uuid)
                 redis_server_stream.srem('working_session_uuid:{}'.format(type), session_uuid)
                 redis_server_stream.hdel('map-type:session_uuid-uuid:{}'.format(type), session_uuid)
                 redis_server_stream.delete(stream_name)
+                redis_server_stream.delete('data_in_process:{}'.format(session_uuid))
                 # make sure that tcpdump can save all datas
                 time.sleep(10)
                 print('----    tcpdump DONE, uuid={} session_uuid={}'.format(uuid, session_uuid))

@@ -115,7 +115,7 @@ if __name__ == "__main__":
                         if len(buffer) < max_buffer_length:
                             buffer += data[b'message']
                         else:
-                            print('Error, infinite loop, buffer may length reached')
+                            print('Error, infinite loop, max buffer length reached')
                             # force new line
                             buffer += b'{}\n'.format(data[b'message'])
 
