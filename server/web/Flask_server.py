@@ -26,6 +26,8 @@ port_redis_stream = 6379
 default_max_entries_by_stream = 10000
 analyzer_list_max_default_size = 10000
 
+default_analyzer_max_line_len = 3000
+
 json_type_description_path = os.path.join(os.environ['D4_HOME'], 'web/static/json/type.json')
 
 redis_server_stream = redis.StrictRedis(
@@ -233,6 +235,7 @@ def server_management():
         list_accepted_types.append({"id": int(type), "description": description, 'list_analyzer_uuid': list_analyzer_uuid})
 
     return render_template("server_management.html", list_accepted_types=list_accepted_types,
+                            default_analyzer_max_line_len=default_analyzer_max_line_len,
                             blacklisted_ip=blacklisted_ip, unblacklisted_ip=unblacklisted_ip,
                             blacklisted_uuid=blacklisted_uuid, unblacklisted_uuid=unblacklisted_uuid)
 
@@ -585,14 +588,24 @@ def whois_data():
 def get_analyser_sample():
     type = request.args.get('type')
     analyzer_uuid = request.args.get('analyzer_uuid')
-    max_line_len = 3000
+    max_line_len = request.args.get('max_line_len')
+    # get max_line_len
+    if max_line_len is not None and max_line_len!= 'undefined':
+        try:
+            max_line_len = int(max_line_len)
+        except:
+            max_line_len = default_analyzer_max_line_len
+        if max_line_len < 1:
+            max_line_len = default_analyzer_max_line_len
+    else:
+        max_line_len = default_analyzer_max_line_len
     if is_valid_uuid_v4(analyzer_uuid):
         list_queue = redis_server_analyzer.lrange('analyzer:{}:{}'.format(type, analyzer_uuid), 0 ,10)
         list_queue_res = []
         for res in list_queue:
             #limit line len
             if len(res) > max_line_len:
-                res = res[:1000]
+                res = '{} [...]'.format(res[:max_line_len])
             list_queue_res.append('{}\n'.format(res))
         return jsonify(''.join(list_queue_res))
     else:

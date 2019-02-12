@@ -270,6 +270,12 @@
 					</pre>
 	      </div>
 	      <div class="modal-footer">
+					<div class="d-sm-flex align-self-sm-start mr-auto">
+						<input class="form-control w-25 mr-sm-2" type="number" id="max_line_len" value="{{default_analyzer_max_line_len}}" min="1" max="10000">
+						<button type="button" class="btn btn-primary" onclick="change_analyser_sample_max_len();">
+							Change Line Size
+						</button>
+					</div>
 	        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
 	      </div>
 	    </div>
@@ -302,11 +308,16 @@ $(document).ready(function(){
 });
 
 
-function get_analyser_sample(type, analyzer_uuid){
-	$.getJSON( "{{url_for('get_analyser_sample')}}?type="+type+"&analyzer_uuid="+analyzer_uuid, function( data ) {
+function get_analyser_sample(type, analyzer_uuid, max_line_len){
+	$.getJSON( "{{url_for('get_analyser_sample')}}?type="+type+"&analyzer_uuid="+analyzer_uuid+"&max_line_len="+max_line_len, function( data ) {
 		$( "#modal_analyser_sample_label" ).text("analyzer:"+type+":"+analyzer_uuid);
 		$( "#analyzer_content" ).text(data);
 		$( "#modal_analyser_sample" ).modal('show');
 	});
+}
+
+function change_analyser_sample_max_len(){
+	var analyzer_data_info=$('#modal_analyser_sample_label').text().split(":");
+	get_analyser_sample(analyzer_data_info[1], analyzer_data_info[2], $('#max_line_len').val());
 }
 </script>
