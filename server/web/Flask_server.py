@@ -126,10 +126,15 @@ def _json_daily_uuid_stats():
 def _json_daily_type_stats():
     date = datetime.datetime.now().strftime("%Y%m%d")
     daily_uuid = redis_server_metadata.zrange('daily_type:{}'.format(date), 0, -1, withscores=True)
+    json_type_description = get_json_type_description()
 
     data_daily_uuid = []
     for result in daily_uuid:
-        data_daily_uuid.append({"key": result[0], "value": int(result[1])})
+        try:
+            type_description = json_type_description[int(result[0])]['description']
+        except:
+            type_description = 'Please update your web server'
+        data_daily_uuid.append({"key": '{}: {}'.format(result[0], type_description), "value": int(result[1])})
 
     return jsonify(data_daily_uuid)
 
