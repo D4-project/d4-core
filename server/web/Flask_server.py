@@ -580,10 +580,14 @@ def whois_data():
 def get_analyser_sample():
     type = request.args.get('type')
     analyzer_uuid = request.args.get('analyzer_uuid')
+    max_line_len = 3000
     if is_valid_uuid_v4(analyzer_uuid):
         list_queue = redis_server_analyzer.lrange('analyzer:{}:{}'.format(type, analyzer_uuid), 0 ,10)
         list_queue_res = []
         for res in list_queue:
+            #limit line len
+            if len(res) > max_line_len:
+                res = res[:1000]
             list_queue_res.append('{}\n'.format(res))
         return jsonify(''.join(list_queue_res))
     else:
