@@ -68,7 +68,6 @@ redis_server_analyzer = redis.StrictRedis(
 
 type = 1
 tcp_dump_cycle = '300'
-tcp_dump_cycle = '10'
 stream_buffer = 100
 
 analyzer_list_max_default_size = 10000

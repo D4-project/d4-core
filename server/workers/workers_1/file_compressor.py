@@ -65,7 +65,7 @@ redis_server_analyzer = redis.StrictRedis(
                     db=2)
 
 type = 1
-sleep_time = 20
+sleep_time = 300
 
 analyzer_list_max_default_size = 10000
 
@@ -153,4 +153,4 @@ if __name__ == "__main__":
         if killer.kill_now:
             break
 
-        time.sleep(10)
+        time.sleep(sleep_time)
