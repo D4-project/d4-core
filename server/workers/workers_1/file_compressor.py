@@ -31,7 +31,10 @@ def compress_file(file_full_path, session_uuid,i=0):
         with open(file_full_path, 'rb') as f_in:
             with gzip.open(compressed_filename, 'wb') as f_out:
                 shutil.copyfileobj(f_in, f_out)
-        os.remove(file_full_path)
+        try:
+            os.remove(file_full_path)
+        except FileNotFoundError:
+            pass
         # save full path in anylyzer queue
         for analyzer_uuid in redis_server_metadata.smembers('analyzer:{}'.format(type)):
             analyzer_uuid = analyzer_uuid.decode()
