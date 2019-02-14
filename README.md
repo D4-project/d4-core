@@ -5,6 +5,9 @@
 D4 core are software components used in the D4 project. The software includes everything to create your own sensor network or connect
 to an existing sensor network using simple clients.
 
+![https://github.com/D4-project/d4-core/releases/latest](https://img.shields.io/github/release/D4-project/d4-core/all.svg)
+![https://github.com/D4-project/d4-core/blob/master/LICENSE](https://img.shields.io/badge/License-AGPL-yellow.svg)
+
 ## D4 core client
 
 [D4 core client](https://github.com/D4-project/d4-core/tree/master/client) is a simple and minimal implementation of the [D4 encapsulation protocol](https://github.com/D4-project/architecture/tree/master/format). There is also a [portable D4 client](https://github.com/D4-project/d4-goclient) in Go including the support for the SSL/TLS connectivity.
