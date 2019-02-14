@@ -68,7 +68,7 @@ redis_server_metadata.delete('server:accepted_type')
 for type in accepted_type:
     redis_server_metadata.sadd('server:accepted_type', type)
 
-class Echo(Protocol, TimeoutMixin):
+class D4_Server(Protocol, TimeoutMixin):
 
     def __init__(self):
         self.buffer = b''
@@ -76,6 +76,8 @@ class Echo(Protocol, TimeoutMixin):
         self.session_uuid = str(uuid.uuid4())
         self.data_saved = False
         self.first_connection = True
+        self.ip = None
+        self.source_port = None
         self.stream_max_size = None
         self.hmac_key = None
         #self.version = None
@@ -85,15 +87,17 @@ class Echo(Protocol, TimeoutMixin):
 
     def dataReceived(self, data):
         self.resetTimeout()
-        ip, source_port = self.transport.client
-        if self.first_connection:
-            logger.debug('New connection, ip={}, port={} session_uuid={}'.format(ip, source_port, self.session_uuid))
+        if self.first_connection or self.ip is None:
+            client_info = self.transport.client
+            self.ip = self.extract_ip(client_info[0])
+            self.source_port = client_info[1]
+            logger.debug('New connection, ip={}, port={} session_uuid={}'.format(self.ip, self.source_port, self.session_uuid))
         # check blacklisted_ip
-        if redis_server_metadata.sismember('blacklist_ip', ip):
+        if redis_server_metadata.sismember('blacklist_ip', self.ip):
             self.transport.abortConnection()
-            logger.warning('Blacklisted IP={}, connection closed'.format(ip))
+            logger.warning('Blacklisted IP={}, connection closed'.format(self.ip))
 
-        self.process_header(data, ip, source_port)
+        self.process_header(data, self.ip, self.source_port)
 
     def timeoutConnection(self):
         self.resetTimeout()
@@ -103,7 +107,7 @@ class Echo(Protocol, TimeoutMixin):
     def connectionLost(self, reason):
             redis_server_stream.sadd('ended_session', self.session_uuid)
             self.setTimeout(None)
-            redis_server_stream.srem('active_connection:{}'.format(self.type), '{}:{}'.format(self.transport.client[0], self.uuid))
+            redis_server_stream.srem('active_connection:{}'.format(self.type), '{}:{}'.format(self.ip, self.uuid))
             redis_server_stream.srem('active_connection', '{}'.format(self.uuid))
             logger.debug('Connection closed: session_uuid={}'.format(self.session_uuid))
 
@@ -119,7 +123,7 @@ class Echo(Protocol, TimeoutMixin):
 
             # blacklist ip by uuid
             if redis_server_metadata.sismember('blacklist_ip_by_uuid', data_header['uuid_header']):
-                redis_server_metadata.sadd('blacklist_ip', self.transport.client[0])
+                redis_server_metadata.sadd('blacklist_ip', self.ip)
                 self.transport.abortConnection()
                 logger.warning('Blacklisted IP by UUID={}, connection closed'.format(data_header['uuid_header']))
 
@@ -141,6 +145,17 @@ class Echo(Protocol, TimeoutMixin):
                 logger.warning('Incorrect type={} detected by worker, uuid={}, session_uuid={}'.format(data_header['type'] ,data_header['uuid_header'], self.session_uuid))
 
         return data_header
+
+    def extract_ip(self, ip_string):
+        #remove interface
+        ip_string = ip_string.split('%')[0]
+        # IPv4
+        #extract ipv4
+        if '.' in ip_string:
+            return ip_string.split(':')[-1]
+        # IPv6
+        else:
+            return ip_string
 
     def is_valid_uuid_v4(self, header_uuid):
         try:
@@ -325,8 +340,9 @@ def main(reactor):
         print(e)
         sys.exit(1)
     certificate = ssl.PrivateCertificate.loadPEM(certData)
-    factory = protocol.Factory.forProtocol(Echo)
-    reactor.listenSSL(4443, factory, certificate.options())
+    factory = protocol.Factory.forProtocol(D4_Server)
+    # use interface to support both IPv4 and IPv6
+    reactor.listenSSL(4443, factory, certificate.options(), interface='::')
     return defer.Deferred()
 
 
