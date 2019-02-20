@@ -376,6 +376,24 @@ def add_new_analyzer():
     else:
         return 'Invalid uuid'
 
+@app.route('/empty_analyzer_queue')
+def empty_analyzer_queue():
+    analyzer_uuid = request.args.get('analyzer_uuid')
+    type = request.args.get('type')
+    user = request.args.get('redirect')
+    if is_valid_uuid_v4(analyzer_uuid):
+        try:
+            type = int(type)
+            if type < 0:
+                return 'type, Invalid Integer'
+        except:
+            return 'type, Invalid Integer'
+        redis_server_analyzer.delete('analyzer:{}:{}'.format(type, analyzer_uuid))
+        if user:
+            return redirect(url_for('server_management'))
+    else:
+        return 'Invalid uuid'
+
 @app.route('/remove_analyzer')
 def remove_analyzer():
     analyzer_uuid = request.args.get('analyzer_uuid')
