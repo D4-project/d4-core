@@ -10,7 +10,7 @@ import datetime
 import subprocess
 
 def data_incorrect_format(stream_name, session_uuid, uuid):
-    redis_server_stream.sadd('Error:IncorrectType:{}'.format(type), session_uuid)
+    redis_server_stream.sadd('Error:IncorrectType', session_uuid)
     redis_server_metadata.hset('metadata_uuid:{}'.format(uuid), 'Error', 'Error: Type={}, Incorrect file format'.format(type))
     clean_stream(stream_name, session_uuid)
     print('Incorrect format')
