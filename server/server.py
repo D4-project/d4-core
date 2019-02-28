@@ -69,7 +69,7 @@ redis_server_metadata.delete('server:accepted_type')
 for type in accepted_type:
     redis_server_metadata.sadd('server:accepted_type', type)
 redis_server_metadata.delete('server:accepted_extended_type')
-for type in accepted_type:
+for type in accepted_extended_type:
     redis_server_metadata.sadd('server:accepted_extended_type', type)
 
 class D4_Server(Protocol, TimeoutMixin):

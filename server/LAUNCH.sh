@@ -72,11 +72,13 @@ function launching_workers {
     sleep 0.1
     echo -e $GREEN"\t* Launching D4 Workers"$DEFAULT
 
-    screen -S "Workers_D4" -X screen -t "1_workers_manager" bash -c "cd ${D4_HOME}/workers/workers_1; ./workers_manager.py; read x"
+    screen -S "Workers_D4" -X screen -t "1_workers" bash -c "cd ${D4_HOME}/workers/workers_1; ./workers_manager.py; read x"
     sleep 0.1
-    screen -S "Workers_D4" -X screen -t "4_workers_manager" bash -c "cd ${D4_HOME}/workers/workers_4; ./workers_manager.py; read x"
+    screen -S "Workers_D4" -X screen -t "2_workers" bash -c "cd ${D4_HOME}/workers/workers_2; ./workers_manager.py; read x"
     sleep 0.1
-    screen -S "Workers_D4" -X screen -t "8_workers_manager" bash -c "cd ${D4_HOME}/workers/workers_8; ./workers_manager.py; read x"
+    screen -S "Workers_D4" -X screen -t "4_workers" bash -c "cd ${D4_HOME}/workers/workers_4; ./workers_manager.py; read x"
+    sleep 0.1
+    screen -S "Workers_D4" -X screen -t "8_workers" bash -c "cd ${D4_HOME}/workers/workers_8; ./workers_manager.py; read x"
     sleep 0.1
 }
 
