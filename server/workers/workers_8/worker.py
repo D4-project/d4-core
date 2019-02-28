@@ -77,6 +77,7 @@ if __name__ == "__main__":
 
         print('----    worker launched, uuid={} session_uuid={}'.format(uuid, session_uuid))
     else:
+        ########################### # TODO: clean db on error
         print('Incorrect Stream, Closing worker: type={} session_uuid={}'.format(type, session_uuid))
         sys.exit(1)
 
@@ -117,7 +118,7 @@ if __name__ == "__main__":
                         else:
                             print('Error, infinite loop, max buffer length reached')
                             # force new line
-                            buffer += b'{}\n'.format(data[b'message'])
+                            buffer += b''.join([ data[b'message'], b'\n' ])
 
 
                     # save data on disk
