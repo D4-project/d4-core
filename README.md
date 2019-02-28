@@ -72,13 +72,8 @@ sensor registrations, management of decoding protocols and dispatching to adequa
 
 ### Installation
 
-~~~~
-cd server
-./install_server.sh
-./LAUNCH.sh -l
-~~~~
 
-The web interface is accessible via `http://127.0.0.1:7000/`
+- [Install D4 Server](https://github.com/D4-project/d4-core/tree/master/server)
 
 ### Screenshots of D4 core server management
 
