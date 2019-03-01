@@ -151,7 +151,7 @@ if __name__ == "__main__":
         clean_db(session_uuid)
         sys.exit(1)
 
-    file_separator = b'/n' ## TODO: map all file separator or extract from json
+    file_separator = b'\n' ## TODO: map all file separator or extract from json
     extended_type_name = '{}.txt'.format(extended_type) # # TODO: create default or extract from JSON
 
     # save json on disk
