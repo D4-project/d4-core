@@ -36,7 +36,7 @@ function helptext {
       - D4 Twisted server.
       - All wokers manager.
       - All Redis in memory servers.
-      - Flak server.
+      - Flask server.
 
     Usage:    LAUNCH.sh
                   [-l | --launchAuto]
