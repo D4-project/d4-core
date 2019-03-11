@@ -6,12 +6,13 @@ import time
 import json
 import redis
 
-class TypeHandler(MetaTypesDefault:
+from meta_types_modules.MetaTypesDefault import MetaTypesDefault
 
-    def __init__(self, json_file):
-        super().__init__(json_file)
+class TypeHandler(MetaTypesDefault):
+
+    def __init__(self, uuid, json_file):
+        super().__init__(uuid, json_file)
         print('init_spec')
 
-    def test2(self):
-        print('ja3-jl type')
-        print(self.session_uuid)
+    def test(self):
+        print('Class: ja3-jl')

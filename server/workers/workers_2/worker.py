@@ -41,6 +41,31 @@ def get_class( package_class ):
         mod = getattr(mod, comp)
     return mod
 
+def check_default_json_file(json_file):
+    # the json object must contain a type field
+    if "type" in json_file:
+        return True
+    else:
+        return False
+
+def on_error(session_uuid, type_error, message):
+    redis_server_stream.sadd('Error:IncorrectType', session_uuid)
+    redis_server_metadata.hset('metadata_uuid:{}'.format(uuid), 'Error', 'Error: Type={}, {}'.format(type_error, message))
+    clean_db(session_uuid)
+    print('Incorrect format')
+    sys.exit(1)
+
+def clean_db(session_uuid):
+    clean_stream(stream_meta_json, type_meta_header, session_uuid)
+    clean_stream(stream_defined, type_defined, session_uuid)
+    redis_server_stream.srem('ended_session', session_uuid)
+    redis_server_stream.srem('working_session_uuid:{}'.format(type_meta_header), session_uuid)
+
+def clean_stream(stream_name, type, session_uuid):
+    redis_server_stream.srem('session_uuid:{}'.format(type), session_uuid)
+    redis_server_stream.hdel('map-type:session_uuid-uuid:{}'.format(type), session_uuid)
+    redis_server_stream.delete(stream_name)
+
 if __name__ == "__main__":
 
 
@@ -103,7 +128,8 @@ if __name__ == "__main__":
                     # complete json received
                     if full_json:
                         print(full_json)
-                        if check_json_file(full_json):
+                        if check_default_json_file(full_json):
+                            # end type 2 processing
                             break
                         # Incorrect Json
                         else:
@@ -139,18 +165,15 @@ if __name__ == "__main__":
     #extended_type_name = type_handler.get_file_name()
 
     # save json on disk
-    type_handler.save_json_file(json)
-
-
-        # get extended_type save_path #############################################################################################################
-        filename = '{}-{}-{}-{}-{}.{}'.format(uuid, date_file[0:4], date_file[4:6], date_file[6:8], date_file[8:14], extended_type_name)
-        save_path = os.path.join(dir_full_path, filename)
+    type_handler.save_json_file(full_json)
 
     # change stream_name/type
     stream_name = stream_defined
     type = type_defined
     id = 0
     buffer = b''
+
+    type_handler.test()
 
     # handle 254 type
     while True:
@@ -162,41 +185,9 @@ if __name__ == "__main__":
                 data = res[0][1][0][1]
 
                 if id and data:
-
-                    type_handler.process_data(data)
-
-                    ########################
-                    # save data on disk
-                    if save_to_file:
-                        
-
-
-                        # file rotation
-                        if rotate_file and file_separator in data[b'message']:
-                            end_file, start_new_file = data[b'message'].rsplit(file_separator, maxsplit=1)
-                            # save end of file
-                            with open(save_path, 'ab') as f:
-                                f.write(end_file)
-
-                            # get new save_path
-                            dir_full_path = get_save_dir(dir_data_uuid, date_file[0:4], date_file[4:6], date_file[6:8], extended_type=extended_type)
-                            filename = '{}-{}-{}-{}-{}.{}'.format(uuid, date_file[0:4], date_file[4:6], date_file[6:8], date_file[8:14], extended_type_name)
-                            save_path = os.path.join(dir_full_path, filename)
-
-                            # save start of new file
-                            if start_new_file != b'':
-                                with open(save_path, 'ab') as f:
-                                    f.write(start_new_file)
-                            # end of rotation
-                            rotate_file = False
-                            time_file = time.time()
-                        else:
-                            with open(save_path, 'ab') as f:
-                                f.write(data[b'message'])
-
-                    #######
-
-
+                    # process 254 data type
+                    type_handler.process_data(data[b'message'])
+                    # remove data from redis stream
                     redis_server_stream.xdel(stream_name, id)
 
         else:
