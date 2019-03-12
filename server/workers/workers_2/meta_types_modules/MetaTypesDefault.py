@@ -116,28 +116,28 @@ class MetaTypesDefault:
         pass
 
     def compress_file(self, file_full_path, i=0):
-    if i==0:
-        compressed_filename = '{}.gz'.format(file_full_path)
-    else:
-        compressed_filename = '{}.{}.gz'.format(file_full_path, i)
-    if os.path.isfile(compressed_filename):
-        compress_file(file_full_path, i+1)
-    else:
-        with open(file_full_path, 'rb') as f_in:
-            with gzip.open(compressed_filename, 'wb') as f_out:
-                shutil.copyfileobj(f_in, f_out)
-        os.remove(file_full_path)
+        if i==0:
+            compressed_filename = '{}.gz'.format(file_full_path)
+        else:
+            compressed_filename = '{}.{}.gz'.format(file_full_path, i)
+        if os.path.isfile(compressed_filename):
+            self.compress_file(file_full_path, i+1)
+        else:
+            with open(file_full_path, 'rb') as f_in:
+                with gzip.open(compressed_filename, 'wb') as f_out:
+                    shutil.copyfileobj(f_in, f_out)
+            os.remove(file_full_path)
 
     def send_to_analyzers(self, data_to_send):
-    ## save full path in anylyzer queue
-    for analyzer_uuid in redis_server_metadata.smembers('analyzer:{}:{}'.format(TYPE, self.get_type_name())):
-        analyzer_uuid = analyzer_uuid.decode()
-        redis_server_analyzer.lpush('analyzer:{}:{}'.format(TYPE, analyzer_uuid), data_to_send)
-        redis_server_metadata.hset('analyzer:{}'.format(analyzer_uuid), 'last_updated', time.time())
-        analyser_queue_max_size = redis_server_metadata.hget('analyzer:{}'.format(analyzer_uuid), 'max_size')
-        if analyser_queue_max_size is None:
-            analyser_queue_max_size = analyzer_list_max_default_size
-        redis_server_analyzer.ltrim('analyzer:{}:{}'.format(TYPE, analyzer_uuid), 0, analyser_queue_max_size)
+        ## save full path in anylyzer queue
+        for analyzer_uuid in redis_server_metadata.smembers('analyzer:{}:{}'.format(TYPE, self.get_type_name())):
+            analyzer_uuid = analyzer_uuid.decode()
+            redis_server_analyzer.lpush('analyzer:{}:{}'.format(TYPE, analyzer_uuid), data_to_send)
+            redis_server_metadata.hset('analyzer:{}'.format(analyzer_uuid), 'last_updated', time.time())
+            analyser_queue_max_size = redis_server_metadata.hget('analyzer:{}'.format(analyzer_uuid), 'max_size')
+            if analyser_queue_max_size is None:
+                analyser_queue_max_size = analyzer_list_max_default_size
+            redis_server_analyzer.ltrim('analyzer:{}:{}'.format(TYPE, analyzer_uuid), 0, analyser_queue_max_size)
 
     ######## GET FUNCTIONS ########
 
