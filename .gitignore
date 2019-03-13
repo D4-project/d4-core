@@ -2,3 +2,7 @@
 *.swp
 *.pyc
 *.swo
+*.o
+
+# redis datas
+server/dump6380.rdb
