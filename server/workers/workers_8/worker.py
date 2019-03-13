@@ -111,7 +111,7 @@ if __name__ == "__main__":
                                 redis_server_analyzer.ltrim('analyzer:{}:{}'.format(type, analyzer_uuid), 0, analyser_queue_max_size)
                         # keep incomplete line
                         if all_line[-1] != b'':
-                            buffer += data[b'message']
+                            buffer += all_line[-1]
                     else:
                         if len(buffer) < max_buffer_length:
                             buffer += data[b'message']
