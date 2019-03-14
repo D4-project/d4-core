@@ -12,7 +12,7 @@ import datetime
 DEFAULT_FILE_EXTENSION = 'txt'
 DEFAULT_FILE_SEPARATOR = b'\n'
 ROTATION_SAVE_CYCLE = 300 # seconds
-MAX_BUFFER_LENGTH = 10000
+MAX_BUFFER_LENGTH = 100000
 TYPE = 254
 
 class MetaTypesDefault:
@@ -119,7 +119,7 @@ class MetaTypesDefault:
 
     def reconstruct_data(self, data):
         # add buffer to data
-        if not is_empty_buffer():
+        if not self.is_empty_buffer():
             self.add_to_buffer(data)
             data = self.get_buffer()
 
@@ -127,7 +127,7 @@ class MetaTypesDefault:
         if self.get_file_separator() in data:
             # empty buffer
             self.reset_buffer()
-            all_reconstructed_data = data.split(self.file_separator())
+            all_line = data.split(self.get_file_separator())
             for reconstructed_data in all_line[:-1]:
                 self.handle_reconstructed_data(reconstructed_data)
 
