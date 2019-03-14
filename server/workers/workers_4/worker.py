@@ -44,7 +44,7 @@ if __name__ == "__main__":
             os.makedirs(dir_path)
         filename = '{}-{}-{}-{}-{}.dnscap.txt'.format(uuid, date[0:4], date[4:6], date[6:8], date[8:14])
         rel_path = os.path.join(dir_path, filename)
-        print('----    worker launched, uuid={} session_uuid={}'.format(uuid, session_uuid))
+        print('----    worker launched, uuid={} session_uuid={} epoch={}'.format(uuid, session_uuid, time.time()))
     else:
         sys.exit(1)
         print('Incorrect message')
@@ -98,7 +98,7 @@ if __name__ == "__main__":
                 redis_server_stream.srem('working_session_uuid:{}'.format(type), session_uuid)
                 redis_server_stream.hdel('map-type:session_uuid-uuid:{}'.format(type), session_uuid)
                 redis_server_stream.delete(stream_name)
-                print('----    dnscap DONE, uuid={} session_uuid={}'.format(uuid, session_uuid))
+                print('----    dnscap DONE, uuid={} session_uuid={} epoch={}'.format(uuid, session_uuid, time.time()))
                 sys.exit(0)
             else:
                 time.sleep(10)

@@ -92,10 +92,10 @@ if __name__ == "__main__":
     res = redis_server_stream.xread({stream_name: id}, count=1)
     if res:
         uuid = res[0][1][0][1][b'uuid'].decode()
-        print('----    worker launched, uuid={} session_uuid={}'.format(uuid, session_uuid))
+        print('----    worker launched, uuid={} session_uuid={} epoch={}'.format(uuid, session_uuid, time.time()))
     else:
         clean_db(session_uuid)
-        print('Incorrect Stream, Closing worker: type={} session_uuid={}'.format(type, session_uuid))
+        print('Incorrect Stream, Closing worker: type={} session_uuid={} epoch={}'.format(type, session_uuid, time.time()))
         sys.exit(1)
 
     full_json = None
@@ -194,7 +194,7 @@ if __name__ == "__main__":
             # end session, no json received
             if redis_server_stream.sismember('ended_session', session_uuid):
                 clean_db(session_uuid)
-                print('----    JSON object, DONE, uuid={} session_uuid={}'.format(uuid, session_uuid))
+                print('----    JSON object, DONE, uuid={} session_uuid={} epoch={}'.format(uuid, session_uuid, time.time()))
                 sys.exit(0)
             else:
                 time.sleep(10)

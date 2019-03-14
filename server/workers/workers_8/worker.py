@@ -75,7 +75,7 @@ if __name__ == "__main__":
             filename = '{}-{}-{}-{}-{}.passivedns.txt'.format(uuid, date_file[0:4], date_file[4:6], date_file[6:8], date_file[8:14])
             save_path = os.path.join(dir_full_path, filename)
 
-        print('----    worker launched, uuid={} session_uuid={}'.format(uuid, session_uuid))
+        print('----    worker launched, uuid={} session_uuid={} epoch={}'.format(uuid, session_uuid, time.time()))
     else:
         ########################### # TODO: clean db on error
         print('Incorrect Stream, Closing worker: type={} session_uuid={}'.format(type, session_uuid))
@@ -163,7 +163,7 @@ if __name__ == "__main__":
                 redis_server_stream.srem('working_session_uuid:{}'.format(type), session_uuid)
                 redis_server_stream.hdel('map-type:session_uuid-uuid:{}'.format(type), session_uuid)
                 redis_server_stream.delete(stream_name)
-                print('----    passivedns DONE, uuid={} session_uuid={}'.format(uuid, session_uuid))
+                print('----    passivedns DONE, uuid={} session_uuid={} epoch={}'.format(uuid, session_uuid, time.time()))
                 sys.exit(0)
             else:
                 time.sleep(10)

@@ -93,7 +93,7 @@ if __name__ == "__main__":
         rel_path = os.path.join(tcpdump_path, date[0:4], date[4:6], date[6:8])
         if not os.path.isdir(rel_path):
             os.makedirs(rel_path)
-        print('----    worker launched, uuid={} session_uuid={}'.format(uuid, session_uuid))
+        print('----    worker launched, uuid={} session_uuid={} epoch={}'.format(uuid, session_uuid, time.time()))
     else:
         sys.exit(1)
         print('Incorrect message')
@@ -177,7 +177,7 @@ if __name__ == "__main__":
                 redis_server_stream.delete('data_in_process:{}'.format(session_uuid))
                 # make sure that tcpdump can save all datas
                 time.sleep(10)
-                print('----    tcpdump DONE, uuid={} session_uuid={}'.format(uuid, session_uuid))
+                print('----    tcpdump DONE, uuid={} session_uuid={} epoch={}'.format(uuid, session_uuid, time.time()))
                 sys.exit(0)
             else:
                 time.sleep(10)
