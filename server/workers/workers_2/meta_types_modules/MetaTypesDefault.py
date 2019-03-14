@@ -153,12 +153,12 @@ class MetaTypesDefault:
         ## save full path in anylyzer queue
         for analyzer_uuid in redis_server_metadata.smembers('analyzer:{}:{}'.format(TYPE, self.get_type_name())):
             analyzer_uuid = analyzer_uuid.decode()
-            redis_server_analyzer.lpush('analyzer:{}:{}'.format(TYPE, analyzer_uuid), data_to_send)
+            redis_server_analyzer.lpush('analyzer:{}:{}'.format(self.get_type_name(), analyzer_uuid), data_to_send)
             redis_server_metadata.hset('analyzer:{}'.format(analyzer_uuid), 'last_updated', time.time())
             analyser_queue_max_size = redis_server_metadata.hget('analyzer:{}'.format(analyzer_uuid), 'max_size')
             if analyser_queue_max_size is None:
                 analyser_queue_max_size = analyzer_list_max_default_size
-            redis_server_analyzer.ltrim('analyzer:{}:{}'.format(TYPE, analyzer_uuid), 0, analyser_queue_max_size)
+            redis_server_analyzer.ltrim('analyzer:{}:{}'.format(self.get_type_name(), analyzer_uuid), 0, analyser_queue_max_size)
 
     ######## GET FUNCTIONS ########
 

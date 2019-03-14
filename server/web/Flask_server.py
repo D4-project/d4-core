@@ -238,7 +238,25 @@ def server_management():
 
         list_accepted_types.append({"id": int(type), "description": description, 'list_analyzer_uuid': list_analyzer_uuid})
 
-    return render_template("server_management.html", list_accepted_types=list_accepted_types,
+    list_accepted_extended_types = []
+    for extended_type in redis_server_metadata.smembers('server:accepted_extended_type'):
+
+        list_analyzer_uuid = []
+        for analyzer_uuid in redis_server_metadata.smembers('analyzer:254:{}'.format(extended_type)):
+            size_limit = redis_server_metadata.hget('analyzer:{}'.format(analyzer_uuid), 'max_size')
+            if size_limit is None:
+                size_limit = analyzer_list_max_default_size
+            last_updated = redis_server_metadata.hget('analyzer:{}'.format(analyzer_uuid), 'last_updated')
+            if last_updated is None:
+                last_updated = 'Never'
+            len_queue = redis_server_analyzer.llen('analyzer:{}:{}'.format(extended_type, analyzer_uuid))
+            if len_queue is None:
+                len_queue = 0
+            list_analyzer_uuid.append({'uuid': analyzer_uuid, 'size_limit': size_limit,'last_updated': last_updated, 'length': len_queue})
+
+        list_accepted_extended_types.append({"name": extended_type, 'list_analyzer_uuid': list_analyzer_uuid})
+
+    return render_template("server_management.html", list_accepted_types=list_accepted_types, list_accepted_extended_types=list_accepted_extended_types,
                             default_analyzer_max_line_len=default_analyzer_max_line_len,
                             blacklisted_ip=blacklisted_ip, unblacklisted_ip=unblacklisted_ip,
                             blacklisted_uuid=blacklisted_uuid, unblacklisted_uuid=unblacklisted_uuid)
@@ -362,10 +380,12 @@ def uuid_change_stream_max_size():
     else:
         return 'Invalid uuid'
 
+# # TODO: check analyser uuid dont exist
 @app.route('/add_new_analyzer')
 def add_new_analyzer():
     type = request.args.get('type')
     user = request.args.get('redirect')
+    metatype_name = request.args.get('metatype_name')
     analyzer_uuid = request.args.get('analyzer_uuid')
     if is_valid_uuid_v4(analyzer_uuid):
         try:
@@ -374,7 +394,11 @@ def add_new_analyzer():
                 return 'type, Invalid Integer'
         except:
             return 'type, Invalid Integer'
-        redis_server_metadata.sadd('analyzer:{}'.format(type), analyzer_uuid)
+        if type == 254:
+            # # TODO: check metatype_name
+            redis_server_metadata.sadd('analyzer:{}:{}'.format(type, metatype_name), analyzer_uuid)
+        else:
+            redis_server_metadata.sadd('analyzer:{}'.format(type), analyzer_uuid)
         if user:
             return redirect(url_for('server_management'))
     else:
@@ -384,6 +408,7 @@ def add_new_analyzer():
 def empty_analyzer_queue():
     analyzer_uuid = request.args.get('analyzer_uuid')
     type = request.args.get('type')
+    metatype_name = request.args.get('metatype_name')
     user = request.args.get('redirect')
     if is_valid_uuid_v4(analyzer_uuid):
         try:
@@ -392,7 +417,10 @@ def empty_analyzer_queue():
                 return 'type, Invalid Integer'
         except:
             return 'type, Invalid Integer'
-        redis_server_analyzer.delete('analyzer:{}:{}'.format(type, analyzer_uuid))
+        if type == 254:
+            redis_server_analyzer.delete('analyzer:{}:{}'.format(metatype_name, analyzer_uuid))
+        else:
+            redis_server_analyzer.delete('analyzer:{}:{}'.format(type, analyzer_uuid))
         if user:
             return redirect(url_for('server_management'))
     else:
@@ -402,6 +430,7 @@ def empty_analyzer_queue():
 def remove_analyzer():
     analyzer_uuid = request.args.get('analyzer_uuid')
     type = request.args.get('type')
+    metatype_name = request.args.get('metatype_name')
     user = request.args.get('redirect')
     if is_valid_uuid_v4(analyzer_uuid):
         try:
@@ -410,8 +439,12 @@ def remove_analyzer():
                 return 'type, Invalid Integer'
         except:
             return 'type, Invalid Integer'
-        redis_server_metadata.srem('analyzer:{}'.format(type), analyzer_uuid)
-        redis_server_analyzer.delete('analyzer:{}:{}'.format(type, analyzer_uuid))
+        if type == 254:
+            redis_server_metadata.srem('analyzer:{}:{}'.format(type, metatype_name), analyzer_uuid)
+            redis_server_analyzer.delete('analyzer:{}:{}'.format(metatype_name, analyzer_uuid))
+        else:
+            redis_server_metadata.srem('analyzer:{}'.format(type), analyzer_uuid)
+            redis_server_analyzer.delete('analyzer:{}:{}'.format(type, analyzer_uuid))
         redis_server_metadata.delete('analyzer:{}'.format(analyzer_uuid))
         if user:
             return redirect(url_for('server_management'))
@@ -556,10 +589,17 @@ def unblacklist_ip_by_uuid():
 @app.route('/add_accepted_type')
 def add_accepted_type():
     type = request.args.get('type')
+    extended_type_name = request.args.get('extended_type_name')
     user = request.args.get('redirect')
     json_type_description = get_json_type_description()
+    try:
+        type = int(type)
+    except:
+        return 'Invalid type'
     if json_type_description[int(type)]:
         redis_server_metadata.sadd('server:accepted_type', type)
+        if type == 254:
+            redis_server_metadata.sadd('server:accepted_extended_type', extended_type_name)
         if user:
             return redirect(url_for('server_management'))
     else:
@@ -576,6 +616,12 @@ def remove_accepted_type():
             return redirect(url_for('server_management'))
     else:
         return 'Invalid type'
+
+@app.route('/remove_accepted_extended_type')
+def remove_accepted_extended_type():
+    type_name = request.args.get('type_name')
+    redis_server_metadata.srem('server:accepted_extended_type', type_name)
+    return redirect(url_for('server_management'))
 
 # demo function
 @app.route('/delete_data')
