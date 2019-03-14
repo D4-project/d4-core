@@ -107,10 +107,9 @@ class MetaTypesDefault:
                 f.write(data)
 
     def reconstruct_data(self, data):
-        # add buffer to data
-        if not self.is_empty_buffer():
-            self.add_to_buffer(data)
-            data = self.get_buffer()
+        # save data in buffer
+        self.add_to_buffer(data)
+        data = self.get_buffer()
 
         # end of element found in data
         if self.get_file_separator() in data:
@@ -125,8 +124,6 @@ class MetaTypesDefault:
                 self.add_to_buffer(all_line[-1])
         # no elements
         else:
-            # save data in buffer
-            self.add_to_buffer(data)
             # force file_separator when max buffer size is reached
             if self.get_size_buffer() > MAX_BUFFER_LENGTH:
                 print('Error, infinite loop, max buffer length reached')
