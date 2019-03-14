@@ -22,6 +22,7 @@ class MetaTypesDefault:
         self.type_name = json_file['type']
         self.save_path = None
         self.buffer = b''
+        self.file_rotation_mode = True
         self.parse_json(json_file)
 
     def test(self):
@@ -29,8 +30,6 @@ class MetaTypesDefault:
 
     ######## JSON PARSER ########
     def parse_json(self, json_file):
-        self.save_file_on_disk = True
-        self.file_rotation_mode = True
         self.file_rotation = False
         self.file_separator = b'\n'
         self.filename = b''.join([self.type_name.encode(), b'.txt'])
@@ -38,8 +37,7 @@ class MetaTypesDefault:
     ######## PROCESS FUNCTIONS ########
     def process_data(self, data):
         # save data on disk
-        if self.is_file_saved_on_disk():
-            self.save_data_to_file(data)
+        self.save_rotate_file(data)
 
     ######## CORE FUNCTIONS ########
 
@@ -50,7 +48,6 @@ class MetaTypesDefault:
         else:
             return False
 
-    # # TODO: update for non rotate_file mode
     def save_json_file(self, json_file):
         self.set_last_time_saved(time.time()) #time_file
         self.set_last_saved_date(datetime.datetime.now().strftime("%Y%m%d%H%M%S")) #date_file
@@ -61,10 +58,6 @@ class MetaTypesDefault:
             f.write(json.dumps(json_file))
         # update save path for 254 files type
         self.set_save_path( os.path.join(self.get_save_dir(), self.get_filename()) )
-
-    def save_data_to_file(self, data):
-        if self.is_file_rotation_mode():
-            self.save_rotate_file(data)
 
 
     def save_rotate_file(self, data):
@@ -112,10 +105,6 @@ class MetaTypesDefault:
             # save file
             with open(self.get_save_path(), 'ab') as f:
                 f.write(data)
-
-
-    def save_same_directory(self, data):
-        pass
 
     def reconstruct_data(self, data):
         # add buffer to data
@@ -214,12 +203,6 @@ class MetaTypesDefault:
         else:
             return False
 
-    def is_file_saved_on_disk(self):
-        if self.save_file_on_disk:
-            return True
-        else:
-            return False
-
     def is_file_rotation_mode(self):
         if self.file_rotation_mode:
             return True
@@ -272,5 +255,3 @@ class MetaTypesDefault:
         if not os.path.isdir(dir_path):
             os.makedirs(dir_path)
         self.save_path = save_path
-
-##############

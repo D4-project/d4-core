@@ -51,6 +51,12 @@ redis_server_analyzer = redis.StrictRedis(
                     db=2,
                     decode_responses=True)
 
+with open(json_type_description_path, 'r') as f:
+    json_type = json.loads(f.read())
+json_type_description = {}
+for type_info in json_type:
+    json_type_description[type_info['type']] = type_info
+
 app = Flask(__name__, static_url_path=baseUrl+'/static/')
 app.config['MAX_CONTENT_LENGTH'] = 900 * 1024 * 1024
 
@@ -90,8 +96,6 @@ def get_server_management_input_handler_value(value):
     return value
 
 def get_json_type_description():
-    with open(json_type_description_path, 'r') as f:
-        json_type_description = json.loads(f.read())
     return json_type_description
 
 def get_whois_ouput(ip):
