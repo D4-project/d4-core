@@ -34,7 +34,7 @@ class TypeHandler(MetaTypesDefault):
             os.makedirs(jsons_save_dir)
 
         # Extract certificates from json
-        mtjson = json.loads(data)
+        mtjson = json.loads(data.decode())
         for certificate in mtjson["Certificates"] or []:
             cert = binascii.a2b_base64(certificate["Raw"])
             # one could also load this cert with 
