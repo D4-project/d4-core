@@ -679,5 +679,13 @@ def get_analyser_sample():
     else:
         return jsonify('Incorrect UUID')
 
+# Per meta-type visualization
+@app.route('/mtype/<mhtype>')
+def mtype_visu(mhtype):
+    if mhtype in redis_server_metadata.smembers('server:accepted_extended_type'):
+        return render_template('{}/index.html'.format(mhtype))
+    return render_template('404.html')
+
+
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=7000, threaded=True)

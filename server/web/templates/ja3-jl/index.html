@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+  <title>D4-Project</title>
+  <link rel="icon" href="{{ url_for('static', filename='img/d4-logo.png')}}">
+  <!-- Core CSS -->
+  <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='font-awesome/css/font-awesome.css') }}" rel="stylesheet">
+  <!-- Datepicker CSS -->
+  <link href="{{ url_for('static', filename='css/bootstrap-datepicker3.css') }}" rel="stylesheet">
+
+  <!-- JS -->
+  <script src="{{ url_for('static', filename='js/jquery.min.js')}}"></script>
+  <script src="{{ url_for('static', filename='js/bootstrap.min.js')}}"></script>
+  <script src="{{ url_for('static', filename='js/d3.min.js')}}"></script>
+  <script src="{{ url_for('static', filename='js/bootstrap-datepicker.min.js')}}"></script>
+
+  <style>
+    #div_chart {
+      width: 600px;
+      margin: 20px;
+      margin: 0;
+      padding: 0;
+      border: 0;
+      font: inherit;
+      font-size: 100%;
+      vertical-align: baseline;
+      font-family: "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
+      font-weight: inherit;
+    }
+
+    #chart {
+      width: 600px;
+      height: 500px;
+    }
+
+    .bar {
+      fill: #eaeaea;
+    }
+
+    text.label {
+      fill: #777777;
+      color: #777777;
+      font-size: 20px;
+      font-weight: bold;
+    }
+
+    text.category {
+      fill: #666666;
+      font-size: 18px;
+    }
+  </style>
+
+
+</head>
+
+<body>
+
+  <nav class="navbar navbar-expand-sm navbar-dark bg-dark">
+    <a class="navbar-brand" href="{{ url_for('index') }}">
+      <img src="{{ url_for('static', filename='img/d4-logo.png')}}" alt="D4 Project" style="width:80px;">
+    </a>
+    <ul class="navbar-nav">
+      <li class="nav-item active">
+        <a class="nav-link mr-3" href="{{ url_for('index') }}">Home <span class="sr-only">(current)</span></a>
+      </li>
+      <li class="nav-item" mr-3>
+        <a class="nav-link mr-3" href="{{ url_for('sensors_status') }}">Sensors Status</a>
+      </li>
+      <li class="nav-item mr-3">
+        <a class="nav-link" href="{{ url_for('server_management') }}" tabindex="-1" aria-disabled="true">Server
+          Management</a>
+      </li>
+    </ul>
+  </nav>
+
+
+  <div class="row mr-0">
+    <div class="col">
+      <div class="card text-center mt-2 ml-2">
+        <div class="card-header bg-dark row">
+          <div class="col text-white ">
+            Certificate Explorer
+          </div>
+          <div class="col-6">
+          </div>
+          <div class="col">
+            <div class="input-group date" data-provide="datepicker">
+              <input type="text" class="form-control">
+              <div class="input-group-addon">
+                <span class="glyphicon glyphicon-th"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card-body">
+        </div>
+        <div class="card-footer text-muted">
+          {{date}}
+        </div>
+      </div>
+
+      {% include 'navfooter.html' %}
+</body>
+
+<script>
+  // Setup Datepicker
+  $('.datepicker').datepicker();
+
+</script>

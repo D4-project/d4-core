@@ -1,0 +1,45 @@
+[
+  {
+    "type": 0,
+    "description": "reserved"
+  },
+  {
+    "type": 1,
+    "description": "pcap (libpcap 2.4)"
+  },
+  {
+    "type": 2,
+    "description": "meta header (JSON)"
+  },
+  {
+    "type": 3,
+    "description": "generic log line"
+  },
+  {
+    "type": 4,
+    "description": "dnscap output",
+    "ref": "https://github.com/DNS-OARC/dnscap"
+  },
+  {
+    "type": 5,
+    "description": "pcapng (diagnostic)"
+  },
+  {
+    "type": 6,
+    "description": "generic NDJSON or JSON lines"
+  },
+  {
+    "type": 7,
+    "description": "generic YAF (Yet Another Flowmeter)",
+    "ref": "https://tools.netsa.cert.org/yaf/index.html"
+  },
+  {
+    "type": 8,
+    "description": "passivedns CSV stream",
+    "ref": "https://github.com/gamelinux/passivedns"
+  },
+  {
+    "type": 254,
+    "description": "type defined by meta header (type2)"
+  }
+]
