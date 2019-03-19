@@ -189,7 +189,7 @@ class MetaTypesDefault:
 
         # data save in the same directory
         else:
-            save_dir os.path.join('../../data/data', self.get_type_name())
+            save_dir = os.path.join('../../data/data', self.get_type_name())
             if not os.path.isdir(save_dir):
                 os.makedirs(cert_save_dir)
             return save_dir
