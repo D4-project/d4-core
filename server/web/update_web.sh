@@ -25,16 +25,16 @@ wget https://github.com/FortAwesome/Font-Awesome/archive/v${FONT_AWESOME_VERSION
 wget https://github.com/d3/d3/releases/download/v${D3_JS_VERSION}/d3.zip -O  temp/d3_${D3_JS_VERSION}.zip
 
 # dateRangePicker
-#wget https://github.com/moment/moment/archive/2.22.2.zip -O temp/moment_2.22.2.zip
-#wget https://github.com/longbill/jquery-date-range-picker/archive/v0.18.0.zip -O temp/daterangepicker_v0.18.0.zip
+wget https://github.com/moment/moment/archive/2.22.2.zip -O temp/moment_2.22.2.zip
+wget https://github.com/longbill/jquery-date-range-picker/archive/v0.18.0.zip -O temp/daterangepicker_v0.18.0.zip
 
 
 unzip temp/bootstrap${BOOTSTRAP_VERSION}.zip -d temp/
 unzip temp/FONT_AWESOME_${FONT_AWESOME_VERSION}.zip -d temp/
 unzip temp/d3_${D3_JS_VERSION}.zip -d temp/
 
-#unzip temp/moment_2.22.2.zip -d temp/
-#unzip temp/daterangepicker_v0.18.0.zip -d temp/
+unzip temp/moment_2.22.2.zip -d temp/
+unzip temp/daterangepicker_v0.18.0.zip -d temp/
 
 mv temp/bootstrap-${BOOTSTRAP_VERSION}-dist/js/bootstrap.min.js ./static/js/
 mv temp/bootstrap-${BOOTSTRAP_VERSION}-dist/css/bootstrap.min.css ./static/css/
@@ -46,11 +46,11 @@ mv temp/Font-Awesome-${FONT_AWESOME_VERSION} temp/font-awesome
 rm -rf ./static/fonts/ ./static/font-awesome/
 mv temp/font-awesome/ ./static/
 
-#mv temp/jquery-date-range-picker-0.18.0/dist/daterangepicker.min.css ./static/css/
+mv temp/jquery-date-range-picker-0.18.0/dist/daterangepicker.min.css ./static/css/
 
 mv temp/d3.min.js ./static/js/
-#mv temp/moment-2.22.2/min/moment.min.js ./static/js/
-#mv temp/jquery-date-range-picker-0.18.0/dist/jquery.daterangepicker.min.js ./static/js/
+mv temp/moment-2.22.2/min/moment.min.js ./static/js/
+mv temp/jquery-date-range-picker-0.18.0/dist/jquery.daterangepicker.min.js ./static/js/
 
 rm -rf temp
 
