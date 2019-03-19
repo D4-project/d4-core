@@ -163,6 +163,7 @@ function launch_flask {
         screen -dmS "Flask_D4"
         sleep 0.1
         echo -e $GREEN"\t* Launching Flask server"$DEFAULT
+        # screen -S "Flask_D4" -X screen -t "Flask_server" bash -c "cd $flask_dir; export FLASK_DEBUG=1;export FLASK_APP=Flask_server.py; python -m flask run --port 7000; read x"
         screen -S "Flask_D4" -X screen -t "Flask_server" bash -c "cd $flask_dir; ls; ./Flask_server.py; read x"
     else
         echo -e $RED"\t* A Flask_D4 screen is already launched"$DEFAULT
