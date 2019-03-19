@@ -52,7 +52,7 @@ class MetaTypesDefault:
         self.set_last_time_saved(time.time()) #time_file
         self.set_last_saved_date(datetime.datetime.now().strftime("%Y%m%d%H%M%S")) #date_file
         # update save path
-        self.set_save_path( os.path.join(self.get_save_dir(save_by_uuid=save_by_uuid), self.get_filename(file_extention='json')) )
+        self.set_save_path( os.path.join(self.get_save_dir(save_by_uuid=save_by_uuid), self.get_filename(file_extention='json', save_by_uuid=save_by_uuid)) )
         # save json
         with open(self.get_save_path(), 'w') as f:
             f.write(json.dumps(json_file))
@@ -174,11 +174,11 @@ class MetaTypesDefault:
     def get_size_buffer(self):
         return len(self.buffer)
 
-    def get_filename(self, file_extention=None):
+    def get_filename(self, file_extention=None, save_by_uuid=False):
         if file_extention is None:
             file_extention = DEFAULT_FILE_EXTENSION
         # File Rotation, : data/<uuid>/254/<year>/<month>/<day>/
-        if self.is_file_rotation_mode():
+        if self.is_file_rotation_mode() or save_by_uuid:
             return '{}-{}-{}-{}-{}.{}'.format(self.uuid, self.get_last_saved_year(), self.get_last_saved_month(), self.get_last_saved_day(), self.get_last_saved_hour_minute(), file_extention)
 
     def get_save_dir(self, save_by_uuid=False):
