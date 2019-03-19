@@ -187,9 +187,12 @@ class MetaTypesDefault:
             data_directory_uuid_type = os.path.join('../../data', self.get_uuid(), str(TYPE))
             return os.path.join(data_directory_uuid_type, self.get_last_saved_year(), self.get_last_saved_month(), self.get_last_saved_day() , self.type_name)
 
-        # # TODO: save global type dir ???
-        if self.is_file_saved_on_disk():
-            pass
+        # data save in the same directory
+        else:
+            save_dir os.path.join('../../data/data', self.get_type_name())
+            if not os.path.isdir(save_dir):
+                os.makedirs(cert_save_dir)
+            return save_dir
 
     def get_save_path(self):
         return self.save_path
