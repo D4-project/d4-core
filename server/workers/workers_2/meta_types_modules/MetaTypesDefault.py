@@ -57,7 +57,8 @@ class MetaTypesDefault:
         with open(self.get_save_path(), 'w') as f:
             f.write(json.dumps(json_file))
         # update save path for 254 files type
-        self.set_save_path( os.path.join(self.get_save_dir(), self.get_filename()) )
+        if self.is_file_rotation_mode():
+            self.set_save_path( os.path.join(self.get_save_dir(), self.get_filename()) )
 
 
     def save_rotate_file(self, data):
