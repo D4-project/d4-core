@@ -191,7 +191,7 @@ class MetaTypesDefault:
         else:
             save_dir = os.path.join('../../data/data', self.get_type_name())
             if not os.path.isdir(save_dir):
-                os.makedirs(cert_save_dir)
+                os.makedirs(save_dir)
             return save_dir
 
     def get_save_path(self):
