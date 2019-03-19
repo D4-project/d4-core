@@ -16,7 +16,7 @@ class TypeHandler(MetaTypesDefault):
 
     def __init__(self, uuid, json_file):
         super().__init__(uuid, json_file)
-        self.set_rotate_file(False)
+        self.set_rotate_file_mode(False)
 
     def process_data(self, data):
         self.reconstruct_data(data)

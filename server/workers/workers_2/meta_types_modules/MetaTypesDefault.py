@@ -244,6 +244,9 @@ class MetaTypesDefault:
     def set_rotate_file(self, boolean_value):
         self.file_rotation = boolean_value
 
+    def set_rotate_file_mode(self, boolean_value):
+        self.file_rotation_mode = boolean_value
+
     def set_last_time_saved(self, value_time):
         self.last_time_saved = int(value_time)
 
