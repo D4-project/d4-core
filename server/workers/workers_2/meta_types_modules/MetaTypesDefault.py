@@ -48,11 +48,11 @@ class MetaTypesDefault:
         else:
             return False
 
-    def save_json_file(self, json_file):
+    def save_json_file(self, json_file, save_by_uuid=True):
         self.set_last_time_saved(time.time()) #time_file
         self.set_last_saved_date(datetime.datetime.now().strftime("%Y%m%d%H%M%S")) #date_file
         # update save path
-        self.set_save_path( os.path.join(self.get_save_dir(), self.get_filename(file_extention='json')) )
+        self.set_save_path( os.path.join(self.get_save_dir(save_by_uuid=save_by_uuid), self.get_filename(file_extention='json')) )
         # save json
         with open(self.get_save_path(), 'w') as f:
             f.write(json.dumps(json_file))
@@ -181,15 +181,15 @@ class MetaTypesDefault:
         if self.is_file_rotation_mode():
             return '{}-{}-{}-{}-{}.{}'.format(self.uuid, self.get_last_saved_year(), self.get_last_saved_month(), self.get_last_saved_day(), self.get_last_saved_hour_minute(), file_extention)
 
-    def get_save_dir(self):
+    def get_save_dir(self, save_by_uuid=False):
         # File Rotation, save data in directory: data/<uuid>/254/<year>/<month>/<day>/
-        if self.is_file_rotation_mode():
+        if self.is_file_rotation_mode() or save_by_uuid:
             data_directory_uuid_type = os.path.join('../../data', self.get_uuid(), str(TYPE))
             return os.path.join(data_directory_uuid_type, self.get_last_saved_year(), self.get_last_saved_month(), self.get_last_saved_day() , self.type_name)
 
         # data save in the same directory
         else:
-            save_dir = os.path.join('../../data/data', self.get_type_name())
+            save_dir = os.path.join('../../data/datas', self.get_type_name())
             if not os.path.isdir(save_dir):
                 os.makedirs(save_dir)
             return save_dir
