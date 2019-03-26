@@ -2,6 +2,7 @@
 *.csr
 *.pem
 *.key
+configs/server.conf
 data/
 logs/
 redis/
