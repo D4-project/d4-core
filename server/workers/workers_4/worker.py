@@ -6,6 +6,7 @@ import time
 import redis
 
 import datetime
+import configparser
 
 def data_incorrect_format(session_uuid):
     print('Incorrect format')
@@ -18,6 +19,20 @@ redis_server_stream = redis.StrictRedis(
                     host=host_redis_stream,
                     port=port_redis_stream,
                     db=0)
+
+# get file config
+config_file_server = os.path.join(os.environ['D4_HOME'], 'configs/server.conf')
+config_server = configparser.ConfigParser()
+config_server.read(config_file_server)
+
+# get data directory
+use_default_save_directory = config_server['Save_Directories'].getboolean('use_default_save_directory')
+# check if field is None
+if use_default_save_directory:
+    data_directory = os.path.join(os.environ['D4_HOME'], 'data')
+else:
+    data_directory = config_server['Save_Directories'].get('save_directory')
+
 
 type = 4
 rotation_save_cycle = 300 #seconds
@@ -38,7 +53,7 @@ if __name__ == "__main__":
     if res:
         date = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
         uuid = res[0][1][0][1][b'uuid'].decode()
-        data_rel_path = os.path.join('../../data', uuid, str(type))
+        data_rel_path = os.path.join(data_directory, uuid, str(type))
         dir_path = os.path.join(data_rel_path, date[0:4], date[4:6], date[6:8])
         if not os.path.isdir(dir_path):
             os.makedirs(dir_path)

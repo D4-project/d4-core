@@ -8,6 +8,7 @@ import gzip
 import redis
 import shutil
 import datetime
+import configparser
 
 DEFAULT_FILE_EXTENSION = 'txt'
 DEFAULT_FILE_SEPARATOR = b'\n'
@@ -23,6 +24,20 @@ class MetaTypesDefault:
         self.save_path = None
         self.buffer = b''
         self.file_rotation_mode = True
+
+        # get file config
+        config_file_server = os.path.join(os.environ['D4_HOME'], 'configs/server.conf')
+        config_server = configparser.ConfigParser()
+        config_server.read(config_file_server)
+        # get data directory
+        use_default_save_directory = config_server['Save_Directories'].getboolean('use_default_save_directory')
+        # check if field is None
+        if use_default_save_directory:
+            data_directory = os.path.join(os.environ['D4_HOME'], 'data')
+        else:
+            data_directory = config_server['Save_Directories'].get('save_directory')
+        self.data_directory = data_directory
+
         self.parse_json(json_file)
 
     def test(self):
@@ -182,15 +197,18 @@ class MetaTypesDefault:
         if self.is_file_rotation_mode() or save_by_uuid:
             return '{}-{}-{}-{}-{}.{}'.format(self.uuid, self.get_last_saved_year(), self.get_last_saved_month(), self.get_last_saved_day(), self.get_last_saved_hour_minute(), file_extention)
 
+    def get_data_save_directory():
+        return self.data_directory
+
     def get_save_dir(self, save_by_uuid=False):
         # File Rotation, save data in directory: data/<uuid>/254/<year>/<month>/<day>/
         if self.is_file_rotation_mode() or save_by_uuid:
-            data_directory_uuid_type = os.path.join('../../data', self.get_uuid(), str(TYPE))
+            data_directory_uuid_type = os.path.join(self.get_data_save_directory(), self.get_uuid(), str(TYPE))
             return os.path.join(data_directory_uuid_type, self.get_last_saved_year(), self.get_last_saved_month(), self.get_last_saved_day() , self.type_name)
 
         # data save in the same directory
         else:
-            save_dir = os.path.join('../../data/datas', self.get_type_name())
+            save_dir = os.path.join(self.get_data_save_directory(), 'datas', self.get_type_name())
             if not os.path.isdir(save_dir):
                 os.makedirs(save_dir)
             return save_dir

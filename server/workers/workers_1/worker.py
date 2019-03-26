@@ -8,6 +8,7 @@ import redis
 import shutil
 import datetime
 import subprocess
+import configparser
 
 def data_incorrect_format(stream_name, session_uuid, uuid):
     redis_server_stream.sadd('Error:IncorrectType', session_uuid)
@@ -66,6 +67,20 @@ redis_server_analyzer = redis.StrictRedis(
                     port=port_redis_metadata,
                     db=2)
 
+# get file config
+config_file_server = os.path.join(os.environ['D4_HOME'], 'configs/server.conf')
+config_server = configparser.ConfigParser()
+config_server.read(config_file_server)
+
+# get data directory
+use_default_save_directory = config_server['Save_Directories'].getboolean('use_default_save_directory')
+# check if field is None
+if use_default_save_directory:
+    data_directory = os.path.join(os.environ['D4_HOME'], 'data')
+else:
+    data_directory = config_server['Save_Directories'].get('save_directory')
+
+
 type = 1
 tcp_dump_cycle = '300'
 stream_buffer = 100
@@ -88,8 +103,8 @@ if __name__ == "__main__":
     if res:
         uuid = res[0][1][0][1][b'uuid'].decode()
         date = datetime.datetime.now().strftime("%Y%m%d")
-        tcpdump_path = os.path.join('../../data', uuid, str(type))
-        full_tcpdump_path = os.path.join(os.environ['D4_HOME'], 'data', uuid, str(type))
+        tcpdump_path = os.path.join(data_directory, uuid, str(type))
+        full_tcpdump_path = os.path.join(data_directory, uuid, str(type))
         rel_path = os.path.join(tcpdump_path, date[0:4], date[4:6], date[6:8])
         if not os.path.isdir(rel_path):
             os.makedirs(rel_path)

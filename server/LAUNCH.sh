@@ -205,9 +205,15 @@ function update_web {
     fi
 }
 
+function update_config {
+    echo -e $GREEN"\t* Updating Config File"$DEFAULT
+    bash -c "(cd ${D4_HOME}/configs; ./update_conf.py -v 0)"
+}
+
 function launch_all {
     helptext;
     launch_redis;
+    update_config;
     launch_d4_server;
     launch_workers;
     launch_flask;
