@@ -326,7 +326,12 @@
 						    <h5 class="card-title">Add New Analyzer Queue</h5>
 									<input class="form-control" type="number" id="analyzer_type" value="1" min="1" max="254" required>
 									<input class="form-control" type="text" id="analyzer_metatype_name" placeholder="Meta Type Name">
-									<input class="form-control" type="text" id="analyzer_uuid" required placeholder="Analyzer uuid">
+									<div class="input-group">
+									  <div class="input-group-prepend">
+									    <button class="btn btn-outline-secondary" type="button" onclick="generate_new_uuid();"><i class="fa fa-random"></i></button>
+									  </div>
+										<input class="form-control" type="text" id="analyzer_uuid" required placeholder="Analyzer uuid">
+									</div>
 									<button type="button" class="btn btn-outline-primary mt-1" onclick="window.location.href ='{{ url_for('add_new_analyzer') }}?redirect=1&type='+$('#analyzer_type').val()+'&analyzer_uuid='+$('#analyzer_uuid').val()+'&metatype_name='+$('#analyzer_metatype_name').val();">Add New Analyzer</button>
 							</div>
 						</div>
@@ -441,5 +446,12 @@ function get_analyser_sample(type, analyzer_uuid, max_line_len){
 function change_analyser_sample_max_len(){
 	var analyzer_data_info=$('#modal_analyser_sample_label').text().split(":");
 	get_analyser_sample(analyzer_data_info[1], analyzer_data_info[2], $('#max_line_len').val());
+}
+
+function generate_new_uuid(){
+	$.getJSON( "{{url_for('generate_uuid')}}", function( data ) {
+		console.log(data['uuid'])
+		$( "#analyzer_uuid" ).val(data['uuid']);
+	});
 }
 </script>

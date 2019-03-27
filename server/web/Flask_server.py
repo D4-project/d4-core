@@ -651,7 +651,11 @@ def whois_data():
     else:
         return 'Invalid IP'
 
-# demo function
+@app.route('/generate_uuid')
+def generate_uuid():
+    new_uuid = uuid.uuid4()
+    return jsonify({'uuid': new_uuid})
+
 @app.route('/get_analyser_sample')
 def get_analyser_sample():
     type = request.args.get('type')
