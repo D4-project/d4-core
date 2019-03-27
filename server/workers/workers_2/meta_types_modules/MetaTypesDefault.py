@@ -16,6 +16,29 @@ ROTATION_SAVE_CYCLE = 300 # seconds
 MAX_BUFFER_LENGTH = 100000
 TYPE = 254
 
+host_redis_stream = "localhost"
+port_redis_stream = 6379
+
+redis_server_stream = redis.StrictRedis(
+                    host=host_redis_stream,
+                    port=port_redis_stream,
+                    db=0)
+
+host_redis_metadata = "localhost"
+port_redis_metadata = 6380
+
+redis_server_metadata = redis.StrictRedis(
+                    host=host_redis_metadata,
+                    port=port_redis_metadata,
+                    db=0)
+
+redis_server_analyzer = redis.StrictRedis(
+                    host=host_redis_metadata,
+                    port=port_redis_metadata,
+                    db=2)
+
+analyzer_list_max_default_size = 10000
+
 class MetaTypesDefault:
 
     def __init__(self, uuid, json_file):

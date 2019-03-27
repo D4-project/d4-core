@@ -8,6 +8,7 @@ import redis
 import datetime
 import hashlib
 import binascii
+import redis
 import pdb
 
 from meta_types_modules.MetaTypesDefault import MetaTypesDefault
@@ -39,7 +40,7 @@ class TypeHandler(MetaTypesDefault):
             cert = binascii.a2b_base64(certificate["Raw"])
             # one could also load this cert with
             # xcert = x509.load_der_x509_certificate(cert, default_backend())
-            m = hashlib.sha256()
+            m = hashlib.sha1()
             m.update(cert)
             cert_path = os.path.join(cert_save_dir, m.hexdigest()+'.crt')
             # write unique certificate der file to disk
@@ -50,6 +51,9 @@ class TypeHandler(MetaTypesDefault):
         jsons_path = os.path.join(jsons_save_dir, mtjson["Timestamp"]+'.json')
         with open(jsons_path, 'w') as j:
             j.write(data.decode())
+        # Send data to Analyszer
+        self.send_to_analyzers(jsons_path)
+
 
     def test(self):
         print('Class: ja3-jl')
