@@ -197,7 +197,7 @@ class MetaTypesDefault:
         if self.is_file_rotation_mode() or save_by_uuid:
             return '{}-{}-{}-{}-{}.{}'.format(self.uuid, self.get_last_saved_year(), self.get_last_saved_month(), self.get_last_saved_day(), self.get_last_saved_hour_minute(), file_extention)
 
-    def get_data_save_directory():
+    def get_data_save_directory(self):
         return self.data_directory
 
     def get_save_dir(self, save_by_uuid=False):
