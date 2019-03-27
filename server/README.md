@@ -35,6 +35,13 @@ cd ..
 
 The web interface is accessible via `http://127.0.0.1:7000/`
 
+### Updating web assets
+To update javascript libs run:
+~~~~
+cd web
+./update_web.sh
+~~~~
+
 ### Notes
 
 - All server logs are located in ``d4-core/server/logs/``
