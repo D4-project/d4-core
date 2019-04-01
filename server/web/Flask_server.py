@@ -256,10 +256,13 @@ def server_management():
                 last_updated = 'Never'
             else:
                 last_updated = datetime.datetime.fromtimestamp(float(last_updated)).strftime('%Y-%m-%d %H:%M:%S')
+            description_analyzer = redis_server_metadata.hget('analyzer:{}'.format(analyzer_uuid), 'description')
+            if description_analyzer is None:
+                description_analyzer = ''
             len_queue = redis_server_analyzer.llen('analyzer:{}:{}'.format(extended_type, analyzer_uuid))
             if len_queue is None:
                 len_queue = 0
-            list_analyzer_uuid.append({'uuid': analyzer_uuid, 'size_limit': size_limit,'last_updated': last_updated, 'length': len_queue})
+            list_analyzer_uuid.append({'uuid': analyzer_uuid, 'description': description_analyzer, 'size_limit': size_limit,'last_updated': last_updated, 'length': len_queue})
 
         list_accepted_extended_types.append({"name": extended_type, 'list_analyzer_uuid': list_analyzer_uuid})
 

@@ -253,7 +253,7 @@
 														</a>
 													</div>
 													{%if analyzer['description']%}
-														<div class="text-info mt-0"><small>{{analyzer['description']}}</small></div>
+														<div class="text-info"><small>{{analyzer['description']}}</small></div>
 													{%endif%}
 												</td>
 												<td>{{analyzer['last_updated']}}</td>
@@ -297,9 +297,12 @@
 														<div class="d-flex">
 															{{analyzer['uuid']}}
 															<a href="{{ url_for('remove_analyzer') }}?redirect=1&type=254&metatype_name={{type['name']}}&analyzer_uuid={{analyzer['uuid']}}" class="ml-auto">
-																<button type="button" class="btn btn-outline-danger"><i class="fa fa-trash"></i></button>
+																<button type="button" class="btn btn-outline-danger px-2 py-0"><i class="fa fa-trash"></i></button>
 															</a>
 														</div>
+														{%if analyzer['description']%}
+															<div class="text-info"><small>{{analyzer['description']}}</small></div>
+														{%endif%}
 													</td>
 													<td>{{analyzer['last_updated']}}</td>
 													<td>
