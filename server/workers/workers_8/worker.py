@@ -108,7 +108,7 @@ if __name__ == "__main__":
                 if id and data:
                     # reconstruct data
                     if buffer != b'':
-                        data[b'message'] = b''.join(buffer, data[b'message'])
+                        data[b'message'] = b''.join([buffer, data[b'message']])
                         buffer = b''
 
                     # send data to redis
