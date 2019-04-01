@@ -54,3 +54,15 @@ cd web
 ![](https://raw.githubusercontent.com/D4-project/d4-core/master/doc/images/server-mgmt.png)
 ![](https://raw.githubusercontent.com/D4-project/d4-core/master/doc/images/analyzer-mgmt.png)
 ![](https://raw.githubusercontent.com/D4-project/d4-core/master/doc/images/server-mgmt2.png)
+
+### Troubleshooting
+
+###### Worker 1, tcpdump: Permission denied
+Could be related to AppArmor:
+~~~~
+sudo cat /var/log/syslog | grep denied
+~~~~
+Run the following command as root:
+~~~~
+aa-complain /usr/sbin/tcpdump
+~~~~
