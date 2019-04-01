@@ -233,10 +233,13 @@ def server_management():
                 last_updated = 'Never'
             else:
                 last_updated = datetime.datetime.fromtimestamp(float(last_updated)).strftime('%Y-%m-%d %H:%M:%S')
+            description_analyzer = redis_server_metadata.hget('analyzer:{}'.format(analyzer_uuid), 'description')
+            if description_analyzer is None:
+                description_analyzer = ''
             len_queue = redis_server_analyzer.llen('analyzer:{}:{}'.format(type, analyzer_uuid))
             if len_queue is None:
                 len_queue = 0
-            list_analyzer_uuid.append({'uuid': analyzer_uuid, 'size_limit': size_limit,'last_updated': last_updated, 'length': len_queue})
+            list_analyzer_uuid.append({'uuid': analyzer_uuid, 'description': description_analyzer, 'size_limit': size_limit,'last_updated': last_updated, 'length': len_queue})
 
         list_accepted_types.append({"id": int(type), "description": description, 'list_analyzer_uuid': list_analyzer_uuid})
 
@@ -390,6 +393,7 @@ def add_new_analyzer():
     type = request.args.get('type')
     user = request.args.get('redirect')
     metatype_name = request.args.get('metatype_name')
+    analyzer_description = request.args.get('analyzer_description')
     analyzer_uuid = request.args.get('analyzer_uuid')
     if is_valid_uuid_v4(analyzer_uuid):
         try:
@@ -403,6 +407,8 @@ def add_new_analyzer():
             redis_server_metadata.sadd('analyzer:{}:{}'.format(type, metatype_name), analyzer_uuid)
         else:
             redis_server_metadata.sadd('analyzer:{}'.format(type), analyzer_uuid)
+        if redis_server_metadata.exists('analyzer:{}:{}'.format(type, metatype_name)) or redis_server_metadata.exists('analyzer:{}'.format(type)):
+            redis_server_metadata.hset('analyzer:{}'.format(analyzer_uuid), 'description', analyzer_description)
         if user:
             return redirect(url_for('server_management'))
     else:
