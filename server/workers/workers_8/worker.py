@@ -154,7 +154,7 @@ if __name__ == "__main__":
                             # get new save_path
                             dir_full_path = get_save_dir(dir_data_uuid, date_file[0:4], date_file[4:6], date_file[6:8])
                             filename = '{}-{}-{}-{}-{}.passivedns.txt'.format(uuid, date_file[0:4], date_file[4:6], date_file[6:8], date_file[8:14])
-                            save_path = os.path.join([dir_full_path, filename])
+                            save_path = os.path.join(dir_full_path, filename)
 
                             # save start of new file
                             if start_new_file != b'':

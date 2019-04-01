@@ -231,6 +231,8 @@ def server_management():
             last_updated = redis_server_metadata.hget('analyzer:{}'.format(analyzer_uuid), 'last_updated')
             if last_updated is None:
                 last_updated = 'Never'
+            else:
+                last_updated = datetime.datetime.fromtimestamp(float(last_updated)).strftime('%Y-%m-%d %H:%M:%S')
             len_queue = redis_server_analyzer.llen('analyzer:{}:{}'.format(type, analyzer_uuid))
             if len_queue is None:
                 len_queue = 0
