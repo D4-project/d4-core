@@ -14,7 +14,7 @@ def data_incorrect_format(stream_name, session_uuid, uuid):
     redis_server_stream.sadd('Error:IncorrectType', session_uuid)
     redis_server_metadata.hset('metadata_uuid:{}'.format(uuid), 'Error', 'Error: Type={}, Incorrect file format'.format(type))
     clean_stream(stream_name, session_uuid)
-    print('Incorrect format')
+    print('Incorrect format, uuid={}'.format(uuid))
     sys.exit(1)
 
 def clean_stream(stream_name, session_uuid):
@@ -145,6 +145,8 @@ if __name__ == "__main__":
                         Error_message = process.stderr.read()
                         if Error_message == b'tcpdump: unknown file format\n':
                             data_incorrect_format(stream_name, session_uuid, uuid)
+                        elif Error_message:
+                            print(Error_message)
 
                         #print(process.stdout.read())
                     nb_save += 1
@@ -159,7 +161,8 @@ if __name__ == "__main__":
             # success, all data are saved
             if redis_server_stream.sismember('ended_session', session_uuid):
                 out, err = process.communicate(timeout= 0.5)
-                #print(out)
+                #if out:
+                #    print(out)
                 if err == b'tcpdump: unknown file format\n':
                     data_incorrect_format(stream_name, session_uuid, uuid)
                 elif err:
