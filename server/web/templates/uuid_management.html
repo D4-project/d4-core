@@ -73,6 +73,11 @@
 							<div style="color:Green; display:inline-block">
 								<i class="fa fa-check-circle"></i> Connected
 							</div>
+							<div>
+								<a href="{{ url_for('kick_uuid') }}?uuid={{uuid_sensor}}" {% if data_uuid['temp_blacklist_uuid'] %}style="pointer-events: none;"{% endif %}>
+									<button type="button" class="btn btn-outline-info" {% if data_uuid['temp_blacklist_uuid'] %}disabled{% endif %}>Kick UUID</button>
+								</a>
+							</div>
 						{% endif %}
 						</div>
 				</div>

@@ -281,6 +281,10 @@ def uuid_management():
         last_seen = redis_server_metadata.hget('metadata_uuid:{}'.format(uuid_sensor), 'last_seen')
         last_seen_gmt = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(int(last_seen)))
         Error = redis_server_metadata.hget('metadata_uuid:{}'.format(uuid_sensor), 'Error')
+        if redis_server_stream.exists('temp_blacklist_uuid:{}'.format(uuid_sensor)):
+            temp_blacklist_uuid = True
+        else:
+            temp_blacklist_uuid = False
         if redis_server_metadata.sismember('blacklist_uuid', uuid_sensor):
             blacklisted_uuid = True
             Error = "Blacklisted UUID"
@@ -292,6 +296,7 @@ def uuid_management():
         else:
             blacklisted_ip_by_uuid = False
         data_uuid= {"first_seen": first_seen, "last_seen": last_seen,
+                    "temp_blacklist_uuid": temp_blacklist_uuid,
                     "blacklisted_uuid": blacklisted_uuid, "blacklisted_ip_by_uuid": blacklisted_ip_by_uuid,
                     "first_seen_gmt": first_seen_gmt, "last_seen_gmt": last_seen_gmt, "Error": Error}
 
@@ -479,6 +484,15 @@ def analyzer_change_max_size():
         redis_server_metadata.hset('analyzer:{}'.format(analyzer_uuid), 'max_size', max_size_analyzer)
         if user:
             return redirect(url_for('server_management'))
+    else:
+        return 'Invalid uuid'
+
+@app.route('/kick_uuid')
+def kick_uuid():
+    uuid_sensor = request.args.get('uuid')
+    if is_valid_uuid_v4(uuid_sensor):
+        redis_server_stream.sadd('server:sensor_to_kick', uuid_sensor)
+        return redirect(url_for('uuid_management', uuid=uuid_sensor))
     else:
         return 'Invalid uuid'
 

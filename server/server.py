@@ -72,6 +72,8 @@ redis_server_metadata.delete('server:accepted_extended_type')
 for type in accepted_extended_type:
     redis_server_metadata.sadd('server:accepted_extended_type', type)
 
+dict_all_connection =  {}
+
 class D4_Server(Protocol, TimeoutMixin):
 
     def __init__(self):
@@ -89,8 +91,20 @@ class D4_Server(Protocol, TimeoutMixin):
         self.type = None
         self.uuid = None
         logger.debug('New session: session_uuid={}'.format(self.session_uuid))
+        dict_all_connection[self.session_uuid] = self
 
     def dataReceived(self, data):
+        # check and kick sensor by uuid
+        for client_uuid in redis_server_stream.smembers('server:sensor_to_kick'):
+            client_uuid = client_uuid.decode()
+            for session_uuid in redis_server_stream.smembers('map:active_connection-uuid-session_uuid:{}'.format(client_uuid)):
+                session_uuid = session_uuid.decode()
+                logger.warning('Sensor kicked uuid={}, session_uuid={}'.format(client_uuid, session_uuid))
+                redis_server_stream.set('temp_blacklist_uuid:{}'.format(client_uuid), 'some random string')
+                redis_server_stream.expire('temp_blacklist_uuid:{}'.format(client_uuid), 30)
+                dict_all_connection[session_uuid].transport.abortConnection()
+            redis_server_stream.srem('server:sensor_to_kick', client_uuid)
+
         self.resetTimeout()
         if self.first_connection or self.ip is None:
             client_info = self.transport.client
@@ -101,8 +115,9 @@ class D4_Server(Protocol, TimeoutMixin):
         if redis_server_metadata.sismember('blacklist_ip', self.ip):
             self.transport.abortConnection()
             logger.warning('Blacklisted IP={}, connection closed'.format(self.ip))
-
-        self.process_header(data, self.ip, self.source_port)
+        else:
+            # process data
+            self.process_header(data, self.ip, self.source_port)
 
     def timeoutConnection(self):
         self.resetTimeout()
@@ -114,7 +129,10 @@ class D4_Server(Protocol, TimeoutMixin):
             self.setTimeout(None)
             redis_server_stream.srem('active_connection:{}'.format(self.type), '{}:{}'.format(self.ip, self.uuid))
             redis_server_stream.srem('active_connection', '{}'.format(self.uuid))
+            if self.uuid:
+                redis_server_stream.srem('map:active_connection-uuid-session_uuid:{}'.format(self.uuid), self.session_uuid)
             logger.debug('Connection closed: session_uuid={}'.format(self.session_uuid))
+            dict_all_connection.pop(self.session_uuid)
 
     def unpack_header(self, data):
         data_header = {}
@@ -125,31 +143,7 @@ class D4_Server(Protocol, TimeoutMixin):
             data_header['timestamp'] = struct.unpack('Q', data[18:26])[0]
             data_header['hmac_header'] = data[26:58]
             data_header['size'] = struct.unpack('I', data[58:62])[0]
-
-            # blacklist ip by uuid
-            if redis_server_metadata.sismember('blacklist_ip_by_uuid', data_header['uuid_header']):
-                redis_server_metadata.sadd('blacklist_ip', self.ip)
-                self.transport.abortConnection()
-                logger.warning('Blacklisted IP by UUID={}, connection closed'.format(data_header['uuid_header']))
-
-            # uuid blacklist
-            if redis_server_metadata.sismember('blacklist_uuid', data_header['uuid_header']):
-                self.transport.abortConnection()
-                logger.warning('Blacklisted UUID={}, connection closed'.format(data_header['uuid_header']))
-
-            # check default size limit
-            if data_header['size'] > data_default_size_limit:
-                self.transport.abortConnection()
-                logger.warning('Incorrect header data size: the server received more data than expected by default, expected={}, received={} , uuid={}, session_uuid={}'.format(data_default_size_limit, data_header['size'] ,data_header['uuid_header'], self.session_uuid))
-
-            # Worker: Incorrect type
-            if redis_server_stream.sismember('Error:IncorrectType', self.session_uuid):
-                self.transport.abortConnection()
-                redis_server_stream.delete('stream:{}:{}'.format(data_header['type'], self.session_uuid))
-                redis_server_stream.srem('Error:IncorrectType', self.session_uuid)
-                logger.warning('Incorrect type={} detected by worker, uuid={}, session_uuid={}'.format(data_header['type'] ,data_header['uuid_header'], self.session_uuid))
-
-        return data_header
+            return data_header
 
     def extract_ip(self, ip_string):
         #remove interface
@@ -181,10 +175,49 @@ class D4_Server(Protocol, TimeoutMixin):
             logger.info('Invalid Header, uuid={}, session_uuid={}'.format(uuid_to_check, self.session_uuid))
             return False
 
+    def check_connection_validity(self, data_header):
+        # blacklist ip by uuid
+        if redis_server_metadata.sismember('blacklist_ip_by_uuid', data_header['uuid_header']):
+            redis_server_metadata.sadd('blacklist_ip', self.ip)
+            self.transport.abortConnection()
+            logger.warning('Blacklisted IP by UUID={}, connection closed'.format(data_header['uuid_header']))
+            return False
+
+        # uuid blacklist
+        if redis_server_metadata.sismember('blacklist_uuid', data_header['uuid_header']):
+            logger.warning('Blacklisted UUID={}, connection closed'.format(data_header['uuid_header']))
+            self.transport.abortConnection()
+            return False
+
+        # check temp blacklist
+        if redis_server_stream.exists('temp_blacklist_uuid:{}'.format(data_header['uuid_header'])):
+            logger.warning('Temporarily Blacklisted UUID={}, connection closed'.format(data_header['uuid_header']))
+            redis_server_metadata.hset('metadata_uuid:{}'.format(data_header['uuid_header']), 'Error', 'Error: This UUID is temporarily blacklisted')
+            self.transport.abortConnection()
+            return False
+
+        # check default size limit
+        if data_header['size'] > data_default_size_limit:
+            self.transport.abortConnection()
+            logger.warning('Incorrect header data size: the server received more data than expected by default, expected={}, received={} , uuid={}, session_uuid={}'.format(data_default_size_limit, data_header['size'] ,data_header['uuid_header'], self.session_uuid))
+            return False
+
+        # Worker: Incorrect type
+        if redis_server_stream.sismember('Error:IncorrectType', self.session_uuid):
+            self.transport.abortConnection()
+            redis_server_stream.delete('stream:{}:{}'.format(data_header['type'], self.session_uuid))
+            redis_server_stream.srem('Error:IncorrectType', self.session_uuid)
+            logger.warning('Incorrect type={} detected by worker, uuid={}, session_uuid={}'.format(data_header['type'] ,data_header['uuid_header'], self.session_uuid))
+            return False
+
+        return True
+
     def process_header(self, data, ip, source_port):
         if not self.buffer:
             data_header = self.unpack_header(data)
             if data_header:
+                if not self.check_connection_validity(data_header):
+                    return 1
                 if self.is_valid_header(data_header['uuid_header'], data_header['type']):
 
                     # auto kill connection # TODO: map type
@@ -195,6 +228,7 @@ class D4_Server(Protocol, TimeoutMixin):
                             logger.warning('is using the same UUID for one type, ip={} uuid={} type={} session_uuid={}'.format(ip, data_header['uuid_header'], data_header['type'], self.session_uuid))
                             redis_server_metadata.hset('metadata_uuid:{}'.format(data_header['uuid_header']), 'Error', 'Error: This UUID is using the same UUID for one type={}'.format(data_header['type']))
                             self.transport.abortConnection()
+                            return 1
                         else:
                             #self.version = None
                             # check if type change
@@ -209,22 +243,35 @@ class D4_Server(Protocol, TimeoutMixin):
                                         logger.warning('Unexpected type change, type={} new type={}, ip={} uuid={} session_uuid={}'.format(ip, data_header['uuid_header'], data_header['type'], self.session_uuid))
                                         redis_server_metadata.hset('metadata_uuid:{}'.format(data_header['uuid_header']), 'Error', 'Error: Unexpected type change type={}, new type={}'.format(self.type, data_header['type']))
                                         self.transport.abortConnection()
+                                        return 1
                             # type 254, check if previous type 2 saved
                             elif data_header['type'] == 254:
                                 logger.warning('a type 2 packet must be sent, ip={} uuid={} type={} session_uuid={}'.format(ip, data_header['uuid_header'], data_header['type'], self.session_uuid))
                                 redis_server_metadata.hset('metadata_uuid:{}'.format(data_header['uuid_header']), 'Error', 'Error: a type 2 packet must be sent, type={}'.format(data_header['type']))
                                 self.transport.abortConnection()
+                                return 1
                             self.type = data_header['type']
                             self.uuid = data_header['uuid_header']
                             #active Connection
                             redis_server_stream.sadd('active_connection:{}'.format(self.type), '{}:{}'.format(ip, self.uuid))
                             redis_server_stream.sadd('active_connection', '{}'.format(self.uuid))
-                            # Clean Error Message
-                            redis_server_metadata.hdel('metadata_uuid:{}'.format(data_header['uuid_header']), 'Error')
+                            # map session_uuid/uuid
+                            redis_server_stream.sadd('map:active_connection-uuid-session_uuid:{}'.format(self.uuid), self.session_uuid)
+
+                    # check if the uuid is the same
+                    if self.uuid != data_header['uuid_header']:
+                        logger.warning('The uuid change during the connection, ip={} uuid={} type={} session_uuid={} new_uuid={}'.format(ip, self.uuid, data_header['type'], self.session_uuid, data_header['uuid_header']))
+                        redis_server_metadata.hset('metadata_uuid:{}'.format(data_header['uuid_header']), 'Error', 'Error: The uuid change, new_uuid={}'.format(data_header['uuid_header']))
+                        self.transport.abortConnection()
+                        return 1
+                        ## TODO: ban ?
 
                     # check data size
                     if data_header['size'] == (len(data) - header_size):
-                        self.process_d4_data(data, data_header, ip)
+                        res = self.process_d4_data(data, data_header, ip)
+                        # Error detected, kill connection
+                        if res == 1:
+                            return 1
                     # multiple d4 headers
                     elif data_header['size'] < (len(data) - header_size):
                         next_data = data[data_header['size'] + header_size:]
@@ -233,7 +280,10 @@ class D4_Server(Protocol, TimeoutMixin):
                         #print(data)
                         #print()
                         #print(next_data)
-                        self.process_d4_data(data, data_header, ip)
+                        res = self.process_d4_data(data, data_header, ip)
+                        # Error detected, kill connection
+                        if res == 1:
+                            return 1
                         # process next d4 header
                         self.process_header(next_data, ip, source_port)
                     # data_header['size'] > (len(data) - header_size)
@@ -313,6 +363,8 @@ class D4_Server(Protocol, TimeoutMixin):
 
             date = datetime.datetime.now().strftime("%Y%m%d")
             if redis_server_stream.xlen('stream:{}:{}'.format(data_header['type'], self.session_uuid)) < self.stream_max_size:
+                # Clean Error Message
+                redis_server_metadata.hdel('metadata_uuid:{}'.format(data_header['uuid_header']), 'Error')
 
                 redis_server_stream.xadd('stream:{}:{}'.format(data_header['type'], self.session_uuid), {'message': data[header_size:], 'uuid': data_header['uuid_header'], 'timestamp': data_header['timestamp'], 'version': data_header['version']})
 
@@ -338,21 +390,23 @@ class D4_Server(Protocol, TimeoutMixin):
                 if self.update_stream_type:
                     redis_server_stream.sadd('session_uuid:{}'.format(data_header['type']), self.session_uuid.encode())
                     redis_server_stream.hset('map-type:session_uuid-uuid:{}'.format(data_header['type']), self.session_uuid, data_header['uuid_header'])
-
                     self.update_stream_type = False
+                return 0
             else:
                 logger.warning("stream exceed max entries limit, uuid={}, session_uuid={}, type={}".format(data_header['uuid_header'], self.session_uuid, data_header['type']))
                 ## TODO: FIXME
                 redis_server_metadata.hset('metadata_uuid:{}'.format(data_header['uuid_header']), 'Error', 'Error: stream exceed max entries limit')
 
                 self.transport.abortConnection()
+                return 1
         else:
             print('hmac do not match')
             print(data)
             logger.debug("HMAC don't match, uuid={}, session_uuid={}".format(data_header['uuid_header'], self.session_uuid))
             ## TODO: FIXME
             redis_server_metadata.hset('metadata_uuid:{}'.format(data_header['uuid_header']), 'Error', 'Error: HMAC don\'t match')
-
+            self.transport.abortConnection()
+            return 1
 
 
 def main(reactor):
