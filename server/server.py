@@ -124,6 +124,9 @@ class D4_Server(Protocol, TimeoutMixin):
         self.buffer = b''
         logger.debug('buffer timeout, session_uuid={}'.format(self.session_uuid))
 
+    def connectionMade(self):
+        self.transport.setTcpKeepAlive(1)
+
     def connectionLost(self, reason):
             redis_server_stream.sadd('ended_session', self.session_uuid)
             self.setTimeout(None)
