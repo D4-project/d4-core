@@ -375,11 +375,13 @@ class D4_Server(Protocol, TimeoutMixin):
                 redis_server_metadata.zincrby('daily_ip:{}'.format(date), 1, ip)
                 redis_server_metadata.zincrby('daily_type:{}'.format(date), 1, data_header['type'])
                 redis_server_metadata.zincrby('stat_type_uuid:{}:{}'.format(date, data_header['type']), 1, data_header['uuid_header'])
+                redis_server_metadata.zincrby('stat_uuid_type:{}:{}'.format(date, data_header['uuid_header']), 1, data_header['type'])
 
                 #
                 if not redis_server_metadata.hexists('metadata_uuid:{}'.format(data_header['uuid_header']), 'first_seen'):
                     redis_server_metadata.hset('metadata_uuid:{}'.format(data_header['uuid_header']), 'first_seen', data_header['timestamp'])
                 redis_server_metadata.hset('metadata_uuid:{}'.format(data_header['uuid_header']), 'last_seen', data_header['timestamp'])
+                redis_server_metadata.hset('metadata_type_by_uuid:{}:{}'.format(data_header['uuid_header'], data_header['type']), 'last_seen', data_header['timestamp'])
 
                 if not self.data_saved:
                     #UUID IP:           ## TODO: use d4 timestamp ?
@@ -390,6 +392,10 @@ class D4_Server(Protocol, TimeoutMixin):
                 if self.update_stream_type:
                     redis_server_stream.sadd('session_uuid:{}'.format(data_header['type']), self.session_uuid.encode())
                     redis_server_stream.hset('map-type:session_uuid-uuid:{}'.format(data_header['type']), self.session_uuid, data_header['uuid_header'])
+                    redis_server_metadata.sadd('all_types_by_uuid:{}'.format(data_header['uuid_header']), data_header['type'])
+
+                    if not redis_server_metadata.hexists('metadata_type_by_uuid:{}:{}'.format(data_header['uuid_header'], data_header['type']), 'first_seen'):
+                        redis_server_metadata.hset('metadata_type_by_uuid:{}:{}'.format(data_header['uuid_header'], data_header['type']), 'first_seen', data_header['timestamp'])
                     self.update_stream_type = False
                 return 0
             else:
@@ -429,6 +435,9 @@ if __name__ == "__main__":
     parser.add_argument('-v', '--verbose',help='dddd' , type=int, default=30)
     args = parser.parse_args()
 
+    if not redis_server_metadata.exists('first_date'):
+        redis_server_metadata.set('first_date', datetime.datetime.now().strftime("%Y%m%d"))
+
     logs_dir = 'logs'
     if not os.path.isdir(logs_dir):
         os.makedirs(logs_dir)
@@ -444,4 +453,5 @@ if __name__ == "__main__":
     logger.setLevel(args.verbose)
 
     logger.info('Launching Server ...')
+
     task.react(main)
