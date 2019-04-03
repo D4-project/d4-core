@@ -9,6 +9,7 @@
 	<link href="{{ url_for('static', filename='font-awesome/css/font-awesome.css') }}" rel="stylesheet">
 
 	<!-- JS -->
+	<script src="{{ url_for('static', filename='js/jquery.js')}}"></script>
 	<script src="{{ url_for('static', filename='js/bootstrap.min.js')}}"></script>
 	<script src="{{ url_for('static', filename='js/d3.min.js')}}"></script>
 
@@ -107,6 +108,7 @@
 </body>
 
 <script>
+
 ////
 //http://bl.ocks.org/charlesdguthrie/11356441, updated and modified
 //updating BarChart
@@ -274,8 +276,10 @@ json_url_type = "{{ url_for('_json_daily_type_stats') }}"
 //setup
 var settings = setup('#chart_uuid');
 redraw(json_url_uuid,settings)
+redraw(json_url_uuid,settings)
 
 var settings_type = setup('#chart_type');
+redraw(json_url_type,settings_type)
 redraw(json_url_type,settings_type)
 
 //Interval
