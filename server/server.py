@@ -120,9 +120,14 @@ class D4_Server(Protocol, TimeoutMixin):
             self.process_header(data, self.ip, self.source_port)
 
     def timeoutConnection(self):
-        self.resetTimeout()
-        self.buffer = b''
-        logger.debug('buffer timeout, session_uuid={}'.format(self.session_uuid))
+        if self.uuid is None:
+            # # TODO: ban auto
+            logger.warning('Timeout, no D4 header send, session_uuid={}, connection closed'.format(self.session_uuid))
+            self.transport.abortConnection()
+        else:
+            self.resetTimeout()
+            self.buffer = b''
+            logger.debug('buffer timeout, session_uuid={}'.format(self.session_uuid))
 
     def connectionMade(self):
         self.transport.setTcpKeepAlive(1)
