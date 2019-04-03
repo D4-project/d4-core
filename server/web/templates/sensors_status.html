@@ -65,7 +65,7 @@
 
 	{% for row_uuid in status_daily_uuid %}
 		<div class="card text-center mt-3 ml-2 mr-2">
-			<a href="{{ url_for('uuid_management') }}?uuid={{row_uuid['uuid']}}">
+			<a class="btn btn-outline-dark px-1 py-1" href="{{ url_for('uuid_management') }}?uuid={{row_uuid['uuid']}}">
 				<div class="card-header bg-dark text-white">
 					UUID: {{row_uuid['uuid']}}
 				</div>
