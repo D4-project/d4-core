@@ -105,6 +105,18 @@ def get_whois_ouput(ip):
     else:
         return ''
 
+def get_substract_date_range(num_day, date_from=None):
+    if date_from is None:
+        date_from = datetime.datetime.now()
+    else:
+        date_from = datetime.date(int(date_from[0:4]), int(date_from[4:6]), int(date_from[6:8]))
+
+    l_date = []
+    for i in range(num_day):
+        date = date_from - datetime.timedelta(days=i)
+        l_date.append( date.strftime('%Y%m%d') )
+    return list(reversed(l_date))
+
 # ========== ERRORS ============
 
 @app.errorhandler(404)
@@ -315,6 +327,17 @@ def uuid_management():
         if uuid_key is None:
             uuid_key = redis_server_metadata.get('server:hmac_default_key')
 
+        uuid_all_type_list = []
+        uuid_all_type = redis_server_metadata.smembers('all_types_by_uuid:{}'.format(uuid_sensor))
+        for type in uuid_all_type:
+            type_first_seen = redis_server_metadata.hget('metadata_type_by_uuid:{}:{}'.format(uuid_sensor, type), 'first_seen')
+            type_last_seen = redis_server_metadata.hget('metadata_type_by_uuid:{}:{}'.format(uuid_sensor, type), 'last_seen')
+            if type_first_seen:
+                type_first_seen = datetime.datetime.fromtimestamp(float(type_first_seen)).strftime('%Y-%m-%d %H:%M:%S')
+            if type_last_seen:
+                type_last_seen = datetime.datetime.fromtimestamp(float(type_last_seen)).strftime('%Y-%m-%d %H:%M:%S')
+            uuid_all_type_list.append({'type': type, 'first_seen':type_first_seen, 'last_seen': type_last_seen})
+
         list_ip = redis_server_metadata.lrange('list_uuid_ip:{}'.format(uuid_sensor), 0, -1)
         all_ip = []
         for elem in list_ip:
@@ -322,7 +345,8 @@ def uuid_management():
             all_ip.append({'ip': ip,'datetime': '{}/{}/{} - {}:{}.{}'.format(d_time[0:4], d_time[5:6], d_time[6:8], d_time[8:10], d_time[10:12], d_time[12:14])})
 
         return render_template("uuid_management.html", uuid_sensor=uuid_sensor, active_connection=active_connection,
-                                uuid_key=uuid_key, data_uuid=data_uuid, max_uuid_stream=max_uuid_stream, all_ip=all_ip)
+                                uuid_key=uuid_key, data_uuid=data_uuid, uuid_all_type=uuid_all_type_list,
+                                max_uuid_stream=max_uuid_stream, all_ip=all_ip)
     else:
         return 'Invalid uuid'
 
@@ -709,6 +733,39 @@ def get_analyser_sample():
         return jsonify(''.join(list_queue_res))
     else:
         return jsonify('Incorrect UUID')
+
+@app.route('/get_uuid_type_history_json')
+def get_uuid_type_history_json():
+    uuid_sensor = request.args.get('uuid_sensor')
+    if is_valid_uuid_v4(uuid_sensor):
+        num_day_type = 7
+        date_range = get_substract_date_range(num_day_type)
+        type_history = []
+        range_decoder = []
+        all_type = set()
+        for date in date_range:
+            type_day = redis_server_metadata.zrange('stat_uuid_type:{}:{}'.format(date, uuid_sensor), 0, -1, withscores=True)
+            for type in type_day:
+                all_type.add(type[0])
+            range_decoder.append((date, type_day))
+
+        default_dict_type = {}
+        for type in all_type:
+            default_dict_type[type] = 0
+        for row in range_decoder:
+            day_type = default_dict_type.copy()
+            date = row[0]
+            day_type['date']= date[0:4] + '-' + date[4:6] + '-' + date[6:8]
+            for type in row[1]:
+                day_type[type[0]]= type[1]
+            type_history.append(day_type)
+
+        return jsonify(type_history)
+    else:
+        return jsonify('Incorrect UUID')
+
+
+
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=7000, threaded=True)
