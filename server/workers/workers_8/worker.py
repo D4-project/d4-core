@@ -3,8 +3,10 @@
 import os
 import sys
 import time
+import gzip
 import redis
 
+import shutil
 import datetime
 import configparser
 
@@ -55,6 +57,19 @@ analyzer_list_max_default_size = 10000
 max_buffer_length = 10000
 
 save_to_file = True
+
+def compress_file(file_full_path, i=0):
+    if i==0:
+        compressed_filename = '{}.gz'.format(file_full_path)
+    else:
+        compressed_filename = '{}.{}.gz'.format(file_full_path, i)
+    if os.path.isfile(compressed_filename):
+        compress_file(file_full_path, i+1)
+    else:
+        with open(file_full_path, 'rb') as f_in:
+            with gzip.open(compressed_filename, 'wb') as f_out:
+                shutil.copyfileobj(f_in, f_out)
+        os.remove(file_full_path)
 
 def get_save_dir(dir_data_uuid, year, month, day):
     dir_path = os.path.join(dir_data_uuid, year, month, day)
@@ -150,6 +165,7 @@ if __name__ == "__main__":
                             # save end of file
                             with open(save_path, 'ab') as f:
                                 f.write(end_file)
+                            compress_file(save_path)
 
                             # get new save_path
                             dir_full_path = get_save_dir(dir_data_uuid, date_file[0:4], date_file[4:6], date_file[6:8])
@@ -178,6 +194,12 @@ if __name__ == "__main__":
                 redis_server_stream.srem('working_session_uuid:{}'.format(type), session_uuid)
                 redis_server_stream.hdel('map-type:session_uuid-uuid:{}'.format(type), session_uuid)
                 redis_server_stream.delete(stream_name)
+                try:
+                    if os.path.isfile(save_path):
+                        print('save')
+                        compress_file(save_path)
+                except NameError:
+                    pass
                 print('----    passivedns DONE, uuid={} session_uuid={} epoch={}'.format(uuid, session_uuid, time.time()))
                 sys.exit(0)
             else:
