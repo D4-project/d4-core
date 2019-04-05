@@ -98,6 +98,15 @@ int random_get_fd(void)
 	return fd;
 }
 
+int my_getentropy(void *buf, size_t buflen)
+{
+    if (buflen > 256) {
+        errno = EIO;
+       return -1;
+   }
+   return syscall(SYS_getrandom, buf, buflen, 0);
+}
+
 /*
  * Generate a stream of random nbytes into buf.
  * Use /dev/urandom if possible, and if not,
@@ -117,7 +126,7 @@ void random_get_bytes(void *buf, size_t nbytes)
 		int x;
 
 		errno = 0;
-		x = getentropy(cp, n);
+		x =  my_getentropy(cp, n);
 		if (x > 0) {			/* success */
 		       n -= x;
 		       cp += x;
