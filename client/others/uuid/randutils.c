@@ -100,11 +100,15 @@ int random_get_fd(void)
 
 int my_getentropy(void *buf, size_t buflen)
 {
+    #ifdef __GLIBC__
     if (buflen > 256) {
         errno = EIO;
        return -1;
    }
    return syscall(SYS_getrandom, buf, buflen, 0);
+   #else
+   return getentropy(buf, buflen);
+   #endif
 }
 
 /*
