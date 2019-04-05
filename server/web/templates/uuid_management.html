@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+	<title>D4-Project</title>
+	<link rel="icon" href="{{ url_for('static', filename='img/d4-logo.png')}}">
+	<!-- Core CSS -->
+	<link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+	<link href="{{ url_for('static', filename='font-awesome/css/font-awesome.css') }}" rel="stylesheet">
+	<link href="{{ url_for('static', filename='css/dataTables.bootstrap.min.css') }}" rel="stylesheet">
+
+	<!-- JS -->
+	<script src="{{ url_for('static', filename='js/jquery.js')}}"></script>
+	<script src="{{ url_for('static', filename='js/popper.min.js')}}"></script>
+	<script src="{{ url_for('static', filename='js/bootstrap.min.js')}}"></script>
+	<script src="{{ url_for('static', filename='js/jquery.dataTables.min.js')}}"></script>
+	<script src="{{ url_for('static', filename='js/dataTables.bootstrap.min.js')}}"></script>
+	<script src="{{ url_for('static', filename='js/d3v5.min.js')}}"></script>
+
+</head>
+
+<body>
+
+	<nav class="navbar navbar-expand-sm navbar-dark bg-dark">
+		<a class="navbar-brand" href="{{ url_for('index') }}">
+      <img src="{{ url_for('static', filename='img/d4-logo.png')}}" alt="D4 Project" style="width:80px;">
+    </a>
+	  <ul class="navbar-nav">
+	    <li class="nav-item">
+	      <a class="nav-link mr-3" href="{{ url_for('index') }}">Home <span class="sr-only">(current)</span></a>
+	    </li>
+	      <li class="nav-item" mr-3>
+	        <a class="nav-link mr-3" href="{{ url_for('sensors_status') }}">Sensors Status</a>
+	      </li>
+	      <li class="nav-item mr-3">
+	        <a class="nav-link" href="{{ url_for('server_management') }}" tabindex="-1" aria-disabled="true">Server Management</a>
+	      </li>
+	    </ul>
+	</nav>
+
+	<div class="card text-center mt-3 ml-2 mr-2">
+		<div class="card-header bg-dark text-white">
+			UUID: {{uuid_sensor}}
+		</div>
+		<div class="card-body">
+			<div class="card-group">
+				<div class="card">
+					<div class="card-header bg-info text-white">
+						First Seen
+					</div>
+					<div class="card-body">
+						<p class="card-text">{{data_uuid['first_seen_gmt']}} - ({{data_uuid['first_seen']}})</p>
+					</div>
+				</div>
+				<div class="card">
+					<div class="card-header bg-info text-white">
+						Last Seen
+					</div>
+					<div class="card-body">
+						<p class="card-text">{{data_uuid['last_seen_gmt']}} - ({{data_uuid['last_seen']}})</p>
+					</div>
+				</div>
+				<div class="card">
+					{% if not data_uuid['Error'] %}
+						<div class="card-header bg-success text-white">
+							Status
+						</div>
+						<div class="card-body text-success">
+							<p class="card-text">OK</p>
+					{% else %}
+						<div class="card-header bg-danger text-white">
+							Status
+						</div>
+						<div class="card-body text-danger">
+							<p class="card-text">{{data_uuid['Error']}}</p>
+					{% endif %}
+						{% if active_connection %}
+							<div style="color:Green; display:inline-block">
+								<i class="fa fa-check-circle"></i> Connected
+							</div>
+							<div>
+								<a href="{{ url_for('kick_uuid') }}?uuid={{uuid_sensor}}" {% if data_uuid['temp_blacklist_uuid'] %}style="pointer-events: none;"{% endif %}>
+									<button type="button" class="btn btn-outline-info" {% if data_uuid['temp_blacklist_uuid'] %}disabled{% endif %}>Kick UUID</button>
+								</a>
+							</div>
+						{% endif %}
+						</div>
+				</div>
+			</div>
+
+		</div>
+	</div>
+
+	<div class="card-deck justify-content-center ml-0 mr-0">
+		<div class="card border-dark mt-3" style="max-width: 18rem;">
+		  <div class="card-body text-dark">
+		    <h5 class="card-title">Change Stream Max Size</h5>
+					{% if not data_uuid['blacklisted_uuid'] and not data_uuid['blacklisted_ip_by_uuid'] %}
+						<input class="form-control" type="number" id="max_stream_input" value="{{max_uuid_stream}}" min="0" required>
+						<button type="button" class="btn btn-outline-secondary mt-1" onclick="window.location.href ='{{ url_for('uuid_change_stream_max_size') }}?uuid={{uuid_sensor}}&redirect=1&max_uuid_stream='+$('#max_stream_input').val();">Change Max Size</button>
+					{% else %}
+					<input class="form-control" type="number" id="max_stream_input" value="{{max_uuid_stream}}" min="0" required disabled>
+					<button type="button" class="btn btn-outline-secondary mt-1" disabled>Change Max Size</button>
+					{% endif %}
+			</div>
+		</div>
+		<div class="card text-center border-danger mt-3" style="max-width: 14rem;">
+		  <div class="card-body text-danger">
+		    <h5 class="card-title">UUID Blacklist</h5>
+				{% if not data_uuid['blacklisted_uuid'] %}
+				<a href="{{ url_for('blacklist_uuid') }}?uuid={{uuid_sensor}}&redirect=1" {% if data_uuid['blacklisted_ip_by_uuid'] %}style="pointer-events: none;"{% endif %}>
+			    <button type="button" class="btn btn-danger" {% if data_uuid['blacklisted_ip_by_uuid'] %}disabled{% endif %}>Blacklist UUID</button>
+				</a>
+				{% else %}
+				<a href="{{ url_for('unblacklist_uuid') }}?uuid={{uuid_sensor}}&redirect=1" {% if data_uuid['blacklisted_ip_by_uuid'] %}style="pointer-events: none;"{% endif %}>
+					<button type="button" class="btn btn-warning" {% if data_uuid['blacklisted_ip_by_uuid'] %}disabled{% endif %}>UnBlacklist UUID</button>
+				</a>
+				{% endif %}
+		  </div>
+		</div>
+		<div class="card text-center border-danger mt-3" style="max-width: 20rem;">
+		  <div class="card-body text-danger">
+		    <h5 class="card-title">Blacklist IP Using This UUID</h5>
+				{% if not data_uuid['blacklisted_ip_by_uuid'] %}
+					<a href="{{ url_for('blacklist_ip_by_uuid') }}?uuid={{uuid_sensor}}&redirect=1">
+			    	<button type="button" class="btn btn-danger">Blacklist IP</button>
+					</a>
+				{% else %}
+					<a href="{{ url_for('unblacklist_ip_by_uuid') }}?uuid={{uuid_sensor}}&redirect=1">
+						<button type="button" class="btn btn-warning">UnBlacklist IP</button>
+					</a>
+				{% endif %}
+		  </div>
+		</div>
+		<div class="card border-dark mt-3" style="max-width: 18rem;">
+		  <div class="card-body text-dark">
+		    <h5 class="card-title">Change UUID Key</h5>
+				<input class="form-control" type="text" id="uuid_key" value="{{uuid_key}}" required>
+				<button type="button" class="btn btn-outline-secondary mt-1" onclick="window.location.href ='{{ url_for('set_uuid_hmac_key') }}?uuid={{uuid_sensor}}&redirect=1&key='+$('#uuid_key').val();">Change UUID Key</button>
+			</div>
+		</div>
+	</div>
+
+	<div>
+		<div class="card text-center mt-3 mx-3">
+			<div class="card-header bg-dark text-white">
+				Types Used:
+			</div>
+			<div class="row ml-0 mr-0">
+				<div class="col-lg-4">
+					<div class="mt-2">
+						<table class="table table-striped table-bordered table-hover" id="myTable_1">
+							<thead class="thead-dark">
+								<tr>
+									<th>Type</th>
+									<th style="max-width: 800px;">first seen</th>
+									<th style="max-width: 800px;">last seen</th>
+								</tr>
+							</thead>
+							<tbody>
+								{% for type in uuid_all_type %}
+									<tr>
+										<td>{{type['type']}}</td>
+										<td>{{type['first_seen']}}</td>
+										<td>{{type['last_seen']}}</td>
+									</tr>
+								{% endfor %}
+							</tbody>
+						</table>
+					</div>
+				</div>
+				<div class="col-lg-8">
+					<div id="barchart_type">
+		     	</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="row ml-0 mr-0">
+		<div class="col-lg-6">
+			<div class="card text-center mt-3">
+				<div class="card-header bg-dark text-white">
+					Last IP Used:
+				</div>
+				<ul class="list-group list-group-flush">
+					{%for row in all_ip%}
+			    <li class="list-group-item">
+							{{row['ip']}} - {{row['datetime']}} <button class="fa fa-info-circle btn text-secondary" onclick="get_whois_data('{{row['ip']}}');"></button>
+					</li>
+					{%endfor%}
+			  </ul>
+			</div>
+		</div>
+		<div class="col-lg-6">
+			<div class="d-none card mt-3 mb-3" id="whois_data">
+				<div class="card-header bg-dark text-center text-white">
+					Whois Info:
+				</div>
+				<pre class="ml-2" id="whois_output">
+				</pre>
+			</div>
+		</div>
+	</div>
+
+	{% include 'navfooter.html' %}
+</body>
+
+<script>
+var chart = {};
+$(document).ready(function(){
+	table = $('#myTable_1').DataTable(
+		{
+			"aLengthMenu": [[5, 10, 15, 20, -1], [5, 10, 15, 20, "All"]],
+			"iDisplayLength": 10,
+			"order": [[ 0, "asc" ]]
+		}
+		);
+	chart.stackBarChart =barchart_type_stack("{{ url_for('get_uuid_type_history_json') }}?uuid_sensor={{uuid_sensor}}", 'id');
+
+	chart.onResize();
+	$(window).on("resize", function() {
+		chart.onResize();
+	});
+
+	$('[data-toggle="popover"]').popover({
+		placement: 'top',
+		container: 'body',
+		html : true,
+	});
+
+});
+
+	function get_whois_data(ip){
+
+		$.getJSON( "{{url_for('whois_data')}}?ip="+ip, function( data ) {
+			$( "#whois_data" ).removeClass( "d-none" );
+			$( "#whois_output" ).text(data);
+
+		});
+	}
+</script>
+
+<script>
+var margin = {top: 20, right: 90, bottom: 55, left: 0},
+				width = parseInt(d3.select('#barchart_type').style('width'), 10);
+				width  = 1000 - margin.left - margin.right,
+				height = 500  - margin.top  - margin.bottom;
+var x = d3.scaleBand().rangeRound([0, width]).padding(0.1);
+
+var y = d3.scaleLinear().rangeRound([height, 0]);
+
+var xAxis = d3.axisBottom(x);
+
+var yAxis = d3.axisLeft(y);
+
+var color = d3.scaleOrdinal(d3.schemeSet3);
+
+var svg = d3.select("#barchart_type").append("svg")
+				.attr("id", "thesvg")
+				.attr("viewBox", "0 0 "+width+" 500")
+				.attr("width",  width  + margin.left + margin.right)
+				.attr("height", height + margin.top  + margin.bottom)
+			.append("g")
+				.attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+
+function barchart_type_stack(url, id) {
+
+  d3.json(url)
+    .then(function(data){
+
+			var labelVar = 'date';  //A
+		  var varNames = d3.keys(data[0])
+		      .filter(function (key) { return key !== labelVar;}); //B
+
+		  data.forEach(function (d) { //D
+		    var y0 = 0;
+		    d.mapping = varNames.map(function (name) {
+		      return {
+		        name: name,
+		        label: d[labelVar],
+		        y0: y0,
+		        y1: y0 += +d[name]
+		      };
+		    });
+		    d.total = d.mapping[d.mapping.length - 1].y1;
+		  });
+
+		  x.domain(data.map(function (d) { return (d.date); })); //E
+		  y.domain([0, d3.max(data, function (d) { return d.total; })]);
+
+			svg.append("g")
+        .attr("class", "x axis")
+        .attr("transform", "translate(0," + height + ")")
+        .call(xAxis)
+				.selectAll("text")
+					.attr("class", "bar")
+					.on("click", function (d) { window.location.href = "#" })
+					.attr("transform", "rotate(-18)" )
+					//.attr("transform", "rotate(-40)" )
+					.style("text-anchor", "end");
+
+    	svg.append("g")
+        .attr("class", "y axis")
+        .call(yAxis)
+      	.append("text")
+        	.attr("transform", "rotate(-90)")
+        	.attr("y", 6)
+        	.attr("dy", ".71em")
+        	.style("text-anchor", "end");
+
+			var selection = svg.selectAll(".series")
+		    .data(data)
+		    .enter().append("g")
+		      .attr("class", "series")
+		      .attr("transform", function (d) { return "translate(" + x((d.date)) + ",0)"; });
+
+			selection.selectAll("rect")
+	      .data(function (d) { return d.mapping; })
+	    .enter().append("rect")
+				.attr("class", "bar_stack")
+	      .attr("width", x.bandwidth())
+	      .attr("y", function (d) { return y(d.y1); })
+	      .attr("height", function (d) { return y(d.y0) - y(d.y1); })
+	      .style("fill", function (d) { return color(d.name); })
+	      .style("stroke", "grey")
+	      .on("mouseover", function (d) { showPopover.call(this, d); })
+				.on("mouseout", function (d) { removePopovers(); })
+				.on("click", function(d){ window.location.href = "#" });
+
+
+				data.forEach(function(d) {
+					if(d.total != 0){
+						svg.append("text")
+								.attr("class", "bar")
+								.attr("dy", "-.35em")
+								.attr('x', x(d.date) + x.bandwidth()/2)
+								.attr('y', y(d.total))
+								.on("click", function () {window.location.href = "#" })
+								.style("text-anchor", "middle")
+								.text(d.total);
+					}
+				});
+
+			drawLegend(varNames);
+    });
+
+}
+
+function drawLegend (varNames) {
+    var legend = svg.selectAll(".legend")
+        .data(varNames.slice().reverse())
+      .enter().append("g")
+        .attr("class", "legend")
+        .attr("transform", function (d, i) { return "translate(0," + i * 20 + ")"; });
+
+    legend.append("rect")
+        .attr("x", 943)
+        .attr("width", 10)
+        .attr("height", 10)
+        .style("fill", color)
+        .style("stroke", "grey");
+
+    legend.append("text")
+				.attr("class", "svgText")
+        .attr("x", 941)
+        .attr("y", 6)
+        .attr("dy", ".35em")
+        .style("text-anchor", "end")
+        .text(function (d) { return d; });
+}
+
+function removePopovers () {
+    $('.popover').each(function() {
+      $(this).remove();
+    });
+  }
+
+function showPopover (d) {
+  $(this).popover({
+    title: d.name,
+    placement: 'top',
+    container: 'body',
+    trigger: 'manual',
+    html : true,
+    content: function() {
+      return d.label +
+            "<br/>num: " + d3.format(",")(d.value ? d.value: d.y1 - d.y0); }
+  });
+  $(this).popover('show')
+}
+
+chart.onResize = function () {
+    var aspect = width / height, chart = $("#thesvg");
+    var targetWidth = chart.parent().width();
+    chart.attr("width", targetWidth);
+    chart.attr("height", targetWidth / 2);
+}
+
+window.chart = chart;
+
+</script>

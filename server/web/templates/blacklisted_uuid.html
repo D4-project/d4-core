@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+	<title>D4-Project</title>
+	<link rel="icon" href="{{ url_for('static', filename='img/d4-logo.png')}}">
+	<!-- Core CSS -->
+	<link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+	<link href="{{ url_for('static', filename='font-awesome/css/font-awesome.css') }}" rel="stylesheet">
+	<link href="{{ url_for('static', filename='css/dataTables.bootstrap.min.css') }}" rel="stylesheet">
+
+	<!-- JS -->
+	<script src="{{ url_for('static', filename='js/jquery.js')}}"></script>
+	<script src="{{ url_for('static', filename='js/jquery.dataTables.min.js')}}"></script>
+	<script src="{{ url_for('static', filename='js/dataTables.bootstrap.min.js')}}"></script>
+
+  <style>
+
+  </style>
+
+
+</head>
+
+<body>
+
+	<nav class="navbar navbar-expand-sm navbar-dark bg-dark">
+		<a class="navbar-brand" href="{{ url_for('index') }}">
+      <img src="{{ url_for('static', filename='img/d4-logo.png')}}" alt="D4 Project" style="width:80px;">
+    </a>
+	  <ul class="navbar-nav">
+	    <li class="nav-item">
+	      <a class="nav-link mr-3" href="{{ url_for('index') }}">Home <span class="sr-only">(current)</span></a>
+	    </li>
+	      <li class="nav-item" mr-3>
+	        <a class="nav-link mr-3" href="{{ url_for('sensors_status') }}">Sensors Status</a>
+	      </li>
+	      <li class="nav-item mr-3">
+	        <a class="nav-link" href="{{ url_for('server_management') }}" tabindex="-1" aria-disabled="true">Server Management</a>
+	      </li>
+	    </ul>
+	</nav>
+
+	<div class="card-deck justify-content-center ml-0 mr-0">
+		<div class="card border-dark mt-3 ml-4 mr-4">
+			<div class="card-header bg-dark text-white">
+				Blacklisted UUID
+			</div>
+		  <div class="card-body text-dark">
+
+				<div class="row">
+			    <div class="col-sm-5">
+						<table class="table table-striped table-bordered table-hover" id="myTable_1">
+							<thead class="thead-dark">
+								<tr>
+									<th style="max-width: 800px;">UUID</th>
+									<th style="max-width: 800px;">Unblacklist UUID</th>
+								</tr>
+							</thead>
+							<tbody>
+								{% for uuid in list_blacklisted_uuid_1 %}
+								<tr>
+									<td>{{uuid}}</td>
+									<td>
+										<a href="{{ url_for('unblacklist_uuid') }}?page={{page}}&uuid={{uuid}}">
+											<button type="button" class="btn btn-outline-danger">UnBlacklist UUID</button>
+										</a>
+									</td>
+								</tr>
+								{% endfor %}
+							</tbody>
+						</table>
+					</div>
+			    <div class="col-sm-2">
+						<div class="card text-center border-danger" style="max-width: 20rem;">
+						  <div class="card-body text-danger">
+						    <h5 class="card-title">Blacklist UUID</h5>
+									<input type="text" class="form-control {%if blacklisted_uuid is not none %}{%if blacklisted_uuid==1 %}is-valid{% else %}is-invalid{%endif%}{%endif%}" id="blacklist_uuid_input" placeholder="UUID Address">
+									<div class="invalid-feedback">
+										{%if blacklisted_uuid==2 %}
+											This UUID is already blacklisted
+										{% else %}
+											Incorrect UUID
+										{% endif %}
+					        </div>
+									<div class="valid-feedback">
+					          UUID Blacklisted
+					        </div>
+							    <button type="button" class="btn btn-danger mt-2" onclick="window.location.href ='{{ url_for('blacklist_uuid') }}?redirect=0&uuid='+$('#blacklist_uuid_input').val();">Blacklist UUID</button>
+						  </div>
+						</div>
+						<div class="card text-center border-success mt-4" style="max-width: 20rem;">
+							<div class="card-body">
+								<h5 class="card-title">Unblacklist UUID</h5>
+									<input type="text" class="form-control {%if unblacklisted_uuid is not none %}{%if unblacklisted_uuid==1 %}is-valid{% else %}is-invalid{%endif%}{%endif%}" id="unblacklist_uuid_input" placeholder="UUID Address">
+									<div class="invalid-feedback">
+										{%if unblacklisted_uuid==2 %}
+											This UUID is not blacklisted
+										{% else %}
+											Incorrect UUID
+										{% endif %}
+									</div>
+									<div class="valid-feedback">
+										UUID Unblacklisted
+									</div>
+									<button type="button" class="btn btn-outline-secondary mt-2" onclick="window.location.href ='{{ url_for('unblacklist_uuid') }}?redirect=0&uuid='+$('#unblacklist_uuid_input').val();">Unblacklist UUID</button>
+							</div>
+						</div>
+					</div>
+					<div class="col-sm-5">
+						<table class="table table-striped table-bordered table-hover" id="myTable_2">
+							<thead class="thead-dark">
+								<tr>
+									<th style="max-width: 800px;">UUID</th>
+									<th style="max-width: 800px;">Unblacklist UUID</th>
+								</tr>
+							</thead>
+							<tbody>
+								{% for uuid in list_blacklisted_uuid_2 %}
+								<tr>
+									<td>{{uuid}}</td>
+									<td>
+										<a href="{{ url_for('unblacklist_uuid') }}?page={{page}}&uuid={{uuid}}">
+											<button type="button" class="btn btn-outline-danger">UnBlacklist UUID</button>
+										</a>
+									</td>
+								</tr>
+								{% endfor %}
+							</tbody>
+						</table>
+					</div>
+			  </div>
+			</div>
+		</div>
+
+	</div>
+
+	<div class="d-flex justify-content-center">
+		<nav class="mt-4" aria-label="...">
+			<ul class="pagination">
+				<li class="page-item {%if page==1%}disabled{%endif%}">
+					<a class="page-link" href="{{ url_for('blacklisted_uuid') }}?page={{page-1}}">Previous</a>
+				</li>
+
+				{%if page>3%}
+					<li class="page-item"><a class="page-link" href="{{ url_for('blacklisted_uuid') }}?page=1">1</a></li>
+					<li class="page-item disabled"><a class="page-link" aria-disabled="true" href="#">...</a></li>
+					<li class="page-item"><a class="page-link" href="{{ url_for('blacklisted_uuid') }}?page={{page-1}}">{{page-1}}</a></li>
+					<li class="page-item active"><a class="page-link" href="{{ url_for('blacklisted_uuid') }}?page={{page}}">{{page}}</a></li>
+				{%else%}
+				{%if page>2%}<li class="page-item"><a class="page-link" href="{{ url_for('blacklisted_uuid') }}?page={{page-2}}">{{page-2}}</a></li>{%endif%}
+				{%if page>1%}<li class="page-item"><a class="page-link" href="{{ url_for('blacklisted_uuid') }}?page={{page-1}}">{{page-1}}</a></li>{%endif%}
+				<li class="page-item active"><a class="page-link" href="{{ url_for('blacklisted_uuid') }}?page={{page}}">{{page}}</a></li>
+				{%endif%}
+
+				{%if nb_page_max-page>3%}
+					<li class="page-item"><a class="page-link" href="{{ url_for('blacklisted_uuid') }}?page={{page+1}}">{{page+1}}</a></li>
+					<li class="page-item disabled"><a class="page-link" aria-disabled="true" href="#">...</a></li>
+					<li class="page-item"><a class="page-link" href="{{ url_for('blacklisted_uuid') }}?page={{nb_page_max}}">{{nb_page_max}}</a></li>
+				{%else%}
+					{%if nb_page_max-page>2%}<li class="page-item"><a class="page-link" href="{{ url_for('blacklisted_uuid') }}?page={{nb_page_max-2}}">{{nb_page_max-2}}</a></li>{%endif%}
+					{%if nb_page_max-page>1%}<li class="page-item"><a class="page-link" href="{{ url_for('blacklisted_uuid') }}?page={{nb_page_max-1}}">{{nb_page_max-1}}</a></li>{%endif%}
+					{%if nb_page_max-page>0%}<li class="page-item"><a class="page-link" href="{{ url_for('blacklisted_uuid') }}?page={{nb_page_max}}">{{nb_page_max}}</a></li>{%endif%}
+				{%endif%}
+
+
+
+				<li class="page-item {%if page==nb_page_max%}disabled{%endif%}">
+					<a class="page-link" href="{{ url_for('blacklisted_uuid') }}?page={{page+1}}" aria-disabled="true">Next</a>
+				</li>
+			</ul>
+		</nav>
+		</div>
+
+	{% include 'navfooter.html' %}
+</body>
+
+<script>
+var table
+$(document).ready(function(){
+
+		table = $('#myTable_1').DataTable(
+			{
+				/*"aLengthMenu": [[5, 10, 15, 20, -1], [5, 10, 15, 20, "All"]],
+				"iDisplayLength": 10,*/
+				"order": [[ 0, "asc" ]]
+			}
+		);
+
+		table = $('#myTable_2').DataTable(
+			{
+				/*"aLengthMenu": [[5, 10, 15, 20, -1], [5, 10, 15, 20, "All"]],
+				"iDisplayLength": 10,*/
+				"order": [[ 0, "asc" ]]
+			}
+		);
+
+});
+</script>

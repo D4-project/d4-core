@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+	<title>D4-Project</title>
+	<link rel="icon" href="{{ url_for('static', filename='img/d4-logo.png')}}">
+	<!-- Core CSS -->
+	<link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+	<link href="{{ url_for('static', filename='font-awesome/css/font-awesome.css') }}" rel="stylesheet">
+	<link href="{{ url_for('static', filename='css/dataTables.bootstrap.min.css') }}" rel="stylesheet">
+
+	<!-- JS -->
+	<script src="{{ url_for('static', filename='js/jquery.js')}}"></script>
+	<script src="{{ url_for('static', filename='js/jquery.dataTables.min.js')}}"></script>
+	<script src="{{ url_for('static', filename='js/dataTables.bootstrap.min.js')}}"></script>
+
+  <style>
+
+  </style>
+
+
+</head>
+
+<body>
+
+	<nav class="navbar navbar-expand-sm navbar-dark bg-dark">
+		<a class="navbar-brand" href="{{ url_for('index') }}">
+      <img src="{{ url_for('static', filename='img/d4-logo.png')}}" alt="D4 Project" style="width:80px;">
+    </a>
+	  <ul class="navbar-nav">
+	    <li class="nav-item">
+	      <a class="nav-link mr-3" href="{{ url_for('index') }}">Home <span class="sr-only">(current)</span></a>
+	    </li>
+	      <li class="nav-item" mr-3>
+	        <a class="nav-link mr-3" href="{{ url_for('sensors_status') }}">Sensors Status</a>
+	      </li>
+	      <li class="nav-item mr-3">
+	        <a class="nav-link" href="{{ url_for('server_management') }}" tabindex="-1" aria-disabled="true">Server Management</a>
+	      </li>
+	    </ul>
+	</nav>
+
+	<div class="d-flex justify-content-center">
+	<pre>
+                                __    __   ______   __    __
+                               /  |  /  | /      \ /  |  /  |
+                               $$ |  $$ |/$$$$$$  |$$ |  $$ |
+                               $$ |__$$ |$$$  \$$ |$$ |__$$ |
+                               $$    $$ |$$$$  $$ |$$    $$ |
+                               $$$$$$$$ |$$ $$ $$ |$$$$$$$$ |
+                                     $$ |$$ \$$$$ |      $$ |
+                                     $$ |$$   $$$/       $$ |
+       _______   __    __            $$/  $$$$$$/        $$/                                __
+      /       \ /  |  /  |                                                                 /  |
+      $$$$$$$  |$$ |  $$ |        ______    ______    ______      __   ______    _______  _$$ |_
+      $$ |  $$ |$$ |__$$ |       /      \  /      \  /      \    /  | /      \  /       |/ $$   |
+      $$ |  $$ |$$    $$ |      /$$$$$$  |/$$$$$$  |/$$$$$$  |   $$/ /$$$$$$  |/$$$$$$$/ $$$$$$/
+      $$ |  $$ |$$$$$$$$ |      $$ |  $$ |$$ |  $$/ $$ |  $$ |   /  |$$    $$ |$$ |        $$ | __
+      $$ |__$$ |      $$ |      $$ |__$$ |$$ |      $$ \__$$ |   $$ |$$$$$$$$/ $$ \_____   $$ |/  |
+      $$    $$/       $$ |      $$    $$/ $$ |      $$    $$/    $$ |$$       |$$       |  $$  $$/
+      $$$$$$$/        $$/       $$$$$$$/  $$/        $$$$$$/__   $$ | $$$$$$$/  $$$$$$$/    $$$$/
+                                $$ |                       /  \__$$ |
+                                $$ |                       $$    $$/
+                                $$/                         $$$$$$/
+
+	</pre>
+	</div>
+
+	{% include 'navfooter.html' %}
+</body>

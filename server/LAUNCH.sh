@@ -36,7 +36,7 @@ function helptext {
       - D4 Twisted server.
       - All wokers manager.
       - All Redis in memory servers.
-      - Flak server.
+      - Flask server.
 
     Usage:    LAUNCH.sh
                   [-l | --launchAuto]
@@ -51,7 +51,7 @@ function launching_redis {
 
     screen -dmS "Redis_D4"
     sleep 0.1
-    echo -e $GREEN"\t* Launching D4 Redis ervers"$DEFAULT
+    echo -e $GREEN"\t* Launching D4 Redis Servers"$DEFAULT
     screen -S "Redis_D4" -X screen -t "6379" bash -c $redis_dir'redis-server '$conf_dir'6379.conf ; read x'
     sleep 0.1
     screen -S "Redis_D4" -X screen -t "6380" bash -c $redis_dir'redis-server '$conf_dir'6380.conf ; read x'
@@ -72,9 +72,13 @@ function launching_workers {
     sleep 0.1
     echo -e $GREEN"\t* Launching D4 Workers"$DEFAULT
 
-    screen -S "Workers_D4" -X screen -t "1_workers_manager" bash -c "cd ${D4_HOME}/workers/workers_1; ./workers_manager.py; read x"
+    screen -S "Workers_D4" -X screen -t "1_workers" bash -c "cd ${D4_HOME}/workers/workers_1; ./workers_manager.py; read x"
     sleep 0.1
-    screen -S "Workers_D4" -X screen -t "4_workers_manager" bash -c "cd ${D4_HOME}/workers/workers_4; ./workers_manager.py; read x"
+    screen -S "Workers_D4" -X screen -t "2_workers" bash -c "cd ${D4_HOME}/workers/workers_2; ./workers_manager.py; read x"
+    sleep 0.1
+    screen -S "Workers_D4" -X screen -t "4_workers" bash -c "cd ${D4_HOME}/workers/workers_4; ./workers_manager.py; read x"
+    sleep 0.1
+    screen -S "Workers_D4" -X screen -t "8_workers" bash -c "cd ${D4_HOME}/workers/workers_8; ./workers_manager.py; read x"
     sleep 0.1
 }
 
@@ -159,6 +163,7 @@ function launch_flask {
         screen -dmS "Flask_D4"
         sleep 0.1
         echo -e $GREEN"\t* Launching Flask server"$DEFAULT
+        # screen -S "Flask_D4" -X screen -t "Flask_server" bash -c "cd $flask_dir; export FLASK_DEBUG=1;export FLASK_APP=Flask_server.py; python -m flask run --port 7000; read x"
         screen -S "Flask_D4" -X screen -t "Flask_server" bash -c "cd $flask_dir; ls; ./Flask_server.py; read x"
     else
         echo -e $RED"\t* A Flask_D4 screen is already launched"$DEFAULT
@@ -200,9 +205,15 @@ function update_web {
     fi
 }
 
+function update_config {
+    echo -e $GREEN"\t* Updating Config File"$DEFAULT
+    bash -c "(cd ${D4_HOME}/configs; ./update_conf.py -v 0)"
+}
+
 function launch_all {
     helptext;
     launch_redis;
+    update_config;
     launch_d4_server;
     launch_workers;
     launch_flask;

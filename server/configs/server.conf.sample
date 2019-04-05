@@ -1,0 +1,5 @@
+[Save_Directories]
+# By default all datas are saved in $D4_HOME/data/
+use_default_save_directory = yes
+save_directory = None
+

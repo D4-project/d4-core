@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+	<title>D4-Project</title>
+	<link rel="icon" href="{{ url_for('static', filename='img/d4-logo.png')}}">
+	<!-- Core CSS -->
+	<link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+	<link href="{{ url_for('static', filename='font-awesome/css/font-awesome.css') }}" rel="stylesheet">
+	<link href="{{ url_for('static', filename='css/dataTables.bootstrap.min.css') }}" rel="stylesheet">
+
+	<!-- JS -->
+	<script src="{{ url_for('static', filename='js/jquery.js')}}"></script>
+	<script src="{{ url_for('static', filename='js/bootstrap.min.js')}}"></script>
+	<script src="{{ url_for('static', filename='js/jquery.dataTables.min.js')}}"></script>
+	<script src="{{ url_for('static', filename='js/dataTables.bootstrap.min.js')}}"></script>
+
+</head>
+
+<body>
+
+	<nav class="navbar navbar-expand-sm navbar-dark bg-dark">
+		<a class="navbar-brand" href="{{ url_for('index') }}">
+      <img src="{{ url_for('static', filename='img/d4-logo.png')}}" alt="D4 Project" style="width:80px;">
+    </a>
+	  <ul class="navbar-nav">
+	    <li class="nav-item">
+	      <a class="nav-link mr-3" href="{{ url_for('index') }}">Home <span class="sr-only">(current)</span></a>
+	    </li>
+	      <li class="nav-item" mr-3>
+	        <a class="nav-link mr-3" href="{{ url_for('sensors_status') }}">Sensors Status</a>
+	      </li>
+	      <li class="nav-item mr-3">
+	        <a class="nav-link active" href="{{ url_for('server_management') }}" tabindex="-1" aria-disabled="true">Server Management</a>
+	      </li>
+	    </ul>
+	</nav>
+
+	<div class="card-deck ml-0 mr-0">
+		<div class="card text-center mt-3 ml-xl-4">
+			<div class="card-header bg-danger text-white">
+				Blacklist IP
+			</div>
+			<div class="card-body">
+					<div class="card-deck">
+						<div class="card text-center border-danger">
+						  <div class="card-body text-danger">
+						    <h5 class="card-title">Blacklist IP</h5>
+									<input type="text" class="form-control {%if blacklisted_ip is not none %}{%if blacklisted_ip==1 %}is-valid{% else %}is-invalid{%endif%}{%endif%}" id="blacklist_ip_input" placeholder="IP Address">
+									<div class="invalid-feedback">
+										{%if blacklisted_ip==2 %}
+											This IP is already blacklisted
+										{% else %}
+											Incorrect IP address
+										{% endif %}
+					        </div>
+									<div class="valid-feedback">
+					          IP Blacklisted
+					        </div>
+							    <button type="button" class="btn btn-danger mt-2" onclick="window.location.href ='{{ url_for('blacklist_ip') }}?redirect=0&ip='+$('#blacklist_ip_input').val();">Blacklist IP</button>
+						  </div>
+						</div>
+						<div class="card text-center border-light">
+						  <div class="card-body">
+						    <h5 class="card-title">Manage IP Blacklist</h5>
+									<a href="{{ url_for('blacklisted_ip') }}">
+							    	<button type="button" class="btn btn-outline-primary">Show Blacklisted IP</button>
+									</a>
+						  </div>
+						</div>
+						<div class="card text-center border-success">
+						  <div class="card-body">
+						    <h5 class="card-title">Unblacklist IP</h5>
+									<input type="text" class="form-control {%if unblacklisted_ip is not none %}{%if unblacklisted_ip==1 %}is-valid{% else %}is-invalid{%endif%}{%endif%}" id="unblacklist_ip_input" placeholder="IP Address">
+									<div class="invalid-feedback">
+										{%if unblacklisted_ip==2 %}
+											This IP is not blacklisted
+										{% else %}
+											Incorrect IP address
+										{% endif %}
+					        </div>
+									<div class="valid-feedback">
+					          IP Unblacklisted
+					        </div>
+							   	<button type="button" class="btn btn-outline-secondary mt-2" onclick="window.location.href ='{{ url_for('unblacklist_ip') }}?redirect=0&ip='+$('#unblacklist_ip_input').val();">Unblacklist IP</button>
+						  </div>
+						</div>
+					</div>
+			</div>
+		</div>
+
+		<div class="w-100 d-none d-sm-block d-xl-none"></div>
+
+		<div class="card text-center mt-3 mr-xl-4">
+			<div class="card-header bg-danger text-white">
+				Blacklist UUID
+			</div>
+			<div class="card-body">
+				<div class="card-deck">
+					<div class="card text-center border-danger">
+						<div class="card-body text-danger">
+							<h5 class="card-title">Blacklist UUID</h5>
+								<input type="text" class="form-control {%if blacklisted_uuid is not none %}{%if blacklisted_uuid==1 %}is-valid{% else %}is-invalid{%endif%}{%endif%}" id="blacklist_uuid_input" placeholder="UUID">
+								<div class="invalid-feedback">
+									{%if blacklisted_uuid==2 %}
+										This UUID is already blacklisted
+									{% else %}
+										Incorrect UUID
+									{% endif %}
+								</div>
+								<div class="valid-feedback">
+									UUID Blacklisted
+								</div>
+								<button type="button" class="btn btn-danger mt-2" onclick="window.location.href ='{{ url_for('blacklist_uuid') }}?redirect=0&uuid='+$('#blacklist_uuid_input').val();">Blacklist UUID</button>
+						</div>
+					</div>
+					<div class="card text-center border-light">
+						<div class="card-body">
+							<h5 class="card-title">Manage UUID Blacklist</h5>
+								<a href="{{ url_for('blacklisted_uuid') }}">
+									<button type="button" class="btn btn-outline-primary">Show Blacklisted UUID</button>
+								</a>
+						</div>
+					</div>
+					<div class="card text-center border-success">
+						<div class="card-body">
+							<h5 class="card-title">Unblacklist UUID</h5>
+								<input type="text" class="form-control {%if unblacklisted_uuid is not none %}{%if unblacklisted_uuid==1 %}is-valid{% else %}is-invalid{%endif%}{%endif%}" id="unblacklist_uuid_input" placeholder="UUID">
+								<div class="invalid-feedback">
+									{%if unblacklisted_uuid==2 %}
+										This UUID is not Blacklisted
+									{% else %}
+										Incorrect UUID
+									{% endif %}
+								</div>
+								<div class="valid-feedback">
+									UUID Unblacklisted
+								</div>
+									<button type="button" class="btn btn-outline-secondary mt-2" onclick="window.location.href ='{{ url_for('unblacklist_uuid') }}?redirect=0&uuid='+$('#unblacklist_uuid_input').val();">Unblacklist UUID</button>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="card-deck justify-content-center ml-0 mr-0">
+		<div class="card border-dark mt-3 ml-4 mr-4">
+			<div class="card-header bg-dark text-white">
+				Header Accepted Types
+			</div>
+		  <div class="card-body text-dark">
+
+				<div class="row">
+			    <div class="col-md-8">
+						<table class="table table-striped table-bordered table-hover" id="myTable_">
+							<thead class="thead-dark">
+								<tr>
+									<th>Type</th>
+									<th style="max-width: 800px;">Description</th>
+									<th style="max-width: 800px;">Remove Type</th>
+								</tr>
+							</thead>
+							<tbody>
+								{% for type in list_accepted_types %}
+								<tr>
+									<td>{{type['id']}}</td>
+									<td>{{type['description']}}</td>
+									<td>
+										<a href="{{ url_for('remove_accepted_type') }}?redirect=1&type={{type['id']}}">
+											<button type="button" class="btn btn-outline-danger">Remove Type</button>
+										</a>
+									</td>
+								</tr>
+								{% endfor %}
+							</tbody>
+						</table>
+
+						<div class="mt-3">
+							<table class="table table-striped table-bordered table-hover mt-3" id="table_accepted_extended_type">
+								<thead class="thead-dark">
+									<tr>
+										<th>Type Name</th>
+										<th>Description</th>
+										<th>Remove Type</th>
+									</tr>
+								</thead>
+								<tbody id="table_accepted_extended_type_tbody">
+									{% for type in list_accepted_extended_types %}
+									<tr>
+										<td>{{type['name']}}</td>
+										<td>{{type['description']}}</td>
+										<td>
+											<a href="{{ url_for('remove_accepted_extended_type') }}?type_name={{type['name']}}">
+												<button type="button" class="btn btn-outline-danger">Remove Extended Type</button>
+											</a>
+										</td>
+									</tr>
+									{% endfor %}
+								</tbody>
+							</table>
+						</div>
+
+					</div>
+			    <div class="col-md-4">
+						<div class="card border-dark mt-3" style="max-width: 18rem;">
+						  <div class="card-body text-dark">
+						    <h5 class="card-title">Add New Types</h5>
+									<input class="form-control" type="number" id="accepted_type" value="1" min="1" max="254" required>
+									<input class="form-control" type="text" id="extended_type_name" placeholder="Type Name">
+									<button type="button" class="btn btn-outline-primary mt-1" onclick="window.location.href ='{{ url_for('add_accepted_type') }}?redirect=1&type='+$('#accepted_type').val()+'&extended_type_name='+$('#extended_type_name').val();">Add New Type</button>
+							</div>
+						</div>
+					</div>
+			  </div>
+
+			</div>
+		</div>
+
+	</div>
+
+
+	<div class="card-deck ml-0 mr-0">
+		<div class="card border-dark mt-3 ml-4 mr-4">
+			<div class="card-header bg-dark text-white">
+				Analyzer Management
+			</div>
+		  <div class="card-body text-dark">
+
+				<div class="row">
+			    <div class="col-xl-8">
+						<table class="table table-striped table-bordered table-hover" id="myTable_1">
+							<thead class="thead-dark">
+								<tr>
+									<th>Type</th>
+									<th style="max-width: 800px;">uuid</th>
+									<th style="max-width: 800px;">last updated</th>
+									<th style="max-width: 800px;">Change max size limit</th>
+									<th style="max-width: 800px;">Analyzer Queue</th>
+								</tr>
+							</thead>
+							<tbody>
+								{% for type in list_accepted_types %}
+									{% if type['list_analyzer_uuid'] %}
+										{% for analyzer in type['list_analyzer_uuid'] %}
+											<tr>
+												<td>{{type['id']}}</td>
+												<td>
+													<div class="d-flex">
+														{{analyzer['uuid']}}
+														<a href="{{ url_for('remove_analyzer') }}?redirect=1&type={{type['id']}}&analyzer_uuid={{analyzer['uuid']}}" class="ml-auto">
+															<button type="button" class="btn btn-outline-danger px-2 py-0"><i class="fa fa-trash"></i></button>
+														</a>
+													</div>
+													{%if analyzer['description']%}
+														<div class="text-info"><small>{{analyzer['description']}}</small></div>
+													{%endif%}
+												</td>
+												<td>{{analyzer['last_updated']}}</td>
+												<td>
+													<div class="d-xl-flex justify-content-xl-center">
+														<input class="form-control mr-lg-1" style="max-width: 100px;" type="number" id="max_size_analyzer_{{analyzer['uuid']}}" value="{{analyzer['size_limit']}}" min="0" required="">
+														<button type="button" class="btn btn-outline-secondary" onclick="window.location.href ='{{ url_for('analyzer_change_max_size') }}?analyzer_uuid={{analyzer['uuid']}}&redirect=0&max_size_analyzer='+$('#max_size_analyzer_{{analyzer['uuid']}}').val();">Change Max Size</button>
+													</div>
+												</td>
+												<td>
+													<a href="{{ url_for('empty_analyzer_queue') }}?redirect=1&type={{type['id']}}&analyzer_uuid={{analyzer['uuid']}}">
+														<button type="button" class="btn btn-outline-danger"><i class="fa fa-eraser"></i></button>
+													</a>
+													<button type="button" class="btn btn-outline-info ml-xl-3" onclick="get_analyser_sample('{{type['id']}}', '{{analyzer['uuid']}}');"><i class="fa fa-database"></i> {{analyzer['length']}}</button>
+												</td>
+											</tr>
+										{% endfor %}
+									{% endif %}
+								{% endfor %}
+							</tbody>
+						</table>
+
+						<div class="mt-3">
+							<table class="table table-striped table-bordered table-hover" id="analyzer_accepted_extended_types">
+								<thead class="thead-dark">
+									<tr>
+										<th>Type Name</th>
+										<th style="max-width: 800px;">uuid</th>
+										<th style="max-width: 800px;">last updated</th>
+										<th style="max-width: 800px;">Change max size limit</th>
+										<th style="max-width: 800px;">Analyzer Queue</th>
+									</tr>
+								</thead>
+								<tbody id="analyzer_accepted_extended_types_tbody">
+									{% for type in list_accepted_extended_types %}
+										{% if type['list_analyzer_uuid'] %}
+											{% for analyzer in type['list_analyzer_uuid'] %}
+												<tr>
+													<td>{{type['name']}}</td>
+													<td>
+														<div class="d-flex">
+															{{analyzer['uuid']}}
+															<a href="{{ url_for('remove_analyzer') }}?redirect=1&type=254&metatype_name={{type['name']}}&analyzer_uuid={{analyzer['uuid']}}" class="ml-auto">
+																<button type="button" class="btn btn-outline-danger px-2 py-0"><i class="fa fa-trash"></i></button>
+															</a>
+														</div>
+														{%if analyzer['description']%}
+															<div class="text-info"><small>{{analyzer['description']}}</small></div>
+														{%endif%}
+													</td>
+													<td>{{analyzer['last_updated']}}</td>
+													<td>
+														<div class="d-xl-flex justify-content-xl-center">
+															<input class="form-control mr-lg-1" style="max-width: 100px;" type="number" id="max_size_analyzer_{{analyzer['uuid']}}" value="{{analyzer['size_limit']}}" min="0" required="">
+															<button type="button" class="btn btn-outline-secondary" onclick="window.location.href ='{{ url_for('analyzer_change_max_size') }}?analyzer_uuid={{analyzer['uuid']}}&redirect=0&max_size_analyzer='+$('#max_size_analyzer_{{analyzer['uuid']}}').val();">Change Max Size</button>
+														</div>
+													</td>
+													<td>
+														<a href="{{ url_for('empty_analyzer_queue') }}?redirect=1&type=254&metatype_name={{type['name']}}&analyzer_uuid={{analyzer['uuid']}}">
+															<button type="button" class="btn btn-outline-danger"><i class="fa fa-eraser"></i></button>
+														</a>
+														<button type="button" class="btn btn-outline-info ml-xl-3" onclick="get_analyser_sample('{{type['name']}}', '{{analyzer['uuid']}}');"><i class="fa fa-database"></i> {{analyzer['length']}}</button>
+													</td>
+												</tr>
+											{% endfor %}
+										{% endif %}
+									{% endfor %}
+								</tbody>
+							</table>
+						</div>
+
+					</div>
+			    <div class="col-xl-4">
+						<div class="card border-dark mt-3" style="max-width: 18rem;">
+						  <div class="card-body text-dark">
+						    <h5 class="card-title">Add New Analyzer Queue</h5>
+									<input class="form-control" type="number" id="analyzer_type" value="1" min="1" max="254" required>
+									<input class="form-control" type="text" id="analyzer_metatype_name" placeholder="Meta Type Name">
+									<div class="input-group">
+									  <div class="input-group-prepend">
+									    <button class="btn btn-outline-secondary" type="button" onclick="generate_new_uuid();"><i class="fa fa-random"></i></button>
+									  </div>
+										<input class="form-control" type="text" id="analyzer_uuid" required placeholder="Analyzer uuid">
+									</div>
+									<input class="form-control" type="text" id="analyzer_description" required placeholder="Optional Description">
+									<button type="button" class="btn btn-outline-primary mt-1" onclick="window.location.href ='{{ url_for('add_new_analyzer') }}?redirect=1&type='+$('#analyzer_type').val()+'&analyzer_uuid='+$('#analyzer_uuid').val()+'&metatype_name='+$('#analyzer_metatype_name').val()+'&analyzer_description='+$('#analyzer_description').val();">Add New Analyzer</button>
+							</div>
+						</div>
+					</div>
+			  </div>
+
+			</div>
+		</div>
+
+	</div>
+
+	<div class="modal fade" id="modal_analyser_sample" tabindex="-1" role="dialog" aria-labelledby="AnalyserModalLabel" aria-hidden="true">
+	  <div class="modal-dialog modal-xl" role="document">
+	    <div class="modal-content">
+	      <div class="modal-header">
+	        <h5 class="modal-title" id="modal_analyser_sample_label"></h5>
+	        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+	          <span aria-hidden="true">&times;</span>
+	        </button>
+	      </div>
+	      <div class="d-flex modal-body justify-content-center">
+	        <pre id="analyzer_content">
+					</pre>
+	      </div>
+	      <div class="modal-footer">
+					<div class="d-sm-flex align-self-sm-start mr-auto">
+						<input class="form-control w-25 mr-sm-2" type="number" id="max_line_len" value="{{default_analyzer_max_line_len}}" min="1" max="10000">
+						<button type="button" class="btn btn-primary" onclick="change_analyser_sample_max_len();">
+							Change Line Size
+						</button>
+					</div>
+	        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+	      </div>
+	    </div>
+	  </div>
+	</div>
+
+	{% include 'navfooter.html' %}
+</body>
+
+<script>
+var table
+$(document).ready(function(){
+	$('#extended_type_name').hide()
+	$('#analyzer_metatype_name').hide()
+
+		table = $('#myTable_').DataTable(
+			{
+				/*"aLengthMenu": [[5, 10, 15, 20, -1], [5, 10, 15, 20, "All"]],
+				"iDisplayLength": 10,*/
+				"order": [[ 0, "asc" ]]
+			}
+		);
+
+		table = $('#myTable_1').DataTable(
+			{
+				/*"aLengthMenu": [[5, 10, 15, 20, -1], [5, 10, 15, 20, "All"]],
+				"iDisplayLength": 10,*/
+				"order": [[ 0, "asc" ]]
+			}
+		);
+
+});
+
+var tbody = $("#table_accepted_extended_type_tbody");
+if (tbody.children().length == 0) {
+    $("#table_accepted_extended_type").hide();
+} else {
+	table = $('#table_accepted_extended_type').DataTable(
+		{
+			"order": [[ 0, "asc" ]]
+		}
+	);
+}
+
+var tbody = $("#analyzer_accepted_extended_types_tbody");
+if (tbody.children().length == 0) {
+    $("#analyzer_accepted_extended_types").hide();
+} else {
+	table = $('#analyzer_accepted_extended_types').DataTable(
+		{
+			"order": [[ 0, "asc" ]]
+		}
+	);
+}
+
+$('#accepted_type').on('input', function() {
+	if ($('#accepted_type').val() == 254){
+		$('#extended_type_name').show()
+	} else {
+		$('#extended_type_name').hide()
+	}
+});
+
+$('#analyzer_type').on('input', function() {
+	if ($('#analyzer_type').val() == 254){
+		$('#analyzer_metatype_name').show()
+	} else {
+		$('#analyzer_metatype_name').hide()
+	}
+});
+
+
+function get_analyser_sample(type, analyzer_uuid, max_line_len){
+	$.getJSON( "{{url_for('get_analyser_sample')}}?type="+type+"&analyzer_uuid="+analyzer_uuid+"&max_line_len="+max_line_len, function( data ) {
+		$( "#modal_analyser_sample_label" ).text("analyzer:"+type+":"+analyzer_uuid);
+		$( "#analyzer_content" ).text(data);
+		$( "#modal_analyser_sample" ).modal('show');
+	});
+}
+
+function change_analyser_sample_max_len(){
+	var analyzer_data_info=$('#modal_analyser_sample_label').text().split(":");
+	get_analyser_sample(analyzer_data_info[1], analyzer_data_info[2], $('#max_line_len').val());
+}
+
+function generate_new_uuid(){
+	$.getJSON( "{{url_for('generate_uuid')}}", function( data ) {
+		console.log(data['uuid'])
+		$( "#analyzer_uuid" ).val(data['uuid']);
+	});
+}
+</script>

@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+	<title>D4-Project</title>
+	<link rel="icon" href="{{ url_for('static', filename='img/d4-logo.png')}}">
+	<!-- Core CSS -->
+	<link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+	<link href="{{ url_for('static', filename='font-awesome/css/font-awesome.css') }}" rel="stylesheet">
+
+	<!-- JS -->
+	<script src="{{ url_for('static', filename='js/jquery.js')}}"></script>
+	<script src="{{ url_for('static', filename='js/bootstrap.min.js')}}"></script>
+
+  <style>
+
+  </style>
+
+
+</head>
+
+<body>
+
+	<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+		<a class="navbar-brand" href="{{ url_for('index') }}">
+      <img src="{{ url_for('static', filename='img/d4-logo.png')}}" alt="D4 Project" style="width:80px;">
+    </a>
+	  <ul class="navbar-nav">
+	    <li class="nav-item">
+	      <a class="nav-link mr-3" href="{{ url_for('index') }}">Home <span class="sr-only">(current)</span></a>
+	    </li>
+	      <li class="nav-item" mr-3>
+	        <a class="nav-link active mr-3" href="{{ url_for('sensors_status') }}">Sensors Status</a>
+	      </li>
+	      <li class="nav-item mr-3">
+	        <a class="nav-link" href="{{ url_for('server_management') }}" tabindex="-1" aria-disabled="true">Server Management</a>
+	      </li>
+	    </ul>
+	</nav>
+
+	<div class="card mt-2 mb-2">
+		<div class="card-body bg-dark text-white">
+			<div class="row">
+				<div class="col-8">
+					<div class="custom-control custom-switch mt-2">
+					  <input type="checkbox" class="custom-control-input" id="show_active_connection" {%if active_connection_filter%}checked value="True"{%else%}value=""{%endif%} onclick="window.location.href ='{{ url_for('show_active_uuid') }}?&show_active_connection='+$('#show_active_connection').val();">
+					  <label class="custom-control-label" for="show_active_connection">Active Connection</label>
+					</div>
+				</div>
+				<div class="col-4">
+					<div class="form-row">
+						<div class="col-10">
+				  		<input type="text" class="form-control mt-1" id="search_uuid" placeholder="Search UUID">
+						</div>
+						<div class="col-2">
+							<button type="button" class="btn btn-outline-light" onclick="window.location.href ='{{ url_for('uuid_management') }}?redirect=0&uuid='+$('#search_uuid').val();">
+								<i class="fa fa-search fa-2x"></i>
+							</button>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	{% for row_uuid in status_daily_uuid %}
+		<div class="card text-center mt-3 ml-2 mr-2">
+			<a class="btn btn-outline-dark px-1 py-1" href="{{ url_for('uuid_management') }}?uuid={{row_uuid['uuid']}}">
+				<div class="card-header bg-dark text-white">
+					UUID: {{row_uuid['uuid']}}
+				</div>
+			</a>
+			<div class="card-body">
+				<div class="card-group">
+				  <div class="card">
+						<div class="card-header bg-info text-white">
+					    First Seen
+					  </div>
+				    <div class="card-body">
+				      <p class="card-text">{{row_uuid['first_seen_gmt']}} - ({{row_uuid['first_seen']}})</p>
+				    </div>
+				  </div>
+				  <div class="card">
+						<div class="card-header bg-info text-white">
+					    Last Seen
+					  </div>
+				    <div class="card-body">
+				      <p class="card-text">{{row_uuid['last_seen_gmt']}} - ({{row_uuid['last_seen']}})</p>
+				    </div>
+				  </div>
+				  <div class="card">
+						{% if not row_uuid['Error'] %}
+							<div class="card-header bg-success text-white">
+								Status
+							</div>
+					    <div class="card-body text-success">
+					      <p class="card-text">OK</p>
+						{% else %}
+							<div class="card-header bg-danger text-white">
+								Status
+							</div>
+							<div class="card-body text-danger">
+								<p class="card-text">{{row_uuid['Error']}}</p>
+						{% endif %}
+							{% if row_uuid['active_connection'] %}
+								<div style="color:Green; display:inline-block">
+									<i class="fa fa-check-circle"></i> Connected
+								</div>
+							{% endif %}
+				    	</div>
+				  </div>
+				</div>
+			</div>
+		</div>
+	{% endfor %}
+
+	{% include 'navfooter.html' %}
+</body>

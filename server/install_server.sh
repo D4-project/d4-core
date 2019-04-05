@@ -3,7 +3,7 @@
 set -e
 set -x
 
-sudo apt-get install python3-pip virtualenv screen -y
+sudo apt-get install python3-pip virtualenv screen whois unzip libffi-dev gcc -y
 
 if [ -z "$VIRTUAL_ENV" ]; then
     virtualenv -p python3 D4ENV
