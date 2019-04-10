@@ -239,21 +239,8 @@ class D4_Server(Protocol, TimeoutMixin):
                             return 1
                         else:
                             #self.version = None
-                            # check if type change
-                            if self.data_saved:
-                                # type change detected
-                                if self.type != data_header['type']:
-                                    # Meta types
-                                    if self.type == 2 and data_header['type'] == 254:
-                                        self.update_stream_type = True
-                                    # Type Error
-                                    else:
-                                        logger.warning('Unexpected type change, type={} new type={}, ip={} uuid={} session_uuid={}'.format(ip, data_header['uuid_header'], data_header['type'], self.session_uuid))
-                                        redis_server_metadata.hset('metadata_uuid:{}'.format(data_header['uuid_header']), 'Error', 'Error: Unexpected type change type={}, new type={}'.format(self.type, data_header['type']))
-                                        self.transport.abortConnection()
-                                        return 1
                             # type 254, check if previous type 2 saved
-                            elif data_header['type'] == 254:
+                            if data_header['type'] == 254:
                                 logger.warning('a type 2 packet must be sent, ip={} uuid={} type={} session_uuid={}'.format(ip, data_header['uuid_header'], data_header['type'], self.session_uuid))
                                 redis_server_metadata.hset('metadata_uuid:{}'.format(data_header['uuid_header']), 'Error', 'Error: a type 2 packet must be sent, type={}'.format(data_header['type']))
                                 self.transport.abortConnection()
@@ -265,6 +252,21 @@ class D4_Server(Protocol, TimeoutMixin):
                             redis_server_stream.sadd('active_connection', '{}'.format(self.uuid))
                             # map session_uuid/uuid
                             redis_server_stream.sadd('map:active_connection-uuid-session_uuid:{}'.format(self.uuid), self.session_uuid)
+
+                    # check if type change
+                    if self.data_saved:
+                        # type change detected
+                        if self.type != data_header['type']:
+                            # Meta types
+                            if self.type == 2 and data_header['type'] == 254:
+                                self.update_stream_type = True
+                                self.type = data_header['type']
+                            # Type Error
+                            else:
+                                logger.warning('Unexpected type change, type={} new type={}, ip={} uuid={} session_uuid={}'.format(ip, data_header['uuid_header'], data_header['type'], self.session_uuid))
+                                redis_server_metadata.hset('metadata_uuid:{}'.format(data_header['uuid_header']), 'Error', 'Error: Unexpected type change type={}, new type={}'.format(self.type, data_header['type']))
+                                self.transport.abortConnection()
+                                return 1
 
                     # check if the uuid is the same
                     if self.uuid != data_header['uuid_header']:
