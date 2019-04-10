@@ -30,8 +30,12 @@
     width:600px;
     height:500px;
     }
-    .bar{
+		.bar{
     fill:#eaeaea;
+    }
+		.bars:hover{
+    fill: aqua;
+		cursor: pointer;
     }
     text.label{
     fill: #777777;
@@ -39,9 +43,13 @@
     font-size: 20px;
     font-weight: bold;
     }
-    text.category{
+		text.category{
     fill: #666666;
     font-size: 18px;
+    }
+		text.categorys:hover{
+		fill: black;
+		cursor: pointer;
     }
   </style>
 
@@ -130,12 +138,12 @@ var setup = function(targetID){
 
 	var settings = {
 	  margin:margin, width:width, height:height, categoryIndent:categoryIndent,
-	  svg:svg, x:x, y:y
+	  svg:svg, x:x, y:y, myid:targetID
 	}
 	return settings;
 }
 
-var redrawChart = function(targetID, newdata) {
+var redrawChart = function(div_id, targetID, newdata) {
 
 	//Import settings
 	var margin=targetID.margin, width=targetID.width, height=targetID.height, categoryIndent=targetID.categoryIndent,
@@ -164,13 +172,24 @@ var redrawChart = function(targetID, newdata) {
 	  .attr("class", "chartRow")
 	  .attr("transform", "translate(0," + height + margin.top + margin.bottom + ")");
 
-	//bars
-	newRow.insert("rect")
-	  .attr("class","bar")
-	  .attr("x", 0)
-	  .attr("opacity",0)
-	  .attr("height", y.bandwidth())
-	  .attr("width", function(d) { return x(d.value);})
+	if (div_id=='chart_uuid'){
+		//bars
+		newRow.insert("rect")
+		  .on("click", function (d) { window.location.href = "{{ url_for('uuid_management') }}?uuid="+d.key })
+			.attr("class","bar bars")
+		  .attr("x", 0)
+		  .attr("opacity",0)
+		  .attr("height", y.bandwidth())
+		  .attr("width", function(d) { return x(d.value);})
+	} else {
+		//bars
+		newRow.insert("rect")
+		  .attr("class","bar")
+		  .attr("x", 0)
+		  .attr("opacity",0)
+		  .attr("height", y.bandwidth())
+		  .attr("width", function(d) { return x(d.value);})
+	}
 
 	//labels
 	newRow.append("text")
@@ -182,17 +201,30 @@ var redrawChart = function(targetID, newdata) {
 	  .attr("dx","0.5em")
 	  .text(function(d){return d.value;});
 
-	//text
-	newRow.append("text")
-	  .attr("class","category")
-	  .attr("text-overflow","ellipsis")
-	  .attr("y", y.bandwidth()/2)
-	  .attr("x",categoryIndent)
-	  .attr("opacity",0)
-	  .attr("dy",".35em")
-	  .attr("dx","5em")
-	  .text(function(d){return d.key});
-
+	if (div_id=='chart_uuid'){
+		//text
+		newRow.append("text")
+			.on("click", function (d) { window.location.href = "{{ url_for('uuid_management') }}?uuid="+d.key })
+			.attr("class","category categorys")
+		  .attr("text-overflow","ellipsis")
+		  .attr("y", y.bandwidth()/2)
+		  .attr("x",categoryIndent)
+		  .attr("opacity",0)
+		  .attr("dy",".35em")
+		  .attr("dx","5em")
+		  .text(function(d){return d.key});
+	} else {
+		//text
+		newRow.append("text")
+		  .attr("class","category")
+		  .attr("text-overflow","ellipsis")
+		  .attr("y", y.bandwidth()/2)
+		  .attr("x",categoryIndent)
+		  .attr("opacity",0)
+		  .attr("dy",".35em")
+		  .attr("dx","5em")
+		  .text(function(d){return d.key});
+	}
 
 	//////////
 	//UPDATE//
@@ -244,10 +276,10 @@ var redrawChart = function(targetID, newdata) {
 		.attr("transform", function(d){ return "translate(0," + y(d.key) + ")"; });
 };
 
-var pullData = function(json_url,settings,callback){
+var pullData = function(div_id,json_url,settings,callback){
   d3.json(json_url, function (err, data){
   if (err) return console.warn(err);
-		callback(settings,data);
+		callback(div_id,settings,data);
   })
 }
 
@@ -259,8 +291,8 @@ var formatData = function(data){
 	  .slice(0, 15); // linit to 15 items
 }
 
-var redraw = function(json_url,settings){
-	pullData(json_url,settings,redrawChart)
+var redraw = function(div_id,json_url,settings){
+	pullData(div_id,json_url,settings,redrawChart)
 }
 
 json_url_uuid = "{{ url_for('_json_daily_uuid_stats') }}"
@@ -268,17 +300,17 @@ json_url_type = "{{ url_for('_json_daily_type_stats') }}"
 
 //setup
 var settings = setup('#chart_uuid');
-redraw(json_url_uuid,settings)
-redraw(json_url_uuid,settings)
+redraw('chart_uuid',json_url_uuid,settings)
+redraw('chart_uuid',json_url_uuid,settings)
 
 var settings_type = setup('#chart_type');
-redraw(json_url_type,settings_type)
-redraw(json_url_type,settings_type)
+redraw('chart_type',json_url_type,settings_type)
+redraw('chart_type',json_url_type,settings_type)
 
 //Interval
 setInterval(function(){
-	redraw(json_url_uuid,settings)
-	redraw(json_url_type,settings_type)
+	redraw('chart_uuid',json_url_uuid,settings)
+	redraw('chart_type',json_url_type,settings_type)
 }, 4000);
 ////
 
