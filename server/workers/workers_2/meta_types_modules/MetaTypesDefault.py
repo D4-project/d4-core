@@ -156,7 +156,8 @@ class MetaTypesDefault:
             self.reset_buffer()
             all_line = data.split(self.get_file_separator())
             for reconstructed_data in all_line[:-1]:
-                self.handle_reconstructed_data(reconstructed_data)
+                if reconstructed_data != b'':
+                    self.handle_reconstructed_data(reconstructed_data)
 
             # save incomplete element in buffer
             if all_line[-1] != b'':
