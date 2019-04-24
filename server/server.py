@@ -83,6 +83,7 @@ class D4_Server(Protocol, TimeoutMixin):
         self.data_saved = False
         self.update_stream_type = True
         self.first_connection = True
+        self.duplicate = False
         self.ip = None
         self.source_port = None
         self.stream_max_size = None
@@ -135,8 +136,9 @@ class D4_Server(Protocol, TimeoutMixin):
     def connectionLost(self, reason):
             redis_server_stream.sadd('ended_session', self.session_uuid)
             self.setTimeout(None)
-            redis_server_stream.srem('active_connection:{}'.format(self.type), '{}:{}'.format(self.ip, self.uuid))
-            redis_server_stream.srem('active_connection', '{}'.format(self.uuid))
+            if not self.duplicate:
+                redis_server_stream.srem('active_connection:{}'.format(self.type), '{}:{}'.format(self.ip, self.uuid))
+                redis_server_stream.srem('active_connection', '{}'.format(self.uuid))
             if self.uuid:
                 redis_server_stream.srem('map:active_connection-uuid-session_uuid:{}'.format(self.uuid), self.session_uuid)
             logger.debug('Connection closed: session_uuid={}'.format(self.session_uuid))
@@ -235,6 +237,7 @@ class D4_Server(Protocol, TimeoutMixin):
                             # same IP-type for an UUID
                             logger.warning('is using the same UUID for one type, ip={} uuid={} type={} session_uuid={}'.format(ip, data_header['uuid_header'], data_header['type'], self.session_uuid))
                             redis_server_metadata.hset('metadata_uuid:{}'.format(data_header['uuid_header']), 'Error', 'Error: This UUID is using the same UUID for one type={}'.format(data_header['type']))
+                            self.duplicate = True
                             self.transport.abortConnection()
                             return 1
                         else:
@@ -243,6 +246,7 @@ class D4_Server(Protocol, TimeoutMixin):
                             if data_header['type'] == 254:
                                 logger.warning('a type 2 packet must be sent, ip={} uuid={} type={} session_uuid={}'.format(ip, data_header['uuid_header'], data_header['type'], self.session_uuid))
                                 redis_server_metadata.hset('metadata_uuid:{}'.format(data_header['uuid_header']), 'Error', 'Error: a type 2 packet must be sent, type={}'.format(data_header['type']))
+                                self.duplicate = True
                                 self.transport.abortConnection()
                                 return 1
                             self.type = data_header['type']
