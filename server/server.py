@@ -137,7 +137,11 @@ class D4_Server(Protocol, TimeoutMixin):
             redis_server_stream.sadd('ended_session', self.session_uuid)
             self.setTimeout(None)
             if not self.duplicate:
-                redis_server_stream.srem('active_connection:{}'.format(self.type), '{}:{}'.format(self.ip, self.uuid))
+                if self.type == 254:
+                    type = 2
+                else:
+                    type = self.type
+                redis_server_stream.srem('active_connection:{}'.format(type), '{}:{}'.format(self.ip, self.uuid))
                 redis_server_stream.srem('active_connection', '{}'.format(self.uuid))
             if self.uuid:
                 redis_server_stream.srem('map:active_connection-uuid-session_uuid:{}'.format(self.uuid), self.session_uuid)
