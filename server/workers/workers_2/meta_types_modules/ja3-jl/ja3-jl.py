@@ -23,6 +23,7 @@ class TypeHandler(MetaTypesDefault):
         self.reconstruct_data(data)
 
     def handle_reconstructed_data(self, data):
+        decoded_data = data.decode()
         self.set_last_time_saved(time.time())
         self.set_last_saved_date(datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
 
@@ -35,7 +36,12 @@ class TypeHandler(MetaTypesDefault):
             os.makedirs(jsons_save_dir)
 
         # Extract certificates from json
-        mtjson = json.loads(data.decode())
+        try:
+            mtjson = json.loads(decoded_data)
+        except Exception as e:
+            print(decoded_data)
+            continue
+        #mtjson = json.loads(decoded_data)
         for certificate in mtjson["Certificates"] or []:
             cert = binascii.a2b_base64(certificate["Raw"])
             # one could also load this cert with
@@ -50,7 +56,7 @@ class TypeHandler(MetaTypesDefault):
         # write json file to disk
         jsons_path = os.path.join(jsons_save_dir, mtjson["Timestamp"]+'.json')
         with open(jsons_path, 'w') as j:
-            j.write(data.decode())
+            j.write(decoded_data)
         # Send data to Analyszer
         self.send_to_analyzers(jsons_path)
 
