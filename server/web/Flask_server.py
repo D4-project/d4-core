@@ -11,6 +11,7 @@ import redis
 import flask
 import datetime
 import ipaddress
+import configparser
 
 import subprocess
 
@@ -29,6 +30,19 @@ analyzer_list_max_default_size = 10000
 default_analyzer_max_line_len = 3000
 
 json_type_description_path = os.path.join(os.environ['D4_HOME'], 'web/static/json/type.json')
+
+# get file config
+config_file_server = os.path.join(os.environ['D4_HOME'], 'configs/server.conf')
+config_server = configparser.ConfigParser()
+config_server.read(config_file_server)
+
+# get data directory
+use_default_save_directory = config_server['Save_Directories'].getboolean('use_default_save_directory')
+# check if field is None
+if use_default_save_directory:
+    data_directory = os.path.join(os.environ['D4_HOME'], 'data')
+else:
+    data_directory = config_server['Save_Directories'].get('save_directory')
 
 redis_server_stream = redis.StrictRedis(
                     host=host_redis_stream,
@@ -117,6 +131,66 @@ def get_substract_date_range(num_day, date_from=None):
         l_date.append( date.strftime('%Y%m%d') )
     return list(reversed(l_date))
 
+def get_uuid_all_types_disk(uuid_name):
+    uuid_data_directory = os.path.join(data_directory, uuid_name)
+    all_types_on_disk = []
+    # Get all types save on disk
+    for file in os.listdir(uuid_data_directory):
+        uuid_type_path = os.path.join(uuid_data_directory, file)
+        if os.path.isdir(uuid_type_path):
+            all_types_on_disk.append(file)
+    return all_types_on_disk
+
+def get_uuid_disk_statistics(uuid_name, date_day='', type='', all_types_on_disk=[], all_stats=True):
+    # # TODO: escape uuid_name
+
+    stat_disk_uuid = {}
+    uuid_data_directory = os.path.join(data_directory, uuid_name)
+    if date_day:
+        directory_date = os.path.join(date_day[0:4], date_day[4:6], date_day[6:8])
+    all_types_on_disk = {}
+
+    if all_types_on_disk:
+        for type in all_types_on_disk:
+            if date_day:
+                uuid_type_path = os.path.join(uuid_data_directory, type, directory_date)
+            else:
+                uuid_type_path = os.path.join(uuid_data_directory, type)
+            all_types_on_disk[type] = uuid_type_path
+    else:
+        # Get all types save on disk
+        for file in os.listdir(uuid_data_directory):
+            if date_day:
+                uuid_type_path = os.path.join(uuid_data_directory, file, directory_date)
+            else:
+                uuid_type_path = os.path.join(uuid_data_directory, file)
+            if os.path.isdir(uuid_type_path):
+                all_types_on_disk[file] = uuid_type_path
+
+    nb_file = 0
+    total_size = 0
+
+    for uuid_type in all_types_on_disk:
+        nb_file_type = 0
+        total_size_type = 0
+        for dirpath, dirnames, filenames in os.walk(all_types_on_disk[uuid_type]):
+            stat_disk_uuid[uuid_type] = {}
+            for f in filenames:
+                fp = os.path.join(dirpath, f)
+                file_size = os.path.getsize(fp)
+                total_size_type += file_size
+                total_size += file_size
+                nb_file_type += 1
+                nb_file += 1
+            stat_disk_uuid[uuid_type]['nb_files'] = nb_file_type
+            stat_disk_uuid[uuid_type]['total_size'] = total_size_type
+    if all_stats:
+        stat_all = {}
+        stat_all['nb_files'] = nb_file
+        stat_all['total_size'] = total_size
+        stat_disk_uuid['All'] = stat_all
+    return stat_disk_uuid
+
 # ========== ERRORS ============
 
 @app.errorhandler(404)
@@ -124,6 +198,11 @@ def page_not_found(e):
     return render_template('404.html'), 404
 
 # ========== ROUTES ============
+@app.route('/test')
+def test():
+    print(get_uuid_disk_statistics('fae58cdc30024239874f4c7ce53fbf4d', date_day='20190527'))
+    return 'test'
+
 @app.route('/')
 def index():
     date = datetime.datetime.now().strftime("%Y/%m/%d")
@@ -288,10 +367,13 @@ def uuid_management():
     uuid_sensor = request.args.get('uuid')
     if is_valid_uuid_v4(uuid_sensor):
 
+        disk_stats = get_uuid_disk_statistics(uuid_sensor)
+
         first_seen = redis_server_metadata.hget('metadata_uuid:{}'.format(uuid_sensor), 'first_seen')
         first_seen_gmt = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(int(first_seen)))
         last_seen = redis_server_metadata.hget('metadata_uuid:{}'.format(uuid_sensor), 'last_seen')
         last_seen_gmt = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(int(last_seen)))
+        description = redis_server_metadata.hget('metadata_uuid:{}'.format(uuid_sensor), 'description')
         Error = redis_server_metadata.hget('metadata_uuid:{}'.format(uuid_sensor), 'Error')
         if redis_server_stream.exists('temp_blacklist_uuid:{}'.format(uuid_sensor)):
             temp_blacklist_uuid = True
@@ -308,6 +390,7 @@ def uuid_management():
         else:
             blacklisted_ip_by_uuid = False
         data_uuid= {"first_seen": first_seen, "last_seen": last_seen,
+                    "description": description,
                     "temp_blacklist_uuid": temp_blacklist_uuid,
                     "blacklisted_uuid": blacklisted_uuid, "blacklisted_ip_by_uuid": blacklisted_ip_by_uuid,
                     "first_seen_gmt": first_seen_gmt, "last_seen_gmt": last_seen_gmt, "Error": Error}
@@ -346,6 +429,7 @@ def uuid_management():
 
         return render_template("uuid_management.html", uuid_sensor=uuid_sensor, active_connection=active_connection,
                                 uuid_key=uuid_key, data_uuid=data_uuid, uuid_all_type=uuid_all_type_list,
+                                disk_stats=disk_stats,
                                 max_uuid_stream=max_uuid_stream, all_ip=all_ip)
     else:
         return 'Invalid uuid'
@@ -764,7 +848,35 @@ def get_uuid_type_history_json():
     else:
         return jsonify('Incorrect UUID')
 
+@app.route('/get_uuid_stats_history_json')
+def get_uuid_stats_history_json():
+    uuid_sensor = request.args.get('uuid_sensor')
+    stats = request.args.get('stats')
+    if is_valid_uuid_v4(uuid_sensor):
+        if stats not in ['nb_files', 'total_size']:
+            stats = 'nb_files'
 
+        num_day_type = 7
+        date_range = get_substract_date_range(num_day_type)
+        stat_type_history = []
+        range_decoder = []
+        all_type = get_uuid_all_types_disk(uuid_sensor)
+
+        default_dict_type = {}
+        for type in all_type:
+            default_dict_type[type] = 0
+
+        for date in date_range:
+            day_type = default_dict_type.copy()
+            daily_stat = get_uuid_disk_statistics(uuid_sensor, date, all_types_on_disk=all_type, all_stats=False)
+            day_type['date']= date[0:4] + '-' + date[4:6] + '-' + date[6:8]
+            for type_key in daily_stat:
+                day_type[type_key] += daily_stat[type_key][stats]
+            stat_type_history.append(day_type)
+
+        return jsonify(stat_type_history)
+    else:
+        return jsonify('Incorrect UUID')
 
 
 if __name__ == "__main__":

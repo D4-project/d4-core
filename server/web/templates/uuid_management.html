@@ -43,6 +43,7 @@
 			UUID: {{uuid_sensor}}
 		</div>
 		<div class="card-body">
+			{{data_uuid['description']}}
 			<div class="card-group">
 				<div class="card">
 					<div class="card-header bg-info text-white">
@@ -147,7 +148,7 @@
 				Types Used:
 			</div>
 			<div class="row ml-0 mr-0">
-				<div class="col-lg-4">
+				<div class="col-xl-4">
 					<div class="mt-2">
 						<table class="table table-striped table-bordered table-hover" id="myTable_1">
 							<thead class="thead-dark">
@@ -169,9 +170,50 @@
 						</table>
 					</div>
 				</div>
-				<div class="col-lg-8">
+				<div class="col-xl-8">
 					<div id="barchart_type">
 		     	</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div>
+		<div class="card text-center mt-3 mx-3">
+			<div class="card-header bg-dark text-white">
+				Data Saved:
+			</div>
+			<div class="row ml-0 mr-0">
+				<div class="col-xl-4">
+					<div class="mt-2">
+						<table class="table table-striped table-bordered table-hover" id="myTable_2">
+							<thead class="thead-dark">
+								<tr>
+									<th>Type</th>
+									<th style="max-width: 800px;">Size (Ko)</th>
+									<th style="max-width: 800px;">Nb Files</th>
+								</tr>
+							</thead>
+							<tbody>
+								{% for type_stats in disk_stats %}
+									<tr>
+										<td>{{type_stats}}</td>
+										<td>{{disk_stats[type_stats]['total_size']}}</td>
+										<td>{{disk_stats[type_stats]['nb_files']}}</td>
+									</tr>
+								{% endfor %}
+							</tbody>
+						</table>
+					</div>
+				</div>
+				<div class="col-xl-8">
+					<input value="nb_files" id="type_stats_disk" hidden></input>
+					<h4 id="stats_disk_title">Number of files save on disk :</h4>
+					<div id="barchart_type_disk">
+		     	</div>
+					<button type="button" id="stats_disk_btn" class="btn btn-outline-secondary mt-1" onclick="swap_stats_type();">
+						Show Size Chart
+					</button>
 				</div>
 			</div>
 		</div>
@@ -215,8 +257,16 @@ $(document).ready(function(){
 			"iDisplayLength": 10,
 			"order": [[ 0, "asc" ]]
 		}
-		);
-	chart.stackBarChart =barchart_type_stack("{{ url_for('get_uuid_type_history_json') }}?uuid_sensor={{uuid_sensor}}", 'id');
+	);
+	table = $('#myTable_2').DataTable(
+		{
+			"aLengthMenu": [[5, 10, 15, 20, -1], [5, 10, 15, 20, "All"]],
+			"iDisplayLength": 10,
+			"order": [[ 0, "asc" ]]
+		}
+	);
+	chart.stackBarChart1 =barchart_type_stack("{{ url_for('get_uuid_type_history_json') }}?uuid_sensor={{uuid_sensor}}", '#barchart_type');
+	chart.stackBarChart2 =barchart_type_stack("{{ url_for('get_uuid_stats_history_json') }}?uuid_sensor={{uuid_sensor}}", '#barchart_type_disk');
 
 	chart.onResize();
 	$(window).on("resize", function() {
@@ -231,14 +281,34 @@ $(document).ready(function(){
 
 });
 
-	function get_whois_data(ip){
+function get_whois_data(ip){
 
-		$.getJSON( "{{url_for('whois_data')}}?ip="+ip, function( data ) {
-			$( "#whois_data" ).removeClass( "d-none" );
-			$( "#whois_output" ).text(data);
+	$.getJSON( "{{url_for('whois_data')}}?ip="+ip, function( data ) {
+		$( "#whois_data" ).removeClass( "d-none" );
+		$( "#whois_output" ).text(data);
 
-		});
+	});
+}
+
+function swap_stats_type(){
+	var stats_value = $('#type_stats_disk').val();
+	if(stats_value==='nb_files'){
+		$('#type_stats_disk').val('total_size');
+		$('#stats_disk_title').text('Size of files save on disk :');
+		$('#stats_disk_btn').text('Show # Files Chart');
+		stats_value = 'total_size';
+	} else {
+		$('#type_stats_disk').val('nb_files');
+		$('#stats_disk_title').text('Number of files save on disk :');
+		$('#stats_disk_btn').text('Show Size Chart');
+		stats_value = 'nb_files';
 	}
+
+	$('#barchart_type_disk').children().remove();
+	url_json_stats = "{{ url_for('get_uuid_stats_history_json') }}?uuid_sensor={{uuid_sensor}}&stats=" + stats_value;
+	chart.stackBarChart2 =barchart_type_stack(url_json_stats, '#barchart_type_disk');
+	chart.onResize();
+}
 </script>
 
 <script>
@@ -246,26 +316,26 @@ var margin = {top: 20, right: 90, bottom: 55, left: 0},
 				width = parseInt(d3.select('#barchart_type').style('width'), 10);
 				width  = 1000 - margin.left - margin.right,
 				height = 500  - margin.top  - margin.bottom;
-var x = d3.scaleBand().rangeRound([0, width]).padding(0.1);
-
-var y = d3.scaleLinear().rangeRound([height, 0]);
-
-var xAxis = d3.axisBottom(x);
-
-var yAxis = d3.axisLeft(y);
-
-var color = d3.scaleOrdinal(d3.schemeSet3);
-
-var svg = d3.select("#barchart_type").append("svg")
-				.attr("id", "thesvg")
-				.attr("viewBox", "0 0 "+width+" 500")
-				.attr("width",  width  + margin.left + margin.right)
-				.attr("height", height + margin.top  + margin.bottom)
-			.append("g")
-				.attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-
 
 function barchart_type_stack(url, id) {
+
+	var x = d3.scaleBand().rangeRound([0, width]).padding(0.1);
+
+	var y = d3.scaleLinear().rangeRound([height, 0]);
+
+	var xAxis = d3.axisBottom(x);
+
+	var yAxis = d3.axisLeft(y);
+
+	var color = d3.scaleOrdinal(d3.schemeSet3);
+
+	var svg = d3.select(id).append("svg")
+					.attr("id", "thesvg")
+					.attr("viewBox", "0 0 "+width+" 500")
+					.attr("width",  width  + margin.left + margin.right)
+					.attr("height", height + margin.top  + margin.bottom)
+				.append("g")
+					.attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
   d3.json(url)
     .then(function(data){
@@ -346,29 +416,43 @@ function barchart_type_stack(url, id) {
 			drawLegend(varNames);
     });
 
-}
+	function drawLegend (varNames) {
+	    var legend = svg.selectAll(".legend")
+	        .data(varNames.slice().reverse())
+	      .enter().append("g")
+	        .attr("class", "legend")
+	        .attr("transform", function (d, i) { return "translate(0," + i * 20 + ")"; });
 
-function drawLegend (varNames) {
-    var legend = svg.selectAll(".legend")
-        .data(varNames.slice().reverse())
-      .enter().append("g")
-        .attr("class", "legend")
-        .attr("transform", function (d, i) { return "translate(0," + i * 20 + ")"; });
+	    legend.append("rect")
+	        .attr("x", 943)
+	        .attr("width", 10)
+	        .attr("height", 10)
+	        .style("fill", color)
+	        .style("stroke", "grey");
 
-    legend.append("rect")
-        .attr("x", 943)
-        .attr("width", 10)
-        .attr("height", 10)
-        .style("fill", color)
-        .style("stroke", "grey");
+	    legend.append("text")
+					.attr("class", "svgText")
+	        .attr("x", 941)
+	        .attr("y", 6)
+	        .attr("dy", ".35em")
+	        .style("text-anchor", "end")
+	        .text(function (d) { return d; });
+	}
 
-    legend.append("text")
-				.attr("class", "svgText")
-        .attr("x", 941)
-        .attr("y", 6)
-        .attr("dy", ".35em")
-        .style("text-anchor", "end")
-        .text(function (d) { return d; });
+	function showPopover (d) {
+	  $(this).popover({
+	    title: d.name,
+	    placement: 'top',
+	    container: 'body',
+	    trigger: 'manual',
+	    html : true,
+	    content: function() {
+	      return d.label +
+	            "<br/>num: " + d3.format(",")(d.value ? d.value: d.y1 - d.y0); }
+	  });
+	  $(this).popover('show')
+	}
+
 }
 
 function removePopovers () {
@@ -377,25 +461,16 @@ function removePopovers () {
     });
   }
 
-function showPopover (d) {
-  $(this).popover({
-    title: d.name,
-    placement: 'top',
-    container: 'body',
-    trigger: 'manual',
-    html : true,
-    content: function() {
-      return d.label +
-            "<br/>num: " + d3.format(",")(d.value ? d.value: d.y1 - d.y0); }
-  });
-  $(this).popover('show')
+function resize_chart_by_id(id_chart) {
+	var aspect = width / height, chart = $(id_chart).children();
+	var targetWidth = chart.parent().width();
+	chart.attr("width", targetWidth);
+	chart.attr("height", targetWidth / 2);
 }
 
 chart.onResize = function () {
-    var aspect = width / height, chart = $("#thesvg");
-    var targetWidth = chart.parent().width();
-    chart.attr("width", targetWidth);
-    chart.attr("height", targetWidth / 2);
+    resize_chart_by_id("#barchart_type");
+		resize_chart_by_id("#barchart_type_disk");
 }
 
 window.chart = chart;
