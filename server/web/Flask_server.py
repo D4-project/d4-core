@@ -275,7 +275,7 @@ def sensors_status():
             active_connection = False
 
         if first_seen is not None and last_seen is not None:
-            status_daily_uuid.append({"uuid": result,"first_seen": first_seen, "last_seen": last_seen,
+            status_daily_uuid.append({"uuid": result,
                                         "active_connection": active_connection, "description": description,
                                         "first_seen_gmt": first_seen_gmt, "last_seen_gmt": last_seen_gmt,
                                         "l_uuid_types": l_uuid_types, "Error": Error})
@@ -373,12 +373,13 @@ def uuid_management():
     if is_valid_uuid_v4(uuid_sensor):
 
         disk_stats = get_uuid_disk_statistics(uuid_sensor)
-
         first_seen = redis_server_metadata.hget('metadata_uuid:{}'.format(uuid_sensor), 'first_seen')
         first_seen_gmt = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(int(first_seen)))
         last_seen = redis_server_metadata.hget('metadata_uuid:{}'.format(uuid_sensor), 'last_seen')
         last_seen_gmt = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(int(last_seen)))
         description = redis_server_metadata.hget('metadata_uuid:{}'.format(uuid_sensor), 'description')
+        if not description:
+            description = ''
         Error = redis_server_metadata.hget('metadata_uuid:{}'.format(uuid_sensor), 'Error')
         if redis_server_stream.exists('temp_blacklist_uuid:{}'.format(uuid_sensor)):
             temp_blacklist_uuid = True
@@ -394,8 +395,7 @@ def uuid_management():
             Error = "All IP using this UUID are Blacklisted"
         else:
             blacklisted_ip_by_uuid = False
-        data_uuid= {"first_seen": first_seen, "last_seen": last_seen,
-                    "description": description,
+        data_uuid= {"description": description,
                     "temp_blacklist_uuid": temp_blacklist_uuid,
                     "blacklisted_uuid": blacklisted_uuid, "blacklisted_ip_by_uuid": blacklisted_ip_by_uuid,
                     "first_seen_gmt": first_seen_gmt, "last_seen_gmt": last_seen_gmt, "Error": Error}
@@ -507,6 +507,16 @@ def uuid_change_stream_max_size():
             return redirect(url_for('uuid_management', uuid=uuid_sensor))
     else:
         return 'Invalid uuid'
+
+@app.route('/uuid_change_description')
+def uuid_change_description():
+    uuid_sensor = request.args.get('uuid')
+    description = request.args.get('description')
+    if is_valid_uuid_v4(uuid_sensor):
+        redis_server_metadata.hset('metadata_uuid:{}'.format(uuid_sensor), 'description', description)
+        return jsonify()
+    else:
+        return jsonify({'error':'invalid uuid'}), 400
 
 # # TODO: check analyser uuid dont exist
 @app.route('/add_new_analyzer')

@@ -17,6 +17,13 @@
 	<script src="{{ url_for('static', filename='js/dataTables.bootstrap.min.js')}}"></script>
 	<script src="{{ url_for('static', filename='js/d3v5.min.js')}}"></script>
 
+	<style>
+	.edit_icon:hover{
+		cursor: pointer;
+		color: #17a2b8;
+	}
+	</style>
+
 </head>
 
 <body>
@@ -43,14 +50,31 @@
 			UUID: {{uuid_sensor}}
 		</div>
 		<div class="card-body">
-			{{data_uuid['description']}}
+			<div class="mb-2">
+				<span id="description-text-block">
+					<span id="description-text">{{data_uuid['description']}}</span>
+					<span onclick="show_edit_description();">
+						<i class="fa fa-pencil edit_icon"></i>
+					</span>
+				</span>
+				<span id="description-edit-block" hidden>
+					<div class="input-group">
+						<input class="form-control" type="text" id="input-description" value="{{data_uuid['description']}}"></input>
+						<div class="input-group-append">
+							<button class="btn btn-info" onclick="edit_description();">
+								<i class="fa fa-pencil edit_icon"></i>
+							</button>
+						</div>
+					</div>
+				</span>
+			</div>
 			<div class="card-group">
 				<div class="card">
 					<div class="card-header bg-info text-white">
 						First Seen
 					</div>
 					<div class="card-body">
-						<p class="card-text">{{data_uuid['first_seen_gmt']}} - ({{data_uuid['first_seen']}})</p>
+						<p class="card-text">{{data_uuid['first_seen_gmt']}}</p>
 					</div>
 				</div>
 				<div class="card">
@@ -58,7 +82,7 @@
 						Last Seen
 					</div>
 					<div class="card-body">
-						<p class="card-text">{{data_uuid['last_seen_gmt']}} - ({{data_uuid['last_seen']}})</p>
+						<p class="card-text">{{data_uuid['last_seen_gmt']}}</p>
 					</div>
 				</div>
 				<div class="card">
@@ -251,6 +275,9 @@
 <script>
 var chart = {};
 $(document).ready(function(){
+	$('#description-edit-block').hide();
+	$('#description-edit-block').removeAttr("hidden")
+
 	table = $('#myTable_1').DataTable(
 		{
 			"aLengthMenu": [[5, 10, 15, 20, -1], [5, 10, 15, 20, "All"]],
@@ -309,6 +336,25 @@ function swap_stats_type(){
 	chart.stackBarChart2 =barchart_type_stack(url_json_stats, '#barchart_type_disk');
 	chart.onResize();
 }
+
+function show_edit_description(){
+	$('#description-text-block').hide();
+	$('#description-edit-block').show();
+}
+
+function edit_description(){
+	var new_description = $('#input-description').val()
+	var data_to_send = { uuid: "{{uuid_sensor}}", "description": new_description}
+
+	$.get("{{ url_for('uuid_change_description') }}", data_to_send, function(data, status){
+			if(status == "success") {
+				$('#description-text').text(new_description)
+				$('#description-edit-block').hide();
+				$('#description-text-block').show();
+			}
+	});
+}
+
 </script>
 
 <script>
