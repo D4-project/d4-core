@@ -7,10 +7,13 @@
 	<!-- Core CSS -->
 	<link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
 	<link href="{{ url_for('static', filename='font-awesome/css/font-awesome.css') }}" rel="stylesheet">
+	<link href="{{ url_for('static', filename='css/dataTables.bootstrap.min.css') }}" rel="stylesheet">
 
 	<!-- JS -->
 	<script src="{{ url_for('static', filename='js/jquery.js')}}"></script>
 	<script src="{{ url_for('static', filename='js/bootstrap.min.js')}}"></script>
+	<script src="{{ url_for('static', filename='js/jquery.dataTables.min.js')}}"></script>
+	<script src="{{ url_for('static', filename='js/dataTables.bootstrap.min.js')}}"></script>
 
   <style>
 
@@ -63,56 +66,64 @@
 		</div>
 	</div>
 
-	{% for row_uuid in status_daily_uuid %}
-		<div class="card text-center mt-3 ml-2 mr-2">
-			<a class="btn btn-outline-dark px-1 py-1" href="{{ url_for('uuid_management') }}?uuid={{row_uuid['uuid']}}">
-				<div class="card-header bg-dark text-white">
-					UUID: {{row_uuid['uuid']}}
-				</div>
-			</a>
-			<div class="card-body">
-				<div class="card-group">
-				  <div class="card">
-						<div class="card-header bg-info text-white">
-					    First Seen
-					  </div>
-				    <div class="card-body">
-				      <p class="card-text">{{row_uuid['first_seen_gmt']}} - ({{row_uuid['first_seen']}})</p>
-				    </div>
-				  </div>
-				  <div class="card">
-						<div class="card-header bg-info text-white">
-					    Last Seen
-					  </div>
-				    <div class="card-body">
-				      <p class="card-text">{{row_uuid['last_seen_gmt']}} - ({{row_uuid['last_seen']}})</p>
-				    </div>
-				  </div>
-				  <div class="card">
-						{% if not row_uuid['Error'] %}
-							<div class="card-header bg-success text-white">
-								Status
-							</div>
-					    <div class="card-body text-success">
-					      <p class="card-text">OK</p>
-						{% else %}
-							<div class="card-header bg-danger text-white">
-								Status
-							</div>
-							<div class="card-body text-danger">
-								<p class="card-text">{{row_uuid['Error']}}</p>
-						{% endif %}
-							{% if row_uuid['active_connection'] %}
-								<div style="color:Green; display:inline-block">
-									<i class="fa fa-check-circle"></i> Connected
-								</div>
+	<div class="mx-2">
+		<table class="table table-striped table-bordered table-hover text-center" id="myTable_1">
+			<thead>
+				<tr>
+					<th class="bg-info text-white">UUID</th>
+					<th class="bg-info text-white">first seen</th>
+					<th class="bg-info text-white">last seen</th>
+					<th class="bg-info text-white">types</th>
+					<th class="bg-secondary text-white">Status</th>
+				</tr>
+			</thead>
+			<tbody>
+				{% for row_uuid in status_daily_uuid %}
+					<tr>
+						<td>
+							<a class="" href="{{ url_for('uuid_management') }}?uuid={{row_uuid['uuid']}}">
+								{{row_uuid['uuid']}}
+							</a>
+							<div class="text-info"><small>{{row_uuid['description']}}</small></div>
+						</td>
+						<td>{{row_uuid['first_seen_gmt']}} - ({{row_uuid['first_seen']}})</td>
+						<td>{{row_uuid['last_seen_gmt']}} - ({{row_uuid['last_seen']}})</td>
+						<td>
+							{% for uuid_type in row_uuid['l_uuid_types'] %}
+								<span class="badge badge-dark">{{uuid_type}}</span>
+							{% endfor %}
+						</td>
+						<td
+							{% if not row_uuid['Error'] %}
+								div class="text-success">
+						      OK -
+							{% else %}
+								div class="text-danger">
+										<i class="fa fa-times-circle"></i> {{row_uuid['Error']}}
 							{% endif %}
-				    	</div>
-				  </div>
-				</div>
-			</div>
-		</div>
-	{% endfor %}
+							{% if row_uuid['active_connection'] %}
+									<i class="fa fa-check-circle"></i> Connected
+							{% endif %}
+						</td>
+					</tr>
+				{% endfor %}
+			</tbody>
+		</table>
+	</div>
+
 
 	{% include 'navfooter.html' %}
 </body>
+
+<script>
+$(document).ready(function(){
+	table = $('#myTable_1').DataTable(
+		{
+			"aLengthMenu": [[5, 10, 15, 20, -1], [5, 10, 15, 20, "All"]],
+			"iDisplayLength": 10,
+			"order": [[ 0, "asc" ]]
+		}
+	);
+});
+
+</script>

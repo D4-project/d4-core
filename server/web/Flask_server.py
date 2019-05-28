@@ -200,7 +200,6 @@ def page_not_found(e):
 # ========== ROUTES ============
 @app.route('/test')
 def test():
-    print(get_uuid_disk_statistics('fae58cdc30024239874f4c7ce53fbf4d', date_day='20190527'))
     return 'test'
 
 @app.route('/')
@@ -259,6 +258,9 @@ def sensors_status():
         first_seen_gmt = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(int(first_seen)))
         last_seen = redis_server_metadata.hget('metadata_uuid:{}'.format(result), 'last_seen')
         last_seen_gmt = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(int(last_seen)))
+        description = redis_server_metadata.hget('metadata_uuid:{}'.format(result), 'description')
+        l_uuid_types = list(redis_server_metadata.smembers('all_types_by_uuid:{}'.format(result)))
+        l_uuid_types.sort()
         if redis_server_metadata.sismember('blacklist_ip_by_uuid', result):
             Error = "All IP using this UUID are Blacklisted"
         elif redis_server_metadata.sismember('blacklist_uuid', result):
@@ -272,8 +274,9 @@ def sensors_status():
 
         if first_seen is not None and last_seen is not None:
             status_daily_uuid.append({"uuid": result,"first_seen": first_seen, "last_seen": last_seen,
-                                        "active_connection": active_connection,
-                                        "first_seen_gmt": first_seen_gmt, "last_seen_gmt": last_seen_gmt, "Error": Error})
+                                        "active_connection": active_connection, "description": description,
+                                        "first_seen_gmt": first_seen_gmt, "last_seen_gmt": last_seen_gmt,
+                                        "l_uuid_types": l_uuid_types, "Error": Error})
 
     return render_template("sensors_status.html", status_daily_uuid=status_daily_uuid,
                                 active_connection_filter=active_connection_filter)
