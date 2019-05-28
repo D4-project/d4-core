@@ -259,6 +259,8 @@ def sensors_status():
         last_seen = redis_server_metadata.hget('metadata_uuid:{}'.format(result), 'last_seen')
         last_seen_gmt = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(int(last_seen)))
         description = redis_server_metadata.hget('metadata_uuid:{}'.format(result), 'description')
+        if not description:
+            description = ''
         l_uuid_types = list(redis_server_metadata.smembers('all_types_by_uuid:{}'.format(result)))
         l_uuid_types.sort()
         if redis_server_metadata.sismember('blacklist_ip_by_uuid', result):
