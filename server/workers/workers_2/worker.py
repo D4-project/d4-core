@@ -172,8 +172,19 @@ if __name__ == "__main__":
     type = type_defined
     id = 0
     buffer = b''
-
     type_handler.test()
+
+    # create active_connection for extended type
+    #redis_server_stream.sadd('active_connection_extended_type:{}', '{}'.format(self.uuid))
+
+    # update uuid: extended type list
+    #redis_server_metadata.sadd('all_extended_types_by_uuid:{}'.format(uuid), extended_type)
+
+    # update metadata extended type
+    time_val = int(time.time())
+    if not redis_server_metadata.hexists('metadata_extended_type_by_uuid:{}:{}'.format(uuid, extended_type), 'first_seen'):
+        redis_server_metadata.hset('metadata_extended_type_by_uuid:{}:{}'.format(uuid, extended_type), 'first_seen', time_val)
+    redis_server_metadata.hset('metadata_extended_type_by_uuid:{}:{}'.format(uuid, extended_type), 'last_seen', time_val)
 
     # handle 254 type
     while True:
@@ -185,6 +196,8 @@ if __name__ == "__main__":
                 data = res[0][1][0][1]
 
                 if id and data:
+                    # update metadata extended type
+                    redis_server_metadata.hset('metadata_extended_type_by_uuid:{}:{}'.format(uuid, extended_type), 'last_seen', int(time.time()) )
                     # process 254 data type
                     type_handler.process_data(data[b'message'])
                     # remove data from redis stream
