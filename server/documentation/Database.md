@@ -24,7 +24,21 @@ sensor registrations, management of decoding protocols and dispatching to adequa
 | server:accepted_type          | **accepted type** |
 | server:accepted_extended_type | **accepted extended type** |
 
+###### Connection Manager
+| Set Key | Value |
+| --- | --- |
+| active_connection          | **uuid** |
+|  |  |
+| active_connection:**type**               | **uuid** |
+| active_connection_extended_type:**uuid** | **extended type** |
+|  |  |
+| active_uuid_type2:**uuid** | **session uuid** |
+|  |  |
+| map:active_connection-uuid-session_uuid:**uuid** | **session uuid** |
 
+| Set Key | Field | Value |
+| --- | --- | --- |
+| map:session-uuid_active_extended_type | **session_uuid** | **extended_type** |
 
 ### Stats
 | Zset Key | Field | Value |
@@ -66,6 +80,7 @@ sensor registrations, management of decoding protocols and dispatching to adequa
 | Set Key | Value |
 | --- | --- |
 | all_types_by_uuid:**uuid** | **type** |
+| all_extended_types_by_uuid:**uuid** | **type** |
 
 ### analyzers
 ###### metadata

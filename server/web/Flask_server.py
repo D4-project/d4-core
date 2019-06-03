@@ -261,7 +261,17 @@ def sensors_status():
         description = redis_server_metadata.hget('metadata_uuid:{}'.format(result), 'description')
         if not description:
             description = ''
-        l_uuid_types = list(redis_server_metadata.smembers('all_types_by_uuid:{}'.format(result)))
+        l_uuid_types = redis_server_metadata.smembers('all_types_by_uuid:{}'.format(result))
+        for type in l_uuid_types:
+            if redis_server_stream.sismember('active_connection:{}'.format(type), result):
+                print('connected: {}'.format(type))
+        if '254' in l_uuid_types:
+            extended_type = redis_server_metadata.smembers('all_extended_types_by_uuid:{}'.format(result))
+            for extended in extended_type:
+                if redis_server_stream.sismember('active_connection_extended_type:{}'.format(result), extended):
+                    print('connected: {}'.format(extended))
+            l_uuid_types.update(extended_type)
+        l_uuid_types = list(l_uuid_types)
         l_uuid_types.sort()
         if redis_server_metadata.sismember('blacklist_ip_by_uuid', result):
             Error = "All IP using this UUID are Blacklisted"

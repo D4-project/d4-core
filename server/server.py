@@ -136,17 +136,30 @@ class D4_Server(Protocol, TimeoutMixin):
     def connectionLost(self, reason):
             redis_server_stream.sadd('ended_session', self.session_uuid)
             self.setTimeout(None)
+
             if not self.duplicate:
-                if self.type == 254:
-                    type = 2
+                if self.type == 254 or self.type == 2:
+                    redis_server_stream.srem('active_uuid_type{}:{}'.format(self.type, self.uuid), self.session_uuid)
+                    if not redis_server_stream.exists('active_uuid_type{}:{}'.format(self.type, self.uuid)):
+                        redis_server_stream.srem('active_connection:{}'.format(self.type), self.uuid)
+                        redis_server_stream.srem('active_connection_by_uuid:{}'.format(self.uuid), self.type)
+                    # clean extended type
+                    current_extended_type = redis_server_stream.hget('map:session-uuid_active_extended_type', self.session_uuid)
+                    if current_extended_type:
+                        redis_server_stream.hdel('map:session-uuid_active_extended_type', self.session_uuid)
+                        redis_server_stream.srem('active_connection_extended_type:{}'.format(self.uuid), current_extended_type)
+
                 else:
-                    type = self.type
-                redis_server_stream.srem('active_connection:{}'.format(type), '{}:{}'.format(self.ip, self.uuid))
-                redis_server_stream.srem('active_connection', '{}'.format(self.uuid))
+                    redis_server_stream.srem('active_connection:{}'.format(self.type), self.uuid)
+                    redis_server_stream.srem('active_connection_by_uuid:{}'.format(self.uuid), self.type)
+
             if self.uuid:
                 redis_server_stream.srem('map:active_connection-uuid-session_uuid:{}'.format(self.uuid), self.session_uuid)
-            logger.debug('Connection closed: session_uuid={}'.format(self.session_uuid))
-            dict_all_connection.pop(self.session_uuid)
+                if not redis_server_stream.exists('active_connection_by_uuid:{}'.format(self.uuid)):
+                    redis_server_stream.srem('active_connection', self.uuid)
+
+                logger.debug('Connection closed: session_uuid={}'.format(self.session_uuid))
+                dict_all_connection.pop(self.session_uuid)
 
     def unpack_header(self, data):
         data_header = {}
@@ -237,29 +250,43 @@ class D4_Server(Protocol, TimeoutMixin):
                     # auto kill connection # TODO: map type
                     if self.first_connection:
                         self.first_connection = False
-                        if redis_server_stream.sismember('active_connection:{}'.format(data_header['type']), '{}:{}'.format(ip, data_header['uuid_header'])):
+                        if data_header['type'] == 2:
+                            redis_server_stream.sadd('active_uuid_type2:{}'.format(data_header['uuid_header']), self.session_uuid)
+
+                        # type 254, check if previous type 2 saved
+                        elif data_header['type'] == 254:
+                            logger.warning('a type 2 packet must be sent, ip={} uuid={} type={} session_uuid={}'.format(ip, data_header['uuid_header'], data_header['type'], self.session_uuid))
+                            redis_server_metadata.hset('metadata_uuid:{}'.format(data_header['uuid_header']), 'Error', 'Error: a type 2 packet must be sent, type={}'.format(data_header['type']))
+                            self.duplicate = True
+                            self.transport.abortConnection()
+                            return 1
+
+                        # accept only one type/by uuid (except for type 2/254)
+                        elif redis_server_stream.sismember('active_connection:{}'.format(data_header['type']), '{}'.format(data_header['uuid_header'])):
                             # same IP-type for an UUID
                             logger.warning('is using the same UUID for one type, ip={} uuid={} type={} session_uuid={}'.format(ip, data_header['uuid_header'], data_header['type'], self.session_uuid))
                             redis_server_metadata.hset('metadata_uuid:{}'.format(data_header['uuid_header']), 'Error', 'Error: This UUID is using the same UUID for one type={}'.format(data_header['type']))
                             self.duplicate = True
                             self.transport.abortConnection()
                             return 1
-                        else:
-                            #self.version = None
-                            # type 254, check if previous type 2 saved
-                            if data_header['type'] == 254:
-                                logger.warning('a type 2 packet must be sent, ip={} uuid={} type={} session_uuid={}'.format(ip, data_header['uuid_header'], data_header['type'], self.session_uuid))
-                                redis_server_metadata.hset('metadata_uuid:{}'.format(data_header['uuid_header']), 'Error', 'Error: a type 2 packet must be sent, type={}'.format(data_header['type']))
-                                self.duplicate = True
-                                self.transport.abortConnection()
-                                return 1
-                            self.type = data_header['type']
-                            self.uuid = data_header['uuid_header']
-                            #active Connection
-                            redis_server_stream.sadd('active_connection:{}'.format(self.type), '{}:{}'.format(ip, self.uuid))
-                            redis_server_stream.sadd('active_connection', '{}'.format(self.uuid))
-                            # map session_uuid/uuid
-                            redis_server_stream.sadd('map:active_connection-uuid-session_uuid:{}'.format(self.uuid), self.session_uuid)
+
+                        self.type = data_header['type']
+                        self.uuid = data_header['uuid_header']
+
+                        # worker entry point: map type:session_uuid
+                        redis_server_stream.sadd('session_uuid:{}'.format(data_header['type']), self.session_uuid.encode())
+
+                        ## save active connection ##
+                        #active Connection
+                        redis_server_stream.sadd('active_connection:{}'.format(self.type), self.uuid)
+                        redis_server_stream.sadd('active_connection_by_uuid:{}'.format(self.uuid), self.type)
+                        redis_server_stream.sadd('active_connection', self.uuid)
+                        # map session_uuid/uuid
+                        redis_server_stream.sadd('map:active_connection-uuid-session_uuid:{}'.format(self.uuid), self.session_uuid)
+
+                        # map all type by uuid ## TODO: # FIXME:  put me in workers ??????
+                        redis_server_metadata.sadd('all_types_by_uuid:{}'.format(data_header['uuid_header']), data_header['type'])
+                        ## ##
 
                     # check if type change
                     if self.data_saved:
@@ -269,6 +296,30 @@ class D4_Server(Protocol, TimeoutMixin):
                             if self.type == 2 and data_header['type'] == 254:
                                 self.update_stream_type = True
                                 self.type = data_header['type']
+                                #redis_server_stream.hdel('map-type:session_uuid-uuid:2', self.session_uuid) # # TODO:  to remove / refractor
+                                redis_server_stream.srem('active_uuid_type2:{}'.format(self.uuid), self.session_uuid)
+
+                                # remove type 2 connection
+                                if not redis_server_stream.exists('active_uuid_type2:{}'.format(self.uuid)):
+                                    redis_server_stream.srem('active_connection:2', self.uuid)
+                                    redis_server_stream.srem('active_connection_by_uuid:{}'.format(self.uuid), 2)
+
+                                ## save active connection ##
+                                #active Connection
+                                redis_server_stream.sadd('active_connection:{}'.format(self.type), self.uuid)
+                                redis_server_stream.sadd('active_connection_by_uuid:{}'.format(self.uuid), self.type)
+                                redis_server_stream.sadd('active_connection', self.uuid)
+
+                                redis_server_stream.sadd('active_uuid_type254:{}'.format(self.uuid), self.session_uuid)
+
+                                # map all type by uuid ## TODO: # FIXME:  put me in workers ??????
+                                redis_server_metadata.sadd('all_types_by_uuid:{}'.format(data_header['uuid_header']), data_header['type'])
+                                ## ##
+
+
+                                #redis_server_stream.hset('map-type:session_uuid-uuid:{}'.format(data_header['type']), self.session_uuid, data_header['uuid_header'])
+
+
                             # Type Error
                             else:
                                 logger.warning('Unexpected type change, type={} new type={}, ip={} uuid={} session_uuid={}'.format(ip, data_header['uuid_header'], data_header['type'], self.session_uuid))
@@ -408,9 +459,6 @@ class D4_Server(Protocol, TimeoutMixin):
 
                     self.data_saved = True
                 if self.update_stream_type:
-                    redis_server_stream.sadd('session_uuid:{}'.format(data_header['type']), self.session_uuid.encode())
-                    redis_server_stream.hset('map-type:session_uuid-uuid:{}'.format(data_header['type']), self.session_uuid, data_header['uuid_header'])
-                    redis_server_metadata.sadd('all_types_by_uuid:{}'.format(data_header['uuid_header']), data_header['type'])
 
                     if not redis_server_metadata.hexists('metadata_type_by_uuid:{}:{}'.format(data_header['uuid_header'], data_header['type']), 'first_seen'):
                         redis_server_metadata.hset('metadata_type_by_uuid:{}:{}'.format(data_header['uuid_header'], data_header['type']), 'first_seen', data_header['timestamp'])

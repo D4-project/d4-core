@@ -60,10 +60,16 @@ def clean_db(session_uuid):
     clean_stream(stream_defined, type_defined, session_uuid)
     redis_server_stream.srem('ended_session', session_uuid)
     redis_server_stream.srem('working_session_uuid:{}'.format(type_meta_header), session_uuid)
+    # clean extended type (used)
+    redis_server_stream.hdel('map:session-uuid_active_extended_type', session_uuid)
+    try:
+        redis_server_stream.srem('active_connection_extended_type:{}'.format(uuid), extended_type)
+    except Exception as e:
+        print(e)
 
 def clean_stream(stream_name, type, session_uuid):
     redis_server_stream.srem('session_uuid:{}'.format(type), session_uuid)
-    redis_server_stream.hdel('map-type:session_uuid-uuid:{}'.format(type), session_uuid)
+    #redis_server_stream.hdel('map-type:session_uuid-uuid:{}'.format(type), session_uuid)
     redis_server_stream.delete(stream_name)
 
 if __name__ == "__main__":
@@ -151,6 +157,10 @@ if __name__ == "__main__":
         clean_db(session_uuid)
         sys.exit(1)
 
+    # create active_connection for extended type
+    redis_server_stream.sadd('active_connection_extended_type:{}'.format(uuid), extended_type)
+
+    redis_server_stream.hset('map:session-uuid_active_extended_type', session_uuid, extended_type)
 
     #### Handle Specific MetaTypes ####
     # Use Specific Handler defined
@@ -174,11 +184,8 @@ if __name__ == "__main__":
     buffer = b''
     type_handler.test()
 
-    # create active_connection for extended type
-    #redis_server_stream.sadd('active_connection_extended_type:{}', '{}'.format(self.uuid))
-
     # update uuid: extended type list
-    #redis_server_metadata.sadd('all_extended_types_by_uuid:{}'.format(uuid), extended_type)
+    redis_server_metadata.sadd('all_extended_types_by_uuid:{}'.format(uuid), extended_type)
 
     # update metadata extended type
     time_val = int(time.time())
