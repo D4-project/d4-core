@@ -90,7 +90,11 @@
 						<td>{{row_uuid['last_seen_gmt']}}</td>
 						<td>
 							{% for uuid_type in row_uuid['l_uuid_types'] %}
-								<span class="badge badge-dark">{{uuid_type}}</span>
+								{% if row_uuid['type_connection_status'][uuid_type] %}
+									<span class="badge badge-success">{{uuid_type}}</span>
+								{% else %}
+									<span class="badge badge-dark">{{uuid_type}}</span>
+								{% endif %}
 							{% endfor %}
 						</td>
 						<td

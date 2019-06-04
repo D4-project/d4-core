@@ -261,18 +261,26 @@ def sensors_status():
         description = redis_server_metadata.hget('metadata_uuid:{}'.format(result), 'description')
         if not description:
             description = ''
-        l_uuid_types = redis_server_metadata.smembers('all_types_by_uuid:{}'.format(result))
-        for type in l_uuid_types:
+        type_connection_status = {}
+        l_uuid_types = []
+        l_uuid_typ = redis_server_metadata.smembers('all_types_by_uuid:{}'.format(result))
+        for type in l_uuid_typ:
+            type = int(type)
             if redis_server_stream.sismember('active_connection:{}'.format(type), result):
-                print('connected: {}'.format(type))
-        if '254' in l_uuid_types:
-            extended_type = redis_server_metadata.smembers('all_extended_types_by_uuid:{}'.format(result))
+                type_connection_status[type] = True
+            else:
+                type_connection_status[type] = False
+            l_uuid_types.append(type)
+        l_uuid_types.sort()
+        if 254 in l_uuid_types:
+            extended_type = list(redis_server_metadata.smembers('all_extended_types_by_uuid:{}'.format(result)))
+            extended_type.sort()
             for extended in extended_type:
                 if redis_server_stream.sismember('active_connection_extended_type:{}'.format(result), extended):
-                    print('connected: {}'.format(extended))
-            l_uuid_types.update(extended_type)
-        l_uuid_types = list(l_uuid_types)
-        l_uuid_types.sort()
+                    type_connection_status[extended] = True
+                else:
+                    type_connection_status[extended] = False
+            l_uuid_types.extend(extended_type)
         if redis_server_metadata.sismember('blacklist_ip_by_uuid', result):
             Error = "All IP using this UUID are Blacklisted"
         elif redis_server_metadata.sismember('blacklist_uuid', result):
@@ -286,7 +294,9 @@ def sensors_status():
 
         if first_seen is not None and last_seen is not None:
             status_daily_uuid.append({"uuid": result,
-                                        "active_connection": active_connection, "description": description,
+                                        "active_connection": active_connection,
+                                        "type_connection_status": type_connection_status,
+                                        "description": description,
                                         "first_seen_gmt": first_seen_gmt, "last_seen_gmt": last_seen_gmt,
                                         "l_uuid_types": l_uuid_types, "Error": Error})
 
