@@ -252,7 +252,10 @@ def sensors_status():
     else:
         daily_uuid = redis_server_stream.smembers('active_connection')
 
+    type_description_json = get_json_type_description()
+
     status_daily_uuid = []
+    types_description = {}
     for result in daily_uuid:
         first_seen = redis_server_metadata.hget('metadata_uuid:{}'.format(result), 'first_seen')
         first_seen_gmt = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(int(first_seen)))
@@ -271,6 +274,11 @@ def sensors_status():
             else:
                 type_connection_status[type] = False
             l_uuid_types.append(type)
+            if type not in types_description:
+                types_description[type] = type_description_json[type]['description']
+                if not types_description[type]:
+                    types_description[type] = 'please update your web server'
+
         l_uuid_types.sort()
         if 254 in l_uuid_types:
             extended_type = list(redis_server_metadata.smembers('all_extended_types_by_uuid:{}'.format(result)))
@@ -280,6 +288,7 @@ def sensors_status():
                     type_connection_status[extended] = True
                 else:
                     type_connection_status[extended] = False
+                types_description[extended] = ''
             l_uuid_types.extend(extended_type)
         if redis_server_metadata.sismember('blacklist_ip_by_uuid', result):
             Error = "All IP using this UUID are Blacklisted"
@@ -301,6 +310,7 @@ def sensors_status():
                                         "l_uuid_types": l_uuid_types, "Error": Error})
 
     return render_template("sensors_status.html", status_daily_uuid=status_daily_uuid,
+                                types_description=types_description,
                                 active_connection_filter=active_connection_filter)
 
 @app.route('/show_active_uuid')

@@ -11,12 +11,15 @@
 
 	<!-- JS -->
 	<script src="{{ url_for('static', filename='js/jquery.js')}}"></script>
+	<script src="{{ url_for('static', filename='js/popper.min.js')}}"></script>
 	<script src="{{ url_for('static', filename='js/bootstrap.min.js')}}"></script>
 	<script src="{{ url_for('static', filename='js/jquery.dataTables.min.js')}}"></script>
 	<script src="{{ url_for('static', filename='js/dataTables.bootstrap.min.js')}}"></script>
 
   <style>
-
+	.popover{
+		max-width: 100%;
+	}
   </style>
 
 
@@ -79,7 +82,7 @@
 			</thead>
 			<tbody>
 				{% for row_uuid in status_daily_uuid %}
-					<tr>
+					<tr data-trigger="hover" title="" data-content="test content" data-original-title="test title">
 						<td>
 							<a class="" href="{{ url_for('uuid_management') }}?uuid={{row_uuid['uuid']}}">
 								{{row_uuid['uuid']}}
@@ -89,11 +92,16 @@
 						<td>{{row_uuid['first_seen_gmt']}}</td>
 						<td>{{row_uuid['last_seen_gmt']}}</td>
 						<td>
+							{{type_description}}
 							{% for uuid_type in row_uuid['l_uuid_types'] %}
 								{% if row_uuid['type_connection_status'][uuid_type] %}
-									<span class="badge badge-success">{{uuid_type}}</span>
+									<span class="badge badge-success" data-toggle="popover" data-trigger="hover" title="" data-content="{{types_description[uuid_type]}}" data-original-title="{{uuid_type}}">
+										{{uuid_type}}
+									</span>
 								{% else %}
-									<span class="badge badge-dark">{{uuid_type}}</span>
+									<span class="badge badge-dark" data-toggle="popover" data-trigger="hover" title="" data-content="{{types_description[uuid_type]}}" data-original-title="{{uuid_type}}">
+										{{uuid_type}}
+									</span>
 								{% endif %}
 							{% endfor %}
 						</td>
@@ -128,6 +136,11 @@ $(document).ready(function(){
 			"order": [[ 0, "asc" ]]
 		}
 	);
+	$('[data-toggle="popover"]').popover({
+		placement: 'top',
+		container: 'body',
+		html : false,
+	})
 });
 
 </script>
