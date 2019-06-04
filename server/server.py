@@ -150,8 +150,9 @@ class D4_Server(Protocol, TimeoutMixin):
                         redis_server_stream.srem('active_connection_extended_type:{}'.format(self.uuid), current_extended_type)
 
                 else:
-                    redis_server_stream.srem('active_connection:{}'.format(self.type), self.uuid)
-                    redis_server_stream.srem('active_connection_by_uuid:{}'.format(self.uuid), self.type)
+                    if self.uuid:
+                        redis_server_stream.srem('active_connection:{}'.format(self.type), self.uuid)
+                        redis_server_stream.srem('active_connection_by_uuid:{}'.format(self.uuid), self.type)
 
             if self.uuid:
                 redis_server_stream.srem('map:active_connection-uuid-session_uuid:{}'.format(self.uuid), self.session_uuid)
