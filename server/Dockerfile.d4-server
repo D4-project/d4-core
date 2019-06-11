@@ -26,8 +26,11 @@ RUN ./update_web.sh
 
 WORKDIR /usr/src/d4-server
 
-# configure
+# Should be using configs instead. but not supported until docker 17.06+
 RUN cp configs/server.conf.sample configs/server.conf
+
+# workers need tcpdump
+RUN apt-get update && apt-get install -y tcpdump
 
 ENTRYPOINT ["python", "server.py", "-v", "10"]
 
