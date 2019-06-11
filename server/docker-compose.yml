@@ -1,0 +1,27 @@
+version: "3"
+services:
+  redis-stream:
+    image: redis
+    expose:
+      - 6379
+  redis-metadata:
+    image: redis
+    expose:
+      - 6380
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.d4-server
+    image: d4-server:latest
+    #build: ./Dockerfile.d4-server
+    depends_on:
+          - redis-stream
+          - redis-metadata
+    environment:
+      - D4_REDIS_STREAM_HOST=redis
+      - D4_REDIS_STREAM_PORT=6379
+      - D4_REDIS_METADATA_HOST=redis
+      - D4_REDIS_METADATA_PORT=6380
+    ports:
+      - "80:80"
+

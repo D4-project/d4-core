@@ -1,0 +1,29 @@
+FROM python:3
+
+WORKDIR /usr/src/d4-server
+
+#RUN git clone https://github.com/D4-project/d4-core.git
+RUN git clone https://github.com/trolldbois/d4-core.git
+RUN mv d4-core
+
+# that doesn't work on windows due to linefeeds
+# COPY . .
+
+ENV D4_HOME=/usr/src/d4-server
+RUN pip install --no-cache-dir -r requirement.txt
+
+# move to tls proxy ?
+#WORKDIR /usr/src/d4-server/gen_cert
+#RUN ./gen_root.sh
+#RUN ./gen_cert.sh
+
+# setup a lots of files
+#WORKDIR /usr/src/d4-server/web
+#RUN ./update_web.sh
+
+
+#WORKDIR /usr/src/d4-server
+
+#ENTRYPOINT ["python", "server.py", "-v", "10"]
+
+CMD bash -l

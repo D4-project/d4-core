@@ -21,7 +21,7 @@ from twisted.internet.protocol import Protocol
 from twisted.protocols.policies import TimeoutMixin
 
 hmac_reset = bytearray(32)
-hmac_key = b'private key to change'
+hmac_key = os.getenv('D4_HMAC_KEY', b'private key to change')
 
 accepted_type = [1, 2, 4, 8, 254]
 accepted_extended_type = ['ja3-jl']
@@ -33,11 +33,11 @@ header_size = 62
 data_default_size_limit = 1000000
 default_max_entries_by_stream = 10000
 
-host_redis_stream = "localhost"
-port_redis_stream = 6379
+host_redis_stream = os.getenv('D4_REDIS_STREAM_HOST', "localhost")
+port_redis_stream = int(os.getenv('D4_REDIS_STREAM_PORT', 6379))
 
-host_redis_metadata = "localhost"
-port_redis_metadata= 6380
+host_redis_metadata = os.getenv('D4_REDIS_METADATA_HOST', "localhost")
+port_redis_metadata = int(os.getenv('D4_REDIS_METADATA_PORT', 6380))
 
 redis_server_stream = redis.StrictRedis(
                     host=host_redis_stream,

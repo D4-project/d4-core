@@ -46,11 +46,11 @@ def compress_file(file_full_path, session_uuid,i=0):
             redis_server_analyzer.ltrim('analyzer:{}:{}'.format(type, analyzer_uuid), 0, analyser_queue_max_size)
 
 
-host_redis_stream = "localhost"
-port_redis_stream = 6379
+host_redis_stream = os.getenv('D4_REDIS_STREAM_HOST', "localhost")
+port_redis_stream = int(os.getenv('D4_REDIS_STREAM_PORT', 6379))
 
-host_redis_metadata = "localhost"
-port_redis_metadata = 6380
+host_redis_metadata = os.getenv('D4_REDIS_METADATA_HOST', "localhost")
+port_redis_metadata = int(os.getenv('D4_REDIS_METADATA_PORT', 6380))
 
 redis_server_stream = redis.StrictRedis(
                     host=host_redis_stream,
