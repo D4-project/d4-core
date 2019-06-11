@@ -1,29 +1,34 @@
 FROM python:3
 
-WORKDIR /usr/src/d4-server
 
-#RUN git clone https://github.com/D4-project/d4-core.git
-RUN git clone https://github.com/trolldbois/d4-core.git
-RUN mv d4-core
-
-# that doesn't work on windows due to linefeeds
+# that doesn't work on windows docker due to linefeeds
+# WORKDIR /usr/src/d4-server
 # COPY . .
+
+## alternate solution
+# RUN git clone https://github.com/D4-project/d4-core.git
+WORKDIR /usr/src/tmp
+RUN git clone https://github.com/trolldbois/d4-core.git
+RUN mv d4-core/server/ /usr/src/d4-server
+WORKDIR /usr/src/d4-server
 
 ENV D4_HOME=/usr/src/d4-server
 RUN pip install --no-cache-dir -r requirement.txt
 
 # move to tls proxy ?
-#WORKDIR /usr/src/d4-server/gen_cert
-#RUN ./gen_root.sh
-#RUN ./gen_cert.sh
+WORKDIR /usr/src/d4-server/gen_cert
+RUN ./gen_root.sh
+RUN ./gen_cert.sh
 
 # setup a lots of files
-#WORKDIR /usr/src/d4-server/web
-#RUN ./update_web.sh
+WORKDIR /usr/src/d4-server/web
+RUN ./update_web.sh
 
+WORKDIR /usr/src/d4-server
 
-#WORKDIR /usr/src/d4-server
+# configure
+RUN cp configs/server.conf.sample configs/server.conf
 
-#ENTRYPOINT ["python", "server.py", "-v", "10"]
+ENTRYPOINT ["python", "server.py", "-v", "10"]
 
-CMD bash -l
+# CMD bash -l
