@@ -6,9 +6,9 @@ FROM python:3
 # COPY . .
 
 ## alternate solution
-# RUN git clone https://github.com/D4-project/d4-core.git
 WORKDIR /usr/src/tmp
-RUN git clone https://github.com/trolldbois/d4-core.git
+# RUN git clone https://github.com/trolldbois/d4-core.git
+RUN git clone https://github.com/D4-project/d4-core.git
 RUN mv d4-core/server/ /usr/src/d4-server
 WORKDIR /usr/src/d4-server
 
