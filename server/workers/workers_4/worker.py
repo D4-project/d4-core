@@ -12,8 +12,8 @@ def data_incorrect_format(session_uuid):
     print('Incorrect format')
     sys.exit(1)
 
-host_redis_stream = "localhost"
-port_redis_stream = 6379
+host_redis_stream = os.getenv('D4_REDIS_STREAM_HOST', "localhost")
+port_redis_stream = int(os.getenv('D4_REDIS_STREAM_PORT', 6379))
 
 redis_server_stream = redis.StrictRedis(
                     host=host_redis_stream,

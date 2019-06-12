@@ -1,0 +1,156 @@
+# Should be using configs but not supported until docker 17.06+
+# https://www.d4-project.org/2019/05/28/passive-dns-tutorial.html
+
+version: "3"
+services:
+  redis-stream:
+    image: redis
+    command: redis-server --port 6379
+
+  redis-metadata:
+    image: redis
+    command: redis-server --port 6380
+
+  redis-analyzer:
+    image: redis
+    command: redis-server --port 6400
+
+  d4-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.d4-server
+    image: d4-server:latest
+    depends_on:
+          - redis-stream
+          - redis-metadata
+    environment:
+      - D4_REDIS_STREAM_HOST=redis-stream
+      - D4_REDIS_STREAM_PORT=6379
+      - D4_REDIS_METADATA_HOST=redis-metadata
+      - D4_REDIS_METADATA_PORT=6380
+    ports:
+      - "4443:4443"
+
+  d4-worker_1:
+    build:
+      context: .
+      dockerfile: Dockerfile.d4-server
+    image: d4-server:latest
+    depends_on:
+          - redis-stream
+          - redis-metadata
+    environment:
+      - D4_REDIS_STREAM_HOST=redis-stream
+      - D4_REDIS_STREAM_PORT=6379
+      - D4_REDIS_METADATA_HOST=redis-metadata
+      - D4_REDIS_METADATA_PORT=6380
+    entrypoint: bash -c "cd workers/workers_1; ./workers_manager.py; read x"
+    volumes:
+       - d4-data:/usr/src/d4-server/data
+
+  d4-worker_2:
+    build:
+      context: .
+      dockerfile: Dockerfile.d4-server
+    image: d4-server:latest
+    depends_on:
+          - redis-stream
+          - redis-metadata
+    environment:
+      - D4_REDIS_STREAM_HOST=redis-stream
+      - D4_REDIS_STREAM_PORT=6379
+      - D4_REDIS_METADATA_HOST=redis-metadata
+      - D4_REDIS_METADATA_PORT=6380
+    entrypoint: bash -c "cd workers/workers_2; ./workers_manager.py; read x"
+    volumes:
+       - d4-data:/usr/src/d4-server/data
+
+  d4-worker_4:
+    build:
+      context: .
+      dockerfile: Dockerfile.d4-server
+    image: d4-server:latest
+    depends_on:
+          - redis-stream
+          - redis-metadata
+    environment:
+      - D4_REDIS_STREAM_HOST=redis-stream
+      - D4_REDIS_STREAM_PORT=6379
+      - D4_REDIS_METADATA_HOST=redis-metadata
+      - D4_REDIS_METADATA_PORT=6380
+    entrypoint: bash -c "cd workers/workers_4; ./workers_manager.py; read x"
+    volumes:
+       - d4-data:/usr/src/d4-server/data
+
+  d4-worker_8:
+    build:
+      context: .
+      dockerfile: Dockerfile.d4-server
+    image: d4-server:latest
+    depends_on:
+          - redis-stream
+          - redis-metadata
+    environment:
+      - D4_REDIS_STREAM_HOST=redis-stream
+      - D4_REDIS_STREAM_PORT=6379
+      - D4_REDIS_METADATA_HOST=redis-metadata
+      - D4_REDIS_METADATA_PORT=6380
+    entrypoint: bash -c "cd workers/workers_8; ./workers_manager.py; read x"
+    volumes:
+       - d4-data:/usr/src/d4-server/data
+
+  d4-web:
+    build:
+      context: .
+      dockerfile: Dockerfile.d4-server
+    image: d4-server:latest
+    depends_on:
+          - redis-stream
+          - redis-metadata
+    environment:
+      - D4_REDIS_STREAM_HOST=redis-stream
+      - D4_REDIS_STREAM_PORT=6379
+      - D4_REDIS_METADATA_HOST=redis-metadata
+      - D4_REDIS_METADATA_PORT=6380
+    entrypoint: bash -c "cd web; ./Flask_server.py; read x"
+    ports:
+      - "7000:7000"
+    volumes:
+       - d4-data:/usr/src/d4-server/data
+
+  d4-analyzer-passivedns-cof:
+    build:
+      context: .
+      dockerfile: Dockerfile.analyzer-d4-passivedns
+    image: analyzer-d4-passivedns:latest
+    depends_on:
+          - redis-metadata
+          - redis-analyzer
+    environment:
+      - D4_ANALYZER_REDIS_HOST=redis-analyzer
+      - D4_ANALYZER_REDIS_PORT=6400
+      - D4_REDIS_METADATA_HOST=redis-metadata
+      - D4_REDIS_METADATA_PORT=6380
+      - DEBUG=true
+    entrypoint: bash -c "python ./pdns-cof-server.py; read x"
+    ports:
+      - "8400:8400"
+
+  d4-analyzer-passivedns-ingestion:
+    build:
+      context: .
+      dockerfile: Dockerfile.analyzer-d4-passivedns
+    image: analyzer-d4-passivedns:latest
+    depends_on:
+          - redis-metadata
+          - redis-analyzer
+    environment:
+      - D4_ANALYZER_REDIS_HOST=redis-analyzer
+      - D4_ANALYZER_REDIS_PORT=6400
+      - D4_REDIS_METADATA_HOST=redis-metadata
+      - D4_REDIS_METADATA_PORT=6380
+      - DEBUG=true
+    entrypoint: bash -c "python ./pdns-ingestion.py; read x"
+
+volumes:
+  d4-data:

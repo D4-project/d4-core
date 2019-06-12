@@ -6,8 +6,8 @@ import time
 import redis
 import subprocess
 
-host_redis_stream = "localhost"
-port_redis_stream = 6379
+host_redis_stream = os.getenv('D4_REDIS_STREAM_HOST', "localhost")
+port_redis_stream = int(os.getenv('D4_REDIS_STREAM_PORT', 6379))
 
 redis_server_stream = redis.StrictRedis(
                     host=host_redis_stream,
@@ -18,7 +18,7 @@ type = 8
 try:
     redis_server_stream.ping()
 except redis.exceptions.ConnectionError:
-    print('Error: Redis server {}:{}, ConnectionError'.format(host_redis, port_redis))
+    print('Error: Redis server {}:{}, ConnectionError'.format(host_redis_stream, port_redis_stream))
     sys.exit(1)
 
 if __name__ == "__main__":

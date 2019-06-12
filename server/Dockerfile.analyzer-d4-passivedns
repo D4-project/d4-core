@@ -1,0 +1,15 @@
+FROM python:3
+
+WORKDIR /usr/src/
+RUN git clone https://github.com/D4-project/analyzer-d4-passivedns.git
+# RUN git clone https://github.com/trolldbois/analyzer-d4-passivedns.git
+WORKDIR /usr/src/analyzer-d4-passivedns
+
+# FIXME typo in requirements.txt filename
+RUN pip install --no-cache-dir -r requirements
+WORKDIR /usr/src/analyzer-d4-passivedns/bin
+
+# should be a config
+# RUN cat /usr/src/analyzer-d4-passivedns/etc/analyzer.conf.sample | sed "s/127.0.0.1/redis-metadata/g" > /usr/src/analyzer-d4-passivedns/etc/analyzer.conf
+# ignore the config and use ENV variables.
+RUN cp ../etc/analyzer.conf.sample ../etc/analyzer.conf
