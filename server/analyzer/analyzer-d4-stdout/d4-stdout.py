@@ -11,22 +11,10 @@ import argparse
 import logging
 import logging.handlers
 
-host_redis='127.0.0.1'
-port_redis=6380
-
-redis_d4= redis.StrictRedis(
-                    host=host_redis,
-                    port=port_redis,
-                    db=2)
-try:
-    redis_d4.ping()
-except redis.exceptions.ConnectionError:
-    print('Error: Redis server {}:{}, ConnectionError'.format(host_redis, port_redis))
-    sys.exit(1)
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Export d4 data to stdout')
+    parser.add_argument('-f', '--files', help='read data from files. trth', action="store_true")
+    parser.add_argument('-n', '--newline', help='add new lines', action="store_true")
     parser.add_argument('-t', '--type', help='d4 type' , type=int, dest='type')
     parser.add_argument('-u', '--uuid', help='queue uuid' , type=str, dest='uuid')
     parser.add_argument('-i', '--ip',help='redis host' , type=str, default='127.0.0.1', dest='host_redis')
@@ -39,6 +27,8 @@ if __name__ == "__main__":
 
     host_redis=args.host_redis
     port_redis=args.port_redis
+    newLines = args.newline
+    read_files = args.files
 
     redis_d4= redis.StrictRedis(
                         host=host_redis,
@@ -75,4 +65,11 @@ if __name__ == "__main__":
         if d4_data is None:
             time.sleep(1)
             continue
-        sys.stdout.buffer.write(d4_data)
+        if read_files:
+            with open(d4_data, 'rb') as f:
+                sys.stdout.buffer.write(f.read())
+        else:
+            if newLines:
+                sys.stdout.buffer.write(d4_data + b'\n')
+            else:
+                sys.stdout.buffer.write(d4_data)
