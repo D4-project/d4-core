@@ -13,10 +13,10 @@ import logging.handlers
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Export d4 data to stdout')
-    parser.add_argument('-f', '--files', help='read data from files. trth', action="store_true")
+    parser.add_argument('-t', '--type', help='d4 type' , type=int, dest='type', required=True)
+    parser.add_argument('-u', '--uuid', help='queue uuid' , type=str, dest='uuid', required=True)
+    parser.add_argument('-f', '--files', help='read data from files. Append file to stdin', action="store_true")
     parser.add_argument('-n', '--newline', help='add new lines', action="store_true")
-    parser.add_argument('-t', '--type', help='d4 type' , type=int, dest='type')
-    parser.add_argument('-u', '--uuid', help='queue uuid' , type=str, dest='uuid')
     parser.add_argument('-i', '--ip',help='redis host' , type=str, default='127.0.0.1', dest='host_redis')
     parser.add_argument('-p', '--port',help='redis port' , type=int, default=6380, dest='port_redis')
     args = parser.parse_args()
@@ -66,8 +66,14 @@ if __name__ == "__main__":
             time.sleep(1)
             continue
         if read_files:
-            with open(d4_data, 'rb') as f:
-                sys.stdout.buffer.write(f.read())
+            try:
+                with open(d4_data, 'rb') as f:
+                    sys.stdout.buffer.write(f.read())
+                    sys.exit(0)
+            except FileNotFoundError:
+                ## TODO: write logs file
+                continue
+
         else:
             if newLines:
                 sys.stdout.buffer.write(d4_data + b'\n')
