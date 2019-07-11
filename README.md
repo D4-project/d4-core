@@ -12,6 +12,10 @@ to an existing sensor network using simple clients.
 
 [D4 core client](https://github.com/D4-project/d4-core/tree/master/client) is a simple and minimal implementation of the [D4 encapsulation protocol](https://github.com/D4-project/architecture/tree/master/format). There is also a [portable D4 client](https://github.com/D4-project/d4-goclient) in Go including the support for the SSL/TLS connectivity.
 
+<p align="center">
+<img alt="d4-cclient" src="https://raw.githubusercontent.com/D4-project/d4-core/master/client/media/d4c-client.png" height="140" />
+</p>
+
 ### Requirements
 
 - Unix-like operating system
