@@ -3,12 +3,14 @@
 
 import os
 import re
+import ssl
 import sys
-import uuid
-import time
 import json
-import redis
+import time
+import uuid
 import flask
+import redis
+import random
 import datetime
 import ipaddress
 import configparser
@@ -16,6 +18,17 @@ import configparser
 import subprocess
 
 from flask import Flask, render_template, jsonify, request, Blueprint, redirect, url_for
+from flask_login import LoginManager, current_user, login_user, logout_user, login_required
+
+import bcrypt
+
+# Import Role_Manager
+from Role_Manager import create_user_db, check_password_strength, check_user_role_integrity
+from Role_Manager import login_admin, login_analyst
+
+sys.path.append(os.path.join(os.environ['D4_HOME'], 'lib'))
+
+from User import User
 
 baseUrl = ''
 if baseUrl != '':
@@ -59,6 +72,12 @@ redis_server_metadata = redis.StrictRedis(
                     db=0,
                     decode_responses=True)
 
+redis_users = redis.StrictRedis(
+                    host=host_redis_metadata,
+                    port=port_redis_metadata,
+                    db=1,
+                    decode_responses=True)
+
 redis_server_analyzer = redis.StrictRedis(
                     host=host_redis_metadata,
                     port=port_redis_metadata,
@@ -71,8 +90,30 @@ json_type_description = {}
 for type_info in json_type:
     json_type_description[type_info['type']] = type_info
 
+Flask_dir = os.path.join(os.environ['D4_HOME'], 'web')
+
+# =========  TLS  =========#
+ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
+ssl_context.load_cert_chain(certfile=os.path.join(Flask_dir, 'server.crt'), keyfile=os.path.join(Flask_dir, 'server.key'))
+#print(ssl_context.get_ciphers())
+# =========       =========#
+
 app = Flask(__name__, static_url_path=baseUrl+'/static/')
 app.config['MAX_CONTENT_LENGTH'] = 900 * 1024 * 1024
+
+# ========= session ========
+app.secret_key = str(random.getrandbits(256))
+login_manager = LoginManager()
+login_manager.login_view = 'login'
+login_manager.init_app(app)
+# =========       =========#
+
+# ========= LOGIN MANAGER ========
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.get(user_id)
+# =========       =========#
 
 # ========== FUNCTIONS ============
 def is_valid_uuid_v4(header_uuid):
@@ -195,19 +236,137 @@ def get_uuid_disk_statistics(uuid_name, date_day='', type='', all_types_on_disk=
 
 @app.errorhandler(404)
 def page_not_found(e):
-    return render_template('404.html'), 404
+    # API - JSON
+    if request.path.startswith('/api/'):
+        return Response(json.dumps({"status": "error", "reason": "404 Not Found"}, indent=2, sort_keys=True), mimetype='application/json'), 404
+    # UI - HTML Template
+    else:
+        return render_template('404.html'), 404
+
+@app.errorhandler(405)
+def _handle_client_error(e):
+    if request.path.startswith('/api/'):
+        res_dict = {"status": "error", "reason": "Method Not Allowed: The method is not allowed for the requested URL"}
+        anchor_id = request.path[8:]
+        anchor_id = anchor_id.replace('/', '_')
+        api_doc_url = 'https://d4-project.org#{}'.format(anchor_id)
+        res_dict['documentation'] = api_doc_url
+        return Response(json.dumps(res_dict, indent=2, sort_keys=True), mimetype='application/json'), 405
+    else:
+        return
 
 # ========== ROUTES ============
+@app.route('/login', methods=['POST', 'GET'])
+def login():
+
+    '''
+    current_ip = request.remote_addr
+    login_failed_ip = r_cache.get('failed_login_ip:{}'.format(current_ip))
+
+    # brute force by ip
+    if login_failed_ip:
+        login_failed_ip = int(login_failed_ip)
+        if login_failed_ip >= 5:
+            error = 'Max Connection Attempts reached, Please wait {}s'.format(r_cache.ttl('failed_login_ip:{}'.format(current_ip)))
+            return render_template("login.html", error=error)
+    '''
+
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        #next_page = request.form.get('next_page')
+
+        if username is not None:
+            user = User.get(username)
+            '''
+            login_failed_user_id = r_cache.get('failed_login_user_id:{}'.format(username))
+            # brute force by user_id
+            if login_failed_user_id:
+                login_failed_user_id = int(login_failed_user_id)
+                if login_failed_user_id >= 5:
+                    error = 'Max Connection Attempts reached, Please wait {}s'.format(r_cache.ttl('failed_login_user_id:{}'.format(username)))
+                    return render_template("login.html", error=error)
+            '''
+
+            if user and user.check_password(password):
+                #if not check_user_role_integrity(user.get_id()):
+                #    error = 'Incorrect User ACL, Please contact your administrator'
+                #    return render_template("login.html", error=error)
+                login_user(user) ## TODO: use remember me ?
+                if user.request_password_change():
+                    return redirect(url_for('change_password'))
+                else:
+                    return redirect(url_for('index'))
+            # login failed
+            else:
+                # set brute force protection
+                #logger.warning("Login failed, ip={}, username={}".format(current_ip, username))
+                #r_cache.incr('failed_login_ip:{}'.format(current_ip))
+                #r_cache.expire('failed_login_ip:{}'.format(current_ip), 300)
+                #r_cache.incr('failed_login_user_id:{}'.format(username))
+                #r_cache.expire('failed_login_user_id:{}'.format(username), 300)
+                #
+
+                error = 'Password Incorrect'
+                return render_template("login.html", error=error)
+
+        return 'please provide a valid username'
+
+    else:
+        #next_page = request.args.get('next')
+        error = request.args.get('error')
+        return render_template("login.html" , error=error)
+
+@app.route('/change_password', methods=['POST', 'GET'])
+@login_required
+def change_password():
+    password1 = request.form.get('password1')
+    password2 = request.form.get('password2')
+    error = request.args.get('error')
+
+    if error:
+        return render_template("change_password.html", error=error)
+
+    if current_user.is_authenticated and password1!=None:
+        if password1==password2:
+            if check_password_strength(password1):
+                user_id = current_user.get_id()
+                create_user_db(user_id , password1, update=True)
+                return redirect(url_for('index'))
+            else:
+                error = 'Incorrect password'
+                return render_template("change_password.html", error=error)
+        else:
+            error = "Passwords don't match"
+            return render_template("change_password.html", error=error)
+    else:
+        error = 'Please choose a new password'
+        return render_template("change_password.html", error=error)
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('login'))
+
+# role error template
+@app.route('/role', methods=['POST', 'GET'])
+@login_required
+def role():
+    return render_template("error/403.html"), 403
+
 @app.route('/test')
 def test():
     return 'test'
 
 @app.route('/')
+@login_required
 def index():
     date = datetime.datetime.now().strftime("%Y/%m/%d")
     return render_template("index.html", date=date)
 
 @app.route('/_json_daily_uuid_stats')
+@login_required
 def _json_daily_uuid_stats():
     date = datetime.datetime.now().strftime("%Y%m%d")
     daily_uuid = redis_server_metadata.zrange('daily_uuid:{}'.format(date), 0, -1, withscores=True)
@@ -219,6 +378,7 @@ def _json_daily_uuid_stats():
     return jsonify(data_daily_uuid)
 
 @app.route('/_json_daily_type_stats')
+@login_required
 def _json_daily_type_stats():
     date = datetime.datetime.now().strftime("%Y%m%d")
     daily_uuid = redis_server_metadata.zrange('daily_type:{}'.format(date), 0, -1, withscores=True)
@@ -235,6 +395,7 @@ def _json_daily_type_stats():
     return jsonify(data_daily_uuid)
 
 @app.route('/sensors_status')
+@login_required
 def sensors_status():
     active_connection_filter = request.args.get('active_connection_filter')
     if active_connection_filter is None:
@@ -314,6 +475,7 @@ def sensors_status():
                                 active_connection_filter=active_connection_filter)
 
 @app.route('/show_active_uuid')
+@login_required
 def show_active_uuid():
     #swap switch value
     active_connection_filter = request.args.get('show_active_connection')
@@ -328,6 +490,7 @@ def show_active_uuid():
     return redirect(url_for('sensors_status', active_connection_filter=active_connection_filter))
 
 @app.route('/server_management')
+@login_required
 def server_management():
     blacklisted_ip = request.args.get('blacklisted_ip')
     unblacklisted_ip = request.args.get('unblacklisted_ip')
@@ -398,6 +561,7 @@ def server_management():
                             blacklisted_uuid=blacklisted_uuid, unblacklisted_uuid=unblacklisted_uuid)
 
 @app.route('/uuid_management')
+@login_required
 def uuid_management():
     uuid_sensor = request.args.get('uuid')
     if is_valid_uuid_v4(uuid_sensor):
@@ -470,6 +634,7 @@ def uuid_management():
         return 'Invalid uuid'
 
 @app.route('/blacklisted_ip')
+@login_required
 def blacklisted_ip():
     blacklisted_ip = request.args.get('blacklisted_ip')
     unblacklisted_ip = request.args.get('unblacklisted_ip')
@@ -495,6 +660,7 @@ def blacklisted_ip():
                             unblacklisted_ip=unblacklisted_ip, blacklisted_ip=blacklisted_ip)
 
 @app.route('/blacklisted_uuid')
+@login_required
 def blacklisted_uuid():
     blacklisted_uuid = request.args.get('blacklisted_uuid')
     unblacklisted_uuid = request.args.get('unblacklisted_uuid')
@@ -521,6 +687,7 @@ def blacklisted_uuid():
 
 
 @app.route('/uuid_change_stream_max_size')
+@login_required
 def uuid_change_stream_max_size():
     uuid_sensor = request.args.get('uuid')
     user = request.args.get('redirect')
@@ -539,6 +706,7 @@ def uuid_change_stream_max_size():
         return 'Invalid uuid'
 
 @app.route('/uuid_change_description')
+@login_required
 def uuid_change_description():
     uuid_sensor = request.args.get('uuid')
     description = request.args.get('description')
@@ -550,6 +718,7 @@ def uuid_change_description():
 
 # # TODO: check analyser uuid dont exist
 @app.route('/add_new_analyzer')
+@login_required
 def add_new_analyzer():
     type = request.args.get('type')
     user = request.args.get('redirect')
@@ -576,6 +745,7 @@ def add_new_analyzer():
         return 'Invalid uuid'
 
 @app.route('/empty_analyzer_queue')
+@login_required
 def empty_analyzer_queue():
     analyzer_uuid = request.args.get('analyzer_uuid')
     type = request.args.get('type')
@@ -598,6 +768,7 @@ def empty_analyzer_queue():
         return 'Invalid uuid'
 
 @app.route('/remove_analyzer')
+@login_required
 def remove_analyzer():
     analyzer_uuid = request.args.get('analyzer_uuid')
     type = request.args.get('type')
@@ -623,6 +794,7 @@ def remove_analyzer():
         return 'Invalid uuid'
 
 @app.route('/analyzer_change_max_size')
+@login_required
 def analyzer_change_max_size():
     analyzer_uuid = request.args.get('analyzer_uuid')
     user = request.args.get('redirect')
@@ -641,6 +813,7 @@ def analyzer_change_max_size():
         return 'Invalid uuid'
 
 @app.route('/kick_uuid')
+@login_required
 def kick_uuid():
     uuid_sensor = request.args.get('uuid')
     if is_valid_uuid_v4(uuid_sensor):
@@ -650,6 +823,7 @@ def kick_uuid():
         return 'Invalid uuid'
 
 @app.route('/blacklist_uuid')
+@login_required
 def blacklist_uuid():
     uuid_sensor = request.args.get('uuid')
     user = request.args.get('redirect')
@@ -670,6 +844,7 @@ def blacklist_uuid():
         return 'Invalid uuid'
 
 @app.route('/unblacklist_uuid')
+@login_required
 def unblacklist_uuid():
     uuid_sensor = request.args.get('uuid')
     user = request.args.get('redirect')
@@ -693,6 +868,7 @@ def unblacklist_uuid():
         return 'Invalid uuid'
 
 @app.route('/blacklist_ip')
+@login_required
 def blacklist_ip():
     ip = request.args.get('ip')
     user = request.args.get('redirect')
@@ -718,6 +894,7 @@ def blacklist_ip():
         return 'Invalid ip'
 
 @app.route('/unblacklist_ip')
+@login_required
 def unblacklist_ip():
     ip = request.args.get('ip')
     user = request.args.get('redirect')
@@ -745,6 +922,7 @@ def unblacklist_ip():
         return 'Invalid ip'
 
 @app.route('/blacklist_ip_by_uuid')
+@login_required
 def blacklist_ip_by_uuid():
     uuid_sensor = request.args.get('uuid')
     user = request.args.get('redirect')
@@ -756,6 +934,7 @@ def blacklist_ip_by_uuid():
         return 'Invalid uuid'
 
 @app.route('/unblacklist_ip_by_uuid')
+@login_required
 def unblacklist_ip_by_uuid():
     uuid_sensor = request.args.get('uuid')
     user = request.args.get('redirect')
@@ -767,6 +946,7 @@ def unblacklist_ip_by_uuid():
         return 'Invalid uuid'
 
 @app.route('/add_accepted_type')
+@login_required
 def add_accepted_type():
     type = request.args.get('type')
     extended_type_name = request.args.get('extended_type_name')
@@ -786,6 +966,7 @@ def add_accepted_type():
         return 'Invalid type'
 
 @app.route('/remove_accepted_type')
+@login_required
 def remove_accepted_type():
     type = request.args.get('type')
     user = request.args.get('redirect')
@@ -798,6 +979,7 @@ def remove_accepted_type():
         return 'Invalid type'
 
 @app.route('/remove_accepted_extended_type')
+@login_required
 def remove_accepted_extended_type():
     type_name = request.args.get('type_name')
     redis_server_metadata.srem('server:accepted_extended_type', type_name)
@@ -805,6 +987,7 @@ def remove_accepted_extended_type():
 
 # demo function
 @app.route('/delete_data')
+@login_required
 def delete_data():
     date = datetime.datetime.now().strftime("%Y%m%d")
     redis_server_metadata.delete('daily_type:{}'.format(date))
@@ -813,6 +996,7 @@ def delete_data():
 
 # demo function
 @app.route('/set_uuid_hmac_key')
+@login_required
 def set_uuid_hmac_key():
     uuid_sensor = request.args.get('uuid')
     user = request.args.get('redirect')
@@ -824,6 +1008,7 @@ def set_uuid_hmac_key():
 
 # demo function
 @app.route('/whois_data')
+@login_required
 def whois_data():
     ip = request.args.get('ip')
     if is_valid_ip:
@@ -832,11 +1017,13 @@ def whois_data():
         return 'Invalid IP'
 
 @app.route('/generate_uuid')
+@login_required
 def generate_uuid():
     new_uuid = uuid.uuid4()
     return jsonify({'uuid': new_uuid})
 
 @app.route('/get_analyser_sample')
+@login_required
 def get_analyser_sample():
     type = request.args.get('type')
     analyzer_uuid = request.args.get('analyzer_uuid')
@@ -864,6 +1051,7 @@ def get_analyser_sample():
         return jsonify('Incorrect UUID')
 
 @app.route('/get_uuid_type_history_json')
+@login_required
 def get_uuid_type_history_json():
     uuid_sensor = request.args.get('uuid_sensor')
     if is_valid_uuid_v4(uuid_sensor):
@@ -894,6 +1082,7 @@ def get_uuid_type_history_json():
         return jsonify('Incorrect UUID')
 
 @app.route('/get_uuid_stats_history_json')
+@login_required
 def get_uuid_stats_history_json():
     uuid_sensor = request.args.get('uuid_sensor')
     stats = request.args.get('stats')
@@ -925,4 +1114,4 @@ def get_uuid_stats_history_json():
 
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=7000, threaded=True)
+    app.run(host='0.0.0.0', port=7000, threaded=True, ssl_context=ssl_context)

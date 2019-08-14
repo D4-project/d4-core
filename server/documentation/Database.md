@@ -7,12 +7,35 @@
 D4 core server is a complete server to handle clients (sensors) including the decapsulation of the [D4 protocol](https://github.com/D4-project/architecture/tree/master/format), control of
 sensor registrations, management of decoding protocols and dispatching to adequate decoders/analysers.
 
-## Database map
+## Database map - Metadata
 
-| Key | Value |
-| --- | --- |
-|  |  |
-|  |  |  |
+```
+  DB 0 - Stats + sensor configs
+  DB 1 - Users
+  DB 2 - Analyzer queue
+```
+
+### DB 1
+
+##### User Management:
+| Hset Key | Field | Value |
+| ------ | ------ | ------ |
+| user:all    | **user id** | **password hash**  |
+| | | |
+| user:tokens | **token**   | **user id** |
+| | | |
+| user_metadata:**user id** | token          | **token**   |
+|                           | change_passwd  | **boolean** |
+|                           | role           | **role**    |
+
+| Set Key | Value |
+| ------ | ------ |
+| user_role:**role** | **user id** |
+
+
+| Zrank Key | Field | Value |
+| ------ | ------ | ------ |
+| ail:all_role | **role** | **int, role priority (1=admin)** |
 
 ### Server
 | Key | Value |
