@@ -18,6 +18,9 @@ from flask_login import login_required
 
 from functools import wraps
 
+sys.path.append(os.path.join(os.environ['D4_HOME'], 'lib'))
+import Sensor
+
 # ============ BLUEPRINT ============
 
 restApi = Blueprint('restApi', __name__, template_folder='templates')
@@ -26,6 +29,12 @@ restApi = Blueprint('restApi', __name__, template_folder='templates')
 
 host_redis_metadata = os.getenv('D4_REDIS_METADATA_HOST', "localhost")
 port_redis_metadata = int(os.getenv('D4_REDIS_METADATA_PORT', 6380))
+
+r_serv_metadata = redis.StrictRedis(
+                host=host_redis_metadata,
+                port=port_redis_metadata,
+                db=0,
+                decode_responses=True)
 
 r_serv_db = redis.StrictRedis(
                 host=host_redis_metadata,
@@ -143,9 +152,9 @@ def one():
 # ============= ROUTES ==============
 
 
-@restApi.route("/api/v1/get/item", methods=['GET'])
-@token_required('user')
-def get_item_id():
+@restApi.route("/api/v1/add/sensor/register", methods=['POST'])
+@token_required('sensor_register')
+def add_sensor_register():
     data = request.get_json()
-    res = ({'test': 2}, 200)
+    res = Sensor.register_sensor(data)
     return Response(json.dumps(res[0], indent=2, sort_keys=True), mimetype='application/json'), res[1]

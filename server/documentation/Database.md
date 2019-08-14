@@ -86,8 +86,10 @@ sensor registrations, management of decoding protocols and dispatching to adequa
 | --- | --- | --- |
 | metadata_uuid:**uuid** | first_seen  | **epoch**         |
 |                        | last_seen   | **epoch**         |
-|                        | description | **description**   |
-|                        | Error       | **error message** |
+|                        | description | **description**   | (optionnal)
+|                        | Error       | **error message** | (optionnal)
+|                        | hmac_key    | **hmac_key** | (optionnal)
+|                        | user_id     | **user_id** | (optionnal)
 
 ###### Last IP
 | List Key | Value |
