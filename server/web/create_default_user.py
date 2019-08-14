@@ -24,7 +24,7 @@ if __name__ == "__main__":
 
     # create role_list
     if not r_serv.exists('d4:all_role'):
-        role_dict = {'admin': 1, 'user': 1, 'sensor_register': 20}
+        role_dict = {'admin': 1, 'user': 2, 'sensor_register': 20}
         r_serv.zadd('d4:all_role', role_dict)
 
     username = 'admin@admin.test'

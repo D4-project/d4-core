@@ -17,7 +17,7 @@ import configparser
 
 import subprocess
 
-from flask import Flask, render_template, jsonify, request, Blueprint, redirect, url_for
+from flask import Flask, render_template, jsonify, request, Blueprint, redirect, url_for, Response
 from flask_login import LoginManager, current_user, login_user, logout_user, login_required
 
 import bcrypt
@@ -27,8 +27,10 @@ from Role_Manager import create_user_db, check_password_strength, check_user_rol
 from Role_Manager import login_admin, login_analyst
 
 sys.path.append(os.path.join(os.environ['D4_HOME'], 'lib'))
-
 from User import User
+
+# Import Blueprint
+from blueprints.restApi import restApi
 
 baseUrl = ''
 if baseUrl != '':
@@ -106,6 +108,10 @@ app.secret_key = str(random.getrandbits(256))
 login_manager = LoginManager()
 login_manager.login_view = 'login'
 login_manager.init_app(app)
+# =========       =========#
+
+# =========  BLUEPRINT  =========#
+app.register_blueprint(restApi)
 # =========       =========#
 
 # ========= LOGIN MANAGER ========
