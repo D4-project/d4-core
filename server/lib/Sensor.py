@@ -28,6 +28,7 @@ def register_sensor(req_dict):
     # verify uuid
     if not is_valid_uuid_v4(sensor_uuid):
         return ({"status": "error", "reason": "Invalid uuid"}, 400)
+    sensor_uuid = sensor_uuid.replace('-', '')
     # sensor already exist
     if r_serv_db.exists('metadata_uuid:{}'.format(sensor_uuid)):
         return ({"status": "error", "reason": "Sensor already registred"}, 409)
