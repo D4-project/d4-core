@@ -24,7 +24,7 @@ import bcrypt
 
 # Import Role_Manager
 from Role_Manager import create_user_db, check_password_strength, check_user_role_integrity
-from Role_Manager import login_admin, login_analyst
+from Role_Manager import login_user_basic
 
 sys.path.append(os.path.join(os.environ['D4_HOME'], 'lib'))
 from User import User
@@ -361,18 +361,16 @@ def logout():
 def role():
     return render_template("error/403.html"), 403
 
-@app.route('/test')
-def test():
-    return 'test'
-
 @app.route('/')
 @login_required
+@login_user_basic
 def index():
     date = datetime.datetime.now().strftime("%Y/%m/%d")
     return render_template("index.html", date=date)
 
 @app.route('/_json_daily_uuid_stats')
 @login_required
+@login_user_basic
 def _json_daily_uuid_stats():
     date = datetime.datetime.now().strftime("%Y%m%d")
     daily_uuid = redis_server_metadata.zrange('daily_uuid:{}'.format(date), 0, -1, withscores=True)
@@ -385,6 +383,7 @@ def _json_daily_uuid_stats():
 
 @app.route('/_json_daily_type_stats')
 @login_required
+@login_user_basic
 def _json_daily_type_stats():
     date = datetime.datetime.now().strftime("%Y%m%d")
     daily_uuid = redis_server_metadata.zrange('daily_type:{}'.format(date), 0, -1, withscores=True)
@@ -402,6 +401,7 @@ def _json_daily_type_stats():
 
 @app.route('/sensors_status')
 @login_required
+@login_user_basic
 def sensors_status():
     active_connection_filter = request.args.get('active_connection_filter')
     if active_connection_filter is None:
@@ -482,6 +482,7 @@ def sensors_status():
 
 @app.route('/show_active_uuid')
 @login_required
+@login_user_basic
 def show_active_uuid():
     #swap switch value
     active_connection_filter = request.args.get('show_active_connection')
@@ -497,6 +498,7 @@ def show_active_uuid():
 
 @app.route('/server_management')
 @login_required
+@login_user_basic
 def server_management():
     blacklisted_ip = request.args.get('blacklisted_ip')
     unblacklisted_ip = request.args.get('unblacklisted_ip')
@@ -568,6 +570,7 @@ def server_management():
 
 @app.route('/uuid_management')
 @login_required
+@login_user_basic
 def uuid_management():
     uuid_sensor = request.args.get('uuid')
     if is_valid_uuid_v4(uuid_sensor):
@@ -641,6 +644,7 @@ def uuid_management():
 
 @app.route('/blacklisted_ip')
 @login_required
+@login_user_basic
 def blacklisted_ip():
     blacklisted_ip = request.args.get('blacklisted_ip')
     unblacklisted_ip = request.args.get('unblacklisted_ip')
@@ -667,6 +671,7 @@ def blacklisted_ip():
 
 @app.route('/blacklisted_uuid')
 @login_required
+@login_user_basic
 def blacklisted_uuid():
     blacklisted_uuid = request.args.get('blacklisted_uuid')
     unblacklisted_uuid = request.args.get('unblacklisted_uuid')
@@ -694,6 +699,7 @@ def blacklisted_uuid():
 
 @app.route('/uuid_change_stream_max_size')
 @login_required
+@login_user_basic
 def uuid_change_stream_max_size():
     uuid_sensor = request.args.get('uuid')
     user = request.args.get('redirect')
@@ -713,6 +719,7 @@ def uuid_change_stream_max_size():
 
 @app.route('/uuid_change_description')
 @login_required
+@login_user_basic
 def uuid_change_description():
     uuid_sensor = request.args.get('uuid')
     description = request.args.get('description')
@@ -725,6 +732,7 @@ def uuid_change_description():
 # # TODO: check analyser uuid dont exist
 @app.route('/add_new_analyzer')
 @login_required
+@login_user_basic
 def add_new_analyzer():
     type = request.args.get('type')
     user = request.args.get('redirect')
@@ -752,6 +760,7 @@ def add_new_analyzer():
 
 @app.route('/empty_analyzer_queue')
 @login_required
+@login_user_basic
 def empty_analyzer_queue():
     analyzer_uuid = request.args.get('analyzer_uuid')
     type = request.args.get('type')
@@ -775,6 +784,7 @@ def empty_analyzer_queue():
 
 @app.route('/remove_analyzer')
 @login_required
+@login_user_basic
 def remove_analyzer():
     analyzer_uuid = request.args.get('analyzer_uuid')
     type = request.args.get('type')
@@ -801,6 +811,7 @@ def remove_analyzer():
 
 @app.route('/analyzer_change_max_size')
 @login_required
+@login_user_basic
 def analyzer_change_max_size():
     analyzer_uuid = request.args.get('analyzer_uuid')
     user = request.args.get('redirect')
@@ -820,6 +831,7 @@ def analyzer_change_max_size():
 
 @app.route('/kick_uuid')
 @login_required
+@login_user_basic
 def kick_uuid():
     uuid_sensor = request.args.get('uuid')
     if is_valid_uuid_v4(uuid_sensor):
@@ -830,6 +842,7 @@ def kick_uuid():
 
 @app.route('/blacklist_uuid')
 @login_required
+@login_user_basic
 def blacklist_uuid():
     uuid_sensor = request.args.get('uuid')
     user = request.args.get('redirect')
@@ -851,6 +864,7 @@ def blacklist_uuid():
 
 @app.route('/unblacklist_uuid')
 @login_required
+@login_user_basic
 def unblacklist_uuid():
     uuid_sensor = request.args.get('uuid')
     user = request.args.get('redirect')
@@ -875,6 +889,7 @@ def unblacklist_uuid():
 
 @app.route('/blacklist_ip')
 @login_required
+@login_user_basic
 def blacklist_ip():
     ip = request.args.get('ip')
     user = request.args.get('redirect')
@@ -901,6 +916,7 @@ def blacklist_ip():
 
 @app.route('/unblacklist_ip')
 @login_required
+@login_user_basic
 def unblacklist_ip():
     ip = request.args.get('ip')
     user = request.args.get('redirect')
@@ -929,6 +945,7 @@ def unblacklist_ip():
 
 @app.route('/blacklist_ip_by_uuid')
 @login_required
+@login_user_basic
 def blacklist_ip_by_uuid():
     uuid_sensor = request.args.get('uuid')
     user = request.args.get('redirect')
@@ -941,6 +958,7 @@ def blacklist_ip_by_uuid():
 
 @app.route('/unblacklist_ip_by_uuid')
 @login_required
+@login_user_basic
 def unblacklist_ip_by_uuid():
     uuid_sensor = request.args.get('uuid')
     user = request.args.get('redirect')
@@ -953,6 +971,7 @@ def unblacklist_ip_by_uuid():
 
 @app.route('/add_accepted_type')
 @login_required
+@login_user_basic
 def add_accepted_type():
     type = request.args.get('type')
     extended_type_name = request.args.get('extended_type_name')
@@ -973,6 +992,7 @@ def add_accepted_type():
 
 @app.route('/remove_accepted_type')
 @login_required
+@login_user_basic
 def remove_accepted_type():
     type = request.args.get('type')
     user = request.args.get('redirect')
@@ -986,6 +1006,7 @@ def remove_accepted_type():
 
 @app.route('/remove_accepted_extended_type')
 @login_required
+@login_user_basic
 def remove_accepted_extended_type():
     type_name = request.args.get('type_name')
     redis_server_metadata.srem('server:accepted_extended_type', type_name)
@@ -994,6 +1015,7 @@ def remove_accepted_extended_type():
 # demo function
 @app.route('/delete_data')
 @login_required
+@login_user_basic
 def delete_data():
     date = datetime.datetime.now().strftime("%Y%m%d")
     redis_server_metadata.delete('daily_type:{}'.format(date))
@@ -1003,6 +1025,7 @@ def delete_data():
 # demo function
 @app.route('/set_uuid_hmac_key')
 @login_required
+@login_user_basic
 def set_uuid_hmac_key():
     uuid_sensor = request.args.get('uuid')
     user = request.args.get('redirect')
@@ -1015,6 +1038,7 @@ def set_uuid_hmac_key():
 # demo function
 @app.route('/whois_data')
 @login_required
+@login_user_basic
 def whois_data():
     ip = request.args.get('ip')
     if is_valid_ip:
@@ -1024,12 +1048,14 @@ def whois_data():
 
 @app.route('/generate_uuid')
 @login_required
+@login_user_basic
 def generate_uuid():
     new_uuid = uuid.uuid4()
     return jsonify({'uuid': new_uuid})
 
 @app.route('/get_analyser_sample')
 @login_required
+@login_user_basic
 def get_analyser_sample():
     type = request.args.get('type')
     analyzer_uuid = request.args.get('analyzer_uuid')
@@ -1058,6 +1084,7 @@ def get_analyser_sample():
 
 @app.route('/get_uuid_type_history_json')
 @login_required
+@login_user_basic
 def get_uuid_type_history_json():
     uuid_sensor = request.args.get('uuid_sensor')
     if is_valid_uuid_v4(uuid_sensor):
@@ -1089,6 +1116,7 @@ def get_uuid_type_history_json():
 
 @app.route('/get_uuid_stats_history_json')
 @login_required
+@login_user_basic
 def get_uuid_stats_history_json():
     uuid_sensor = request.args.get('uuid_sensor')
     stats = request.args.get('stats')

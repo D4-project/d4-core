@@ -33,6 +33,16 @@ if __name__ == "__main__":
         edit_user_db(username, password=password, role='admin')
     else:
         create_user_db(username, password, role='admin', default=True)
+
+
+    username2 = 'config_generator@register.test'
+    password2 = gen_password()
+    if r_serv.exists('user_metadata:config_generator@register.test'):
+        edit_user_db(username2, password=password2, role='sensor_register')
+    else:
+        create_user_db(username2, password2, role='sensor_register', default=True)
+
+
     token = get_default_admin_token()
 
     default_passwd_file = os.path.join(os.environ['D4_HOME'], 'DEFAULT_PASSWORD')

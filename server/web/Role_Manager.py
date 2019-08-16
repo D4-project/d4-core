@@ -42,12 +42,12 @@ def login_admin(func):
         return func(*args, **kwargs)
     return decorated_view
 
-def login_analyst(func):
+def login_user_basic(func):
     @wraps(func)
     def decorated_view(*args, **kwargs):
         if not current_user.is_authenticated:
             return login_manager.unauthorized()
-        elif (not current_user.is_in_role('analyst')):
+        elif (not current_user.is_in_role('user')):
             return login_manager.unauthorized()
         return func(*args, **kwargs)
     return decorated_view
@@ -158,7 +158,7 @@ def get_role_level(role):
 
 def get_all_user_role(user_role):
     current_role_val = get_role_level(user_role)
-    return r_serv_db.zrange('d4:all_role', current_role_val -1, -1)
+    return r_serv_db.zrangebyscore('d4:all_role', current_role_val -1, 50)
 
 def get_all_user_upper_role(user_role):
     current_role_val = get_role_level(user_role)
