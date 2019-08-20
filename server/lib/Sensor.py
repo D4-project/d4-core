@@ -25,6 +25,7 @@ def is_valid_uuid_v4(UUID):
 def register_sensor(req_dict):
     sensor_uuid = req_dict.get('uuid', None)
     hmac_key = req_dict.get('hmac_key', None)
+    user_id = req_dict.get('mail', None)
     # verify uuid
     if not is_valid_uuid_v4(sensor_uuid):
         return ({"status": "error", "reason": "Invalid uuid"}, 400)
@@ -32,8 +33,6 @@ def register_sensor(req_dict):
     # sensor already exist
     if r_serv_db.exists('metadata_uuid:{}'.format(sensor_uuid)):
         return ({"status": "error", "reason": "Sensor already registred"}, 409)
-
-    user_id = req_dict.get('uuid', None)
 
     res = _register_sensor(sensor_uuid, hmac_key, user_id=user_id, description=None)
     return res

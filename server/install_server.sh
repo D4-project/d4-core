@@ -25,3 +25,7 @@ pushd redis/
 git checkout 5.0
 make
 popd
+
+pushd web/
+./create_default_user.py
+popd
