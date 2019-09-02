@@ -12,22 +12,7 @@
 
 <body>
 
-  <nav class="navbar navbar-expand-sm navbar-dark bg-dark">
-    <a class="navbar-brand" href="{{ url_for('index') }}">
-      <img src="{{ url_for('static', filename='img/d4-logo.png')}}" alt="D4 Project" style="width:80px;">
-    </a>
-    <ul class="navbar-nav">
-      <li class="nav-item">
-        <a class="nav-link mr-3" href="{{ url_for('index') }}">Home <span class="sr-only">(current)</span></a>
-      </li>
-        <li class="nav-item" mr-3>
-          <a class="nav-link mr-3" href="{{ url_for('sensors_status') }}">Sensors Status</a>
-        </li>
-        <li class="nav-item mr-3">
-          <a class="nav-link" href="{{ url_for('server_management') }}" tabindex="-1" aria-disabled="true">Server Management</a>
-        </li>
-      </ul>
-  </nav>
+  {% include 'navbar.html' %}
 
 <div>
   <br>
@@ -63,5 +48,11 @@
 {% include 'navfooter.html' %}
 
 <body>
+
+<script>
+$(document).ready(function(){
+  $("#nav-home").addClass("active");
+} );
+</script>
 
 </html>

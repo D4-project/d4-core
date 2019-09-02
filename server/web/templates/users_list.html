@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>D4-Project</title>
+  <link rel="icon" href="{{ url_for('static', filename='img/d4-logo.png')}}">
+
+  <!-- Core CSS -->
+	<link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+	<link href="{{ url_for('static', filename='font-awesome/css/font-awesome.css') }}" rel="stylesheet">
+	<link href="{{ url_for('static', filename='css/dataTables.bootstrap.min.css') }}" rel="stylesheet">
+
+  <!-- JS -->
+	<script src="{{ url_for('static', filename='js/jquery.js')}}"></script>
+	<script src="{{ url_for('static', filename='js/popper.min.js')}}"></script>
+	<script src="{{ url_for('static', filename='js/bootstrap.min.js')}}"></script>
+	<script src="{{ url_for('static', filename='js/jquery.dataTables.min.js')}}"></script>
+	<script src="{{ url_for('static', filename='js/dataTables.bootstrap.min.js')}}"></script>
+
+  <style>
+	.edit_icon:hover{
+		cursor: pointer;
+		color: #17a2b8;
+	}
+  .trash_icon:hover{
+		cursor: pointer;
+		color: #c82333;
+	}
+	</style>
+
+</head>
+<body>
+
+  {% include 'navbar.html' %}
+
+	<div class="container-fluid">
+		<div class="row">
+
+			{% include 'sidebar_settings.html' %}
+
+			<div class="col-12 col-lg-10" id="core_content">
+
+        {% if new_user %}
+        <div class="text-center my-3 ">
+          <div class="card">
+            <div class="card-header">
+              {% if new_user['edited']=='True' %}
+                <h5 class="card-title">User Edited</h5>
+              {% else %}
+                <h5 class="card-title">User Created</h5>
+              {% endif %}
+            </div>
+            <div class="card-body">
+              <p>User: {{new_user['email']}}</p>
+              <p>Password: {{new_user['password']}}</p>
+              <a href="{{url_for('settings.users_list')}}" class="btn btn-primary"><i class="fa fa-eye-slash"></i> Hide</a>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+
+        <div class="table-responsive mt-1 table-hover table-borderless table-striped">
+          <table class="table">
+            <thead class="thead-dark">
+                <tr>
+                  <th>Email</th>
+                  <th>Role</th>
+                  <th>Api Key</th>
+                  <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="tbody_last_crawled">
+                {% for user in all_users %}
+                  <tr>
+                    <td>{{user['email']}}</td>
+                    <td>{{user['role']}}</td>
+                    <td>
+                      {{user['api_key']}}
+                      <a class="ml-3" href="{{url_for('settings.new_token_user')}}?user_id={{user['email']}}"><i class="fa fa-random"></i></a>
+                    </td>
+                    <td>
+                      <a href="{{ url_for('settings.edit_user')}}?user_id={{user['email']}}">
+                          <i class="fa fa-pencil edit_icon"></i>
+											</a>
+                      <a href="{{ url_for('settings.delete_user')}}?user_id={{user['email']}}" class="ml-4">
+                          <i class="fa fa-trash trash_icon"></i>
+											</a>
+                    </td>
+                  </tr>
+                {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+    	</div>
+		</div>
+	</div>
+
+  {% include 'navfooter.html' %}
+
+</body>
+
+<script>
+$(document).ready(function(){
+  $("#nav-settings").addClass("active");
+  $("#nav_users_list").addClass("active");
+	$("#nav_user_management").removeClass("text-muted");
+} );
+
+function toggle_sidebar(){
+	if($('#nav_menu').is(':visible')){
+		$('#nav_menu').hide();
+		$('#side_menu').removeClass('border-right')
+		$('#side_menu').removeClass('col-lg-2')
+		$('#core_content').removeClass('col-lg-10')
+	}else{
+		$('#nav_menu').show();
+		$('#side_menu').addClass('border-right')
+		$('#side_menu').addClass('col-lg-2')
+		$('#core_content').addClass('col-lg-10')
+	}
+}
+</script>
+
+</html>

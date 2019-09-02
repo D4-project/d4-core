@@ -26,6 +26,16 @@ git checkout 5.0
 make
 popd
 
+# LAUNCH Redis
+bash ${AIL_BIN}LAUNCH.sh -lrv &
+wait
+echo ""
+
+# create default users
 pushd web/
 ./create_default_user.py
 popd
+
+bash LAUNCH.sh -k &
+wait
+echo ""

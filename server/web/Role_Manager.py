@@ -158,7 +158,7 @@ def get_role_level(role):
 
 def get_all_user_role(user_role):
     current_role_val = get_role_level(user_role)
-    return r_serv_db.zrangebyscore('d4:all_role', current_role_val -1, 50)
+    return r_serv_db.zrangebyscore('d4:all_role', current_role_val, 50)
 
 def get_all_user_upper_role(user_role):
     current_role_val = get_role_level(user_role)

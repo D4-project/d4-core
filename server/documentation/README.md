@@ -4,7 +4,7 @@
 
 ### Automation key
 
-The authentication of the automation is performed via a secure key available in the D4 UI interface. Make sure you keep that key secret. It gives access to the entire database! The API key is available in the ``Server Management`` menu under ``My Profile``.
+The authentication of the automation is performed via a secure key available in the D4 UI interface. Make sure you keep that key secret. It gives access to the entire database! The API key is available in the ``Settings`` menu under ``My Profile``.
 
 The authorization is performed by using the following header:
 
@@ -22,15 +22,15 @@ Content-Type: application/json
 Example:
 
 ~~~~
-curl --header "Authorization: YOUR_API_KEY" --header "Content-Type: application/json" https://AIL_URL/
+curl --header "Authorization: YOUR_API_KEY" --header "Content-Type: application/json" https://D4_URL/
 ~~~~
 
-## Item management
+## Sensor Registration
 
-### Get item: `api/v1/get/item/default`<a name="get_item_default"></a>
+### Register a sensor: `api/v1/add/sensor/register`<a name="add_sensor_register"></a>
 
 #### Description
-Get item default info.
+Register a sensor.
 
 **Method** : `POST`
 
@@ -49,6 +49,10 @@ Get item default info.
   - sensor description
   - *str*
 
+- `mail`
+  - user mail
+  - *str*
+
 #### JSON response
 - `uuid`
   - sensor uuid
@@ -62,8 +66,8 @@ curl https://127.0.0.1:7000/api/v1/add/sensor/register --header "Authorization: 
 #### input.json Example
 ```json
   {
-    "uuid": "",
-    "hmac_key": ""
+    "uuid": "ff7ba400-e76c-4053-982d-feec42bdef38",
+    "hmac_key": "...HMAC_KEY..."
   }
 ```
 
@@ -72,7 +76,7 @@ curl https://127.0.0.1:7000/api/v1/add/sensor/register --header "Authorization: 
 
 ```json
   {
-    "uuid": "",
+    "uuid": "ff7ba400-e76c-4053-982d-feec42bdef38",
   }
 ```
 
@@ -81,4 +85,10 @@ curl https://127.0.0.1:7000/api/v1/add/sensor/register --header "Authorization: 
 **HTTP Status Code** : `400`
 ```json
   {"status": "error", "reason": "Mandatory parameter(s) not provided"}
+  {"status": "error", "reason": "Invalid uuid"}
+```
+
+**HTTP Status Code** : `409`
+```json
+  {"status": "error", "reason": "Sensor already registred"}
 ```

@@ -11,10 +11,10 @@ CYAN="\\033[1;36m"
 
 . ./D4ENV/bin/activate
 
-isredis=`screen -ls | egrep '[0-9]+.Redis_D4' | cut -d. -f1`
-isd4server=`screen -ls | egrep '[0-9]+.Server_D4' | cut -d. -f1`
-isworker=`screen -ls | egrep '[0-9]+.Workers_D4' | cut -d. -f1`
-isflask=`screen -ls | egrep '[0-9]+.Flask_D4' | cut -d. -f1`
+isredis=`screen -ls | egrep '[0-9]+.Redis_D4	' | cut -d. -f1`
+isd4server=`screen -ls | egrep '[0-9]+.Server_D4	' | cut -d. -f1`
+isworker=`screen -ls | egrep '[0-9]+.Workers_D4	' | cut -d. -f1`
+isflask=`screen -ls | egrep '[0-9]+.Flask_D4	' | cut -d. -f1`
 
 function helptext {
     echo -e $YELLOW"
@@ -107,6 +107,18 @@ function checking_redis {
     sleep 0.1
 
     return $flag_redis;
+}
+
+function wait_until_redis_is_ready {
+    redis_not_ready=true
+    while $redis_not_ready; do
+        if checking_redis; then
+            redis_not_ready=false;
+        else
+            sleep 1
+        fi
+    done
+    echo -e $YELLOW"\t* Redis Launched"$DEFAULT
 }
 
 function launch_redis {
@@ -275,16 +287,19 @@ function launch_all {
 
 while [ "$1" != "" ]; do
     case $1 in
-        -l | --launchAuto )         launch_all;
-                                    ;;
-        -k | --killAll )            helptext;
-                                    killall;
-                                    ;;
-        -h | --help )               helptext;
-                                    exit
-                                    ;;
-        * )                         helptext
-                                    exit 1
+        -l | --launchAuto )           launch_all;
+                                      ;;
+        -k | --killAll )              helptext;
+                                      killall;
+                                      ;;
+        -lrv | --launchRedisVerify )  launch_redis;
+                                      wait_until_redis_is_ready;
+                                      ;;
+        -h | --help )                 helptext;
+                                      exit
+                                      ;;
+        * )                           helptext
+                                      exit 1
     esac
     shift
 done

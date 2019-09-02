@@ -31,6 +31,7 @@ from User import User
 
 # Import Blueprint
 from blueprints.restApi import restApi
+from blueprints.settings import settings
 
 baseUrl = ''
 if baseUrl != '':
@@ -112,6 +113,7 @@ login_manager.init_app(app)
 
 # =========  BLUEPRINT  =========#
 app.register_blueprint(restApi)
+app.register_blueprint(settings)
 # =========       =========#
 
 # ========= LOGIN MANAGER ========
