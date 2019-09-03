@@ -8,9 +8,11 @@
 import os
 import re
 import sys
+import time
 import uuid
 import json
 import redis
+import random
 import datetime
 
 from flask import Flask, render_template, jsonify, request, Blueprint, redirect, url_for, Response
@@ -42,6 +44,12 @@ r_serv_db = redis.StrictRedis(
                 db=1,
                 decode_responses=True)
 
+r_cache = redis.StrictRedis(
+                host=host_redis_metadata,
+                port=port_redis_metadata,
+                db=3,
+                decode_responses=True)
+
 # ============ AUTH FUNCTIONS ============
 
 def check_token_format(strg, search=re.compile(r'[^a-zA-Z0-9_-]').search):
@@ -54,6 +62,8 @@ def verify_token(token):
     if not check_token_format(token):
         return False
 
+    rand_sleep = random.randint(1,300)/1000
+    time.sleep(rand_sleep)
     if r_serv_db.hexists('user:tokens', token):
         return True
     else:
@@ -104,7 +114,6 @@ def authErrors(user_role):
     data = None
     # verify token format
 
-    '''
     # brute force protection
     current_ip = request.remote_addr
     login_failed_ip = r_cache.get('failed_login_ip_api:{}'.format(current_ip))
@@ -113,7 +122,6 @@ def authErrors(user_role):
         login_failed_ip = int(login_failed_ip)
         if login_failed_ip >= 5:
             return ({'status': 'error', 'reason': 'Max Connection Attempts reached, Please wait {}s'.format(r_cache.ttl('failed_login_ip_api:{}'.format(current_ip)))}, 401)
-    '''
 
     try:
         authenticated = False
@@ -125,8 +133,8 @@ def authErrors(user_role):
                 data = ({'status': 'error', 'reason': 'Access Forbidden'}, 403)
 
         if not authenticated:
-            #r_cache.incr('failed_login_ip_api:{}'.format(current_ip))
-            #r_cache.expire('failed_login_ip_api:{}'.format(current_ip), 300)
+            r_cache.incr('failed_login_ip_api:{}'.format(current_ip))
+            r_cache.expire('failed_login_ip_api:{}'.format(current_ip), 300)
             data = ({'status': 'error', 'reason': 'Authentication failed'}, 401)
     except Exception as e:
         print(e)

@@ -2,8 +2,10 @@
 # -*-coding:UTF-8 -*
 
 import os
+import time
 import redis
 import bcrypt
+import random
 
 from flask_login import UserMixin
 
@@ -43,6 +45,9 @@ class User(UserMixin):
     def check_password(self, password):
         if self.user_is_anonymous():
             return False
+
+        rand_sleep = random.randint(1,300)/1000
+        time.sleep(rand_sleep)
 
         password = password.encode()
         hashed_password = self.r_serv_db.hget('user:all', self.id).encode()

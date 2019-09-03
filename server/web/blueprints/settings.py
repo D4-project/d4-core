@@ -45,11 +45,7 @@ def one():
     return 1
 
 def check_email(email):
-    result = email_regex.match(email)
-    if result:
-        return True
-    else:
-        return False
+    return email_regex.match(email)
 
 def get_user_metadata(user_id):
     user_metadata = {}

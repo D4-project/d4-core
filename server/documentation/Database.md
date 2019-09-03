@@ -13,6 +13,7 @@ sensor registrations, management of decoding protocols and dispatching to adequa
   DB 0 - Stats + sensor configs
   DB 1 - Users
   DB 2 - Analyzer queue
+  DB 3 - Flask Cache
 ```
 
 ### DB 1

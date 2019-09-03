@@ -87,6 +87,12 @@ redis_server_analyzer = redis.StrictRedis(
                     db=2,
                     decode_responses=True)
 
+r_cache = redis.StrictRedis(
+                host=host_redis_metadata,
+                port=port_redis_metadata,
+                db=3,
+                decode_responses=True)
+
 with open(json_type_description_path, 'r') as f:
     json_type = json.loads(f.read())
 json_type_description = {}
@@ -267,7 +273,6 @@ def _handle_client_error(e):
 @app.route('/login', methods=['POST', 'GET'])
 def login():
 
-    '''
     current_ip = request.remote_addr
     login_failed_ip = r_cache.get('failed_login_ip:{}'.format(current_ip))
 
@@ -277,7 +282,6 @@ def login():
         if login_failed_ip >= 5:
             error = 'Max Connection Attempts reached, Please wait {}s'.format(r_cache.ttl('failed_login_ip:{}'.format(current_ip)))
             return render_template("login.html", error=error)
-    '''
 
     if request.method == 'POST':
         username = request.form.get('username')
@@ -286,7 +290,7 @@ def login():
 
         if username is not None:
             user = User.get(username)
-            '''
+
             login_failed_user_id = r_cache.get('failed_login_user_id:{}'.format(username))
             # brute force by user_id
             if login_failed_user_id:
@@ -294,7 +298,6 @@ def login():
                 if login_failed_user_id >= 5:
                     error = 'Max Connection Attempts reached, Please wait {}s'.format(r_cache.ttl('failed_login_user_id:{}'.format(username)))
                     return render_template("login.html", error=error)
-            '''
 
             if user and user.check_password(password):
                 #if not check_user_role_integrity(user.get_id()):
@@ -309,11 +312,10 @@ def login():
             else:
                 # set brute force protection
                 #logger.warning("Login failed, ip={}, username={}".format(current_ip, username))
-                #r_cache.incr('failed_login_ip:{}'.format(current_ip))
-                #r_cache.expire('failed_login_ip:{}'.format(current_ip), 300)
-                #r_cache.incr('failed_login_user_id:{}'.format(username))
-                #r_cache.expire('failed_login_user_id:{}'.format(username), 300)
-                #
+                r_cache.incr('failed_login_ip:{}'.format(current_ip))
+                r_cache.expire('failed_login_ip:{}'.format(current_ip), 300)
+                r_cache.incr('failed_login_user_id:{}'.format(username))
+                r_cache.expire('failed_login_user_id:{}'.format(username), 300)
 
                 error = 'Password Incorrect'
                 return render_template("login.html", error=error)
