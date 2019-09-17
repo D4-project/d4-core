@@ -1,6 +1,8 @@
 twisted[tls]
 redis
 flask
+flask-login
+bcrypt
 
 #sudo python3 -m pip install --upgrade service_identity
 

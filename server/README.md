@@ -42,6 +42,11 @@ cd web
 ./update_web.sh
 ~~~~
 
+### API
+
+[API Documentation](https://github.com/D4-project/d4-core/tree/master/server/documentation/README.md)
+
+
 ### Notes
 
 - All server logs are located in ``d4-core/server/logs/``
