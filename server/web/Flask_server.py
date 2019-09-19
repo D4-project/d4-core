@@ -214,13 +214,14 @@ def get_uuid_disk_statistics(uuid_name, date_day='', type='', all_types_on_disk=
             all_types_on_disk[type] = uuid_type_path
     else:
         # Get all types save on disk
-        for file in os.listdir(uuid_data_directory):
-            if date_day:
-                uuid_type_path = os.path.join(uuid_data_directory, file, directory_date)
-            else:
-                uuid_type_path = os.path.join(uuid_data_directory, file)
-            if os.path.isdir(uuid_type_path):
-                all_types_on_disk[file] = uuid_type_path
+        if os.path.isfile(uuid_data_directory):
+            for file in os.listdir(uuid_data_directory):
+                if date_day:
+                    uuid_type_path = os.path.join(uuid_data_directory, file, directory_date)
+                else:
+                    uuid_type_path = os.path.join(uuid_data_directory, file)
+                if os.path.isdir(uuid_type_path):
+                    all_types_on_disk[file] = uuid_type_path
 
     nb_file = 0
     total_size = 0
@@ -578,12 +579,19 @@ def server_management():
 def uuid_management():
     uuid_sensor = request.args.get('uuid')
     if is_valid_uuid_v4(uuid_sensor):
+        uuid_sensor = uuid_sensor.replace('-', '')
 
         disk_stats = get_uuid_disk_statistics(uuid_sensor)
         first_seen = redis_server_metadata.hget('metadata_uuid:{}'.format(uuid_sensor), 'first_seen')
-        first_seen_gmt = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(int(first_seen)))
+        if first_seen:
+            first_seen_gmt = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(int(first_seen)))
+        else:
+            first_seen_gmt = '-'
         last_seen = redis_server_metadata.hget('metadata_uuid:{}'.format(uuid_sensor), 'last_seen')
-        last_seen_gmt = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(int(last_seen)))
+        if last_seen:
+            last_seen_gmt = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(int(last_seen)))
+        else:
+            last_seen_gmt = '-'
         description = redis_server_metadata.hget('metadata_uuid:{}'.format(uuid_sensor), 'description')
         if not description:
             description = ''
