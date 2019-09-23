@@ -7,3 +7,6 @@ openssl req -sha256 -new -key server.key -out server.csr -config san.cnf
 openssl x509 -req -in server.csr -CA rootCA.crt -CAkey rootCA.key -CAcreateserial -out server.crt -days 500 -sha256 -extfile ext3.cnf
 # Concat in pem
 cat server.crt server.key > ../server.pem
+# Copy certs for Flask https
+cp server.key ../web/server.key
+cp server.crt ../web/server.crt
