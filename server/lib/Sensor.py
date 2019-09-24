@@ -5,6 +5,8 @@ import os
 import uuid
 import redis
 
+from Flask import escape
+
 host_redis_metadata = os.getenv('D4_REDIS_METADATA_HOST', "localhost")
 port_redis_metadata = int(os.getenv('D4_REDIS_METADATA_PORT', 6380))
 
@@ -33,6 +35,13 @@ def register_sensor(req_dict):
     # sensor already exist
     if r_serv_db.exists('metadata_uuid:{}'.format(sensor_uuid)):
         return ({"status": "error", "reason": "Sensor already registred"}, 409)
+
+    # hmac key
+    if not hmac_key:
+        return ({"status": "error", "reason": "Mandatory parameter(s) not provided"}, 400)
+    else:
+        hmac_key = escape(hmac_key)
+
 
     res = _register_sensor(sensor_uuid, hmac_key, user_id=user_id, description=None)
     return res
