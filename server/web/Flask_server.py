@@ -214,7 +214,7 @@ def get_uuid_disk_statistics(uuid_name, date_day='', type='', all_types_on_disk=
             all_types_on_disk[type] = uuid_type_path
     else:
         # Get all types save on disk
-        if os.path.isfile(uuid_data_directory):
+        if os.path.isdir(uuid_data_directory):
             for file in os.listdir(uuid_data_directory):
                 if date_day:
                     uuid_type_path = os.path.join(uuid_data_directory, file, directory_date)
