@@ -5,7 +5,7 @@ import os
 import uuid
 import redis
 
-from Flask import escape
+from flask import escape
 
 host_redis_metadata = os.getenv('D4_REDIS_METADATA_HOST', "localhost")
 port_redis_metadata = int(os.getenv('D4_REDIS_METADATA_PORT', 6380))
