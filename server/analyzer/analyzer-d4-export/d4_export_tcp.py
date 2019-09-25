@@ -22,6 +22,7 @@ if __name__ == "__main__":
     parser.add_argument('-u', '--uuid', help='queue uuid' , type=str, dest='uuid', required=True)
     parser.add_argument('-i', '--ip',help='server ip' , type=str, default='127.0.0.1', dest='target_ip')
     parser.add_argument('-p', '--port',help='server port' , type=int, dest='target_port', required=True)
+    parser.add_argument('-k', '--Keepalive', help='Keepalive in second', type=int, default='15', dest='ka_sec')
     parser.add_argument('-n', '--newline', help='add new lines', action="store_true")
     parser.add_argument('-ri', '--redis_ip',help='redis host' , type=str, default='127.0.0.1', dest='host_redis')
     parser.add_argument('-rp', '--redis_port',help='redis port' , type=int, default=6380, dest='port_redis')
@@ -53,8 +54,20 @@ if __name__ == "__main__":
     target_port = args.target_port
     addr = (target_ip, target_port)
 
-    #Create a UDP socket
-    client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    # default keep alive: 15
+    ka_sec = args.ka_sec
+
+    # Create a TCP socket
+    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+    # TCP Keepalive
+    client_socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+    client_socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPCNT, 1)
+    client_socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, ka_sec)
+    client_socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, ka_sec)
+
+    # TCP connect
+    client_socket.connect(addr)
 
     newLines=True
     while True:
@@ -68,6 +81,6 @@ if __name__ == "__main__":
             d4_data = d4_data + b'\n'
 
         print(d4_data)
-        client_socket.sendto(d4_data, addr)
+        client_socket.sendall(d4_data)
 
     client_socket.close()
