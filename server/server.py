@@ -26,6 +26,9 @@ hmac_key = os.getenv('D4_HMAC_KEY', b'private key to change')
 accepted_type = [1, 2, 4, 8, 254]
 accepted_extended_type = ['ja3-jl']
 
+all_server_modes = ('registration', 'shared-secret')
+server_mode = 'registration'
+
 timeout_time = 30
 
 header_size = 62
@@ -38,6 +41,9 @@ port_redis_stream = int(os.getenv('D4_REDIS_STREAM_PORT', 6379))
 
 host_redis_metadata = os.getenv('D4_REDIS_METADATA_HOST', "localhost")
 port_redis_metadata = int(os.getenv('D4_REDIS_METADATA_PORT', 6380))
+
+
+### REDIS ###
 
 redis_server_stream = redis.StrictRedis(
                     host=host_redis_stream,
@@ -61,18 +67,110 @@ except redis.exceptions.ConnectionError:
     print('Error: Redis server {}:{}, ConnectionError'.format(host_redis_metadata, port_redis_metadata))
     sys.exit(1)
 
+### REDIS ###
+
 # set hmac default key
 redis_server_metadata.set('server:hmac_default_key', hmac_key)
 
 # init redis_server_metadata
-redis_server_metadata.delete('server:accepted_type')
 for type in accepted_type:
     redis_server_metadata.sadd('server:accepted_type', type)
-redis_server_metadata.delete('server:accepted_extended_type')
 for type in accepted_extended_type:
     redis_server_metadata.sadd('server:accepted_extended_type', type)
 
 dict_all_connection =  {}
+
+### FUNCTIONS ###
+
+# kick sensors
+def kick_sensors():
+    for client_uuid in redis_server_stream.smembers('server:sensor_to_kick'):
+        client_uuid = client_uuid.decode()
+        for session_uuid in redis_server_stream.smembers('map:active_connection-uuid-session_uuid:{}'.format(client_uuid)):
+            session_uuid = session_uuid.decode()
+            logger.warning('Sensor kicked uuid={}, session_uuid={}'.format(client_uuid, session_uuid))
+            redis_server_stream.set('temp_blacklist_uuid:{}'.format(client_uuid), 'some random string')
+            redis_server_stream.expire('temp_blacklist_uuid:{}'.format(client_uuid), 30)
+            dict_all_connection[session_uuid].transport.abortConnection()
+        redis_server_stream.srem('server:sensor_to_kick', client_uuid)
+
+# Unpack D4 Header
+#def unpack_header(data):
+#    data_header = {}
+#    if len(data) >= header_size:
+#        data_header['version'] = struct.unpack('B', data[0:1])[0]
+#        data_header['type'] = struct.unpack('B', data[1:2])[0]
+#        data_header['uuid_header'] = data[2:18].hex()
+#        data_header['timestamp'] = struct.unpack('Q', data[18:26])[0]
+#        data_header['hmac_header'] = data[26:58]
+#        data_header['size'] = struct.unpack('I', data[58:62])[0]
+#    return data_header
+
+def is_valid_uuid_v4(header_uuid):
+    try:
+        uuid_test = uuid.UUID(hex=header_uuid, version=4)
+        return uuid_test.hex == header_uuid
+    except:
+        logger.info('Not UUID v4: uuid={}, session_uuid={}'.format(header_uuid, self.session_uuid))
+        return False
+
+# # TODO:  check timestamp
+def is_valid_header(uuid_to_check, type):
+    if is_valid_uuid_v4(uuid_to_check):
+        if redis_server_metadata.sismember('server:accepted_type', type):
+            return True
+        else:
+            logger.warning('Invalid type, the server don\'t accept this type: {}, uuid={}, session_uuid={}'.format(type, uuid_to_check, self.session_uuid))
+            return False
+    else:
+        logger.info('Invalid Header, uuid={}, session_uuid={}'.format(uuid_to_check, self.session_uuid))
+        return False
+
+def extract_ip(ip_string):
+    #remove interface
+    ip_string = ip_string.split('%')[0]
+    # IPv4
+    #extract ipv4
+    if '.' in ip_string:
+        return ip_string.split(':')[-1]
+    # IPv6
+    else:
+        return ip_string
+
+def server_mode_registration(header_uuid):
+    # only accept registred uuid
+    if server_mode == 'registration':
+        if not redis_server_metadata.sismember('registered_uuid', header_uuid):
+            error_msg = 'Not registred UUID={}, connection closed'.format(header_uuid)
+            print(error_msg)
+            logger.warning(error_msg)
+            #redis_server_metadata.hset('metadata_uuid:{}'.format(data_header['uuid_header']), 'Error', 'Error: This UUID is temporarily blacklisted')
+            return False
+        else:
+            return True
+    else:
+        return True
+
+def is_client_ip_blacklisted():
+    pass
+
+def is_uuid_blacklisted(uuid):
+    return redis_server_metadata.sismember('blacklist_uuid', data_header['uuid_header'])
+
+
+# return True if not blocked
+# False if blacklisted
+def check_blacklist():
+    pass
+
+# Kill Connection + create log
+#def manual_abort_connection(self, message, log_level='WARNING'):
+#    logger.log(message)
+#    self.transport.abortConnection()
+#    return 1
+
+###  ###
+
 
 class D4_Server(Protocol, TimeoutMixin):
 
@@ -96,20 +194,12 @@ class D4_Server(Protocol, TimeoutMixin):
 
     def dataReceived(self, data):
         # check and kick sensor by uuid
-        for client_uuid in redis_server_stream.smembers('server:sensor_to_kick'):
-            client_uuid = client_uuid.decode()
-            for session_uuid in redis_server_stream.smembers('map:active_connection-uuid-session_uuid:{}'.format(client_uuid)):
-                session_uuid = session_uuid.decode()
-                logger.warning('Sensor kicked uuid={}, session_uuid={}'.format(client_uuid, session_uuid))
-                redis_server_stream.set('temp_blacklist_uuid:{}'.format(client_uuid), 'some random string')
-                redis_server_stream.expire('temp_blacklist_uuid:{}'.format(client_uuid), 30)
-                dict_all_connection[session_uuid].transport.abortConnection()
-            redis_server_stream.srem('server:sensor_to_kick', client_uuid)
+        kick_sensors()
 
         self.resetTimeout()
         if self.first_connection or self.ip is None:
             client_info = self.transport.client
-            self.ip = self.extract_ip(client_info[0])
+            self.ip = extract_ip(client_info[0])
             self.source_port = client_info[1]
             logger.debug('New connection, ip={}, port={} session_uuid={}'.format(self.ip, self.source_port, self.session_uuid))
         # check blacklisted_ip
@@ -171,37 +261,7 @@ class D4_Server(Protocol, TimeoutMixin):
             data_header['timestamp'] = struct.unpack('Q', data[18:26])[0]
             data_header['hmac_header'] = data[26:58]
             data_header['size'] = struct.unpack('I', data[58:62])[0]
-            return data_header
-
-    def extract_ip(self, ip_string):
-        #remove interface
-        ip_string = ip_string.split('%')[0]
-        # IPv4
-        #extract ipv4
-        if '.' in ip_string:
-            return ip_string.split(':')[-1]
-        # IPv6
-        else:
-            return ip_string
-
-    def is_valid_uuid_v4(self, header_uuid):
-        try:
-            uuid_test = uuid.UUID(hex=header_uuid, version=4)
-            return uuid_test.hex == header_uuid
-        except:
-            logger.info('Not UUID v4: uuid={}, session_uuid={}'.format(header_uuid, self.session_uuid))
-            return False
-
-    # # TODO:  check timestamp
-    def is_valid_header(self, uuid_to_check, type):
-        if self.is_valid_uuid_v4(uuid_to_check):
-            if redis_server_metadata.sismember('server:accepted_type', type):
-                return True
-            else:
-                logger.warning('Invalid type, the server don\'t accept this type: {}, uuid={}, session_uuid={}'.format(type, uuid_to_check, self.session_uuid))
-        else:
-            logger.info('Invalid Header, uuid={}, session_uuid={}'.format(uuid_to_check, self.session_uuid))
-            return False
+        return data_header
 
     def check_connection_validity(self, data_header):
         # blacklist ip by uuid
@@ -214,6 +274,11 @@ class D4_Server(Protocol, TimeoutMixin):
         # uuid blacklist
         if redis_server_metadata.sismember('blacklist_uuid', data_header['uuid_header']):
             logger.warning('Blacklisted UUID={}, connection closed'.format(data_header['uuid_header']))
+            self.transport.abortConnection()
+            return False
+
+        # Check server mode
+        if not server_mode_registration(data_header['uuid_header']):
             self.transport.abortConnection()
             return False
 
@@ -246,7 +311,7 @@ class D4_Server(Protocol, TimeoutMixin):
             if data_header:
                 if not self.check_connection_validity(data_header):
                     return 1
-                if self.is_valid_header(data_header['uuid_header'], data_header['type']):
+                if is_valid_header(data_header['uuid_header'], data_header['type']):
 
                     # auto kill connection # TODO: map type
                     if self.first_connection:

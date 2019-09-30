@@ -17,17 +17,18 @@ import configparser
 
 import subprocess
 
-from flask import Flask, render_template, jsonify, request, Blueprint, redirect, url_for, Response
+from flask import Flask, render_template, jsonify, request, Blueprint, redirect, url_for, Response, escape
 from flask_login import LoginManager, current_user, login_user, logout_user, login_required
 
 import bcrypt
 
 # Import Role_Manager
 from Role_Manager import create_user_db, check_password_strength, check_user_role_integrity
-from Role_Manager import login_user_basic
+from Role_Manager import login_user_basic, login_admin
 
 sys.path.append(os.path.join(os.environ['D4_HOME'], 'lib'))
 from User import User
+import Sensor
 
 # Import Blueprint
 from blueprints.restApi import restApi
@@ -709,6 +710,38 @@ def blacklisted_uuid():
                             unblacklisted_uuid=unblacklisted_uuid, blacklisted_uuid=blacklisted_uuid)
 
 
+@app.route('/server/pending_sensor')
+@login_required
+@login_admin
+def pending_sensors():
+    sensors = Sensor.get_pending_sensor()
+    all_pending = []
+    for sensor_uuid in sensors:
+        all_pending.append(Sensor._get_sensor_metadata(sensor_uuid, first_seen=False, last_seen=False))
+    return render_template("pending_sensor.html", all_pending=all_pending)
+
+@app.route('/server/approve_sensor')
+@login_required
+@login_admin
+def approve_sensor():
+    uuid_sensor = request.args.get('uuid')
+    res = Sensor.approve_sensor({'uuid': uuid_sensor})
+    if res[1] == 200:
+        return redirect(url_for('pending_sensors'))
+    else:
+        return jsonify(res[0])
+
+@app.route('/server/delete_pending_sensor')
+@login_required
+@login_admin
+def delete_pending_sensor():
+    uuid_sensor = request.args.get('uuid')
+    res = Sensor.delete_pending_sensor({'uuid': uuid_sensor})
+    if res[1] == 200:
+        return redirect(url_for('pending_sensors'))
+    else:
+        return jsonify(res[0])
+
 @app.route('/uuid_change_stream_max_size')
 @login_required
 @login_user_basic
@@ -1042,7 +1075,10 @@ def set_uuid_hmac_key():
     uuid_sensor = request.args.get('uuid')
     user = request.args.get('redirect')
     key = request.args.get('key')
-    redis_server_metadata.hset('metadata_uuid:{}'.format(uuid_sensor), 'hmac_key', key)
+    hmac_key = escape(key)
+    if len(hmac_key)>100:
+        hmac_key=hmac_key[:100]
+    redis_server_metadata.hset('metadata_uuid:{}'.format(uuid_sensor), 'hmac_key', hmac_key)
     if user:
         return redirect(url_for('uuid_management', uuid=uuid_sensor))
 

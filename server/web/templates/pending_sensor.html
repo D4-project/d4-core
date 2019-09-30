@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+	<title>D4-Project</title>
+	<link rel="icon" href="{{ url_for('static', filename='img/d4-logo.png')}}">
+	<!-- Core CSS -->
+	<link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+	<link href="{{ url_for('static', filename='font-awesome/css/font-awesome.css') }}" rel="stylesheet">
+	<link href="{{ url_for('static', filename='css/dataTables.bootstrap.min.css') }}" rel="stylesheet">
+
+	<!-- JS -->
+	<script src="{{ url_for('static', filename='js/jquery.js')}}"></script>
+	<script src="{{ url_for('static', filename='js/popper.min.js')}}"></script>
+	<script src="{{ url_for('static', filename='js/bootstrap.min.js')}}"></script>
+	<script src="{{ url_for('static', filename='js/jquery.dataTables.min.js')}}"></script>
+	<script src="{{ url_for('static', filename='js/dataTables.bootstrap.min.js')}}"></script>
+
+  <style>
+	.popover{
+		max-width: 100%;
+	}
+  </style>
+
+
+</head>
+
+<body>
+
+	{% include 'navbar.html' %}
+
+	<div class="d-flex justify-content-center">
+		<div class="card border-dark mt-3 text-center" style="max-width: 30rem;">
+			<div class="card-body text-dark">
+				<h5 class="card-title">Approve New Sensor UUID</h5>
+				<input class="form-control" type="text" id="uuid" value="" required>
+				<button type="button" class="btn btn-outline-secondary mt-1" onclick="window.location.href ='{{ url_for('approve_sensor') }}?uuid='+$('#uuid').val();">Approve UUID</button>
+			</div>
+		</div>
+	</div>
+
+	<div class="py-3 mx-2">
+		<table class="table table-striped table-bordered table-hover text-center" id="myTable_1">
+			<thead>
+				<tr>
+					<th class="bg-info text-white">UUID</th>
+					<th class="bg-info text-white">description</th>
+					<th class="bg-info text-white">mail</th>
+					<th class="bg-info text-white"></th>
+				</tr>
+			</thead>
+			<tbody>
+				{% for row_uuid in all_pending %}
+					<tr data-trigger="hover" title="" data-content="test content" data-original-title="test title">
+						<td>
+							<a class="" href="{{ url_for('uuid_management') }}?uuid={{row_uuid['uuid']}}">
+								{{row_uuid['uuid']}}
+							</a>
+						</td>
+						<td>{{row_uuid['description']}}</td>
+						<td>{{row_uuid['mail']}}</td>
+						<td>
+							<a href="{{ url_for('approve_sensor') }}?uuid={{row_uuid['uuid']}}">
+								<button type="button" class="btn btn-outline-info"><i class="fa fa-plus"></i></button>
+							</a>
+							<a href="{{ url_for('delete_pending_sensor') }}?uuid={{row_uuid['uuid']}}">
+								<button type="button" class="btn btn-outline-danger"><i class="fa fa-trash"></i></button>
+							</a>
+						</td>
+					</tr>
+				{% endfor %}
+			</tbody>
+		</table>
+	</div>
+
+
+	{% include 'navfooter.html' %}
+</body>
+
+<script>
+$(document).ready(function(){
+	table = $('#myTable_1').DataTable(
+		{
+			"aLengthMenu": [[5, 10, 15, 20, -1], [5, 10, 15, 20, "All"]],
+			"iDisplayLength": 10,
+			"order": [[ 0, "asc" ]]
+		}
+	);
+	$('[data-toggle="popover"]').popover({
+		placement: 'top',
+		container: 'body',
+		html : false,
+	})
+});
+
+</script>

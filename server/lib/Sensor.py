@@ -2,6 +2,7 @@
 # -*-coding:UTF-8 -*
 
 import os
+import time
 import uuid
 import redis
 
@@ -13,7 +14,8 @@ port_redis_metadata = int(os.getenv('D4_REDIS_METADATA_PORT', 6380))
 r_serv_db = redis.StrictRedis(
     host=host_redis_metadata,
     port=port_redis_metadata,
-    db=0)
+    db=0,
+    decode_responses=True)
 
 def is_valid_uuid_v4(UUID):
     UUID = UUID.replace('-', '')
@@ -22,6 +24,20 @@ def is_valid_uuid_v4(UUID):
         return uuid_test.hex == UUID
     except:
         return False
+
+def _get_sensor_metadata(sensor_uuid, first_seen=True, last_seen=True, mail=True, description=True):
+
+    meta_sensor = {}
+    meta_sensor['uuid'] = sensor_uuid
+    if first_seen:
+        meta_sensor['first_seen'] = r_serv_db.hget('metadata_uuid:{}'.format(sensor_uuid), 'first_seen')
+    if last_seen:
+        meta_sensor['last_seen'] = r_serv_db.hget('metadata_uuid:{}'.format(sensor_uuid), 'last_seen')
+    if description:
+        meta_sensor['description'] = r_serv_db.hget('metadata_uuid:{}'.format(sensor_uuid), 'description')
+    if mail:
+        meta_sensor['mail'] = r_serv_db.hget('metadata_uuid:{}'.format(sensor_uuid), 'user_mail')
+    return meta_sensor
 
 ## TODO: add description
 def register_sensor(req_dict):
@@ -41,6 +57,8 @@ def register_sensor(req_dict):
         return ({"status": "error", "reason": "Mandatory parameter(s) not provided"}, 400)
     else:
         hmac_key = escape(hmac_key)
+        if len(hmac_key)>100:
+            hmac_key=hmac_key[:100]
 
 
     res = _register_sensor(sensor_uuid, hmac_key, user_id=user_id, description=None)
@@ -53,4 +71,43 @@ def _register_sensor(sensor_uuid, secret_key, user_id=None, description=None):
         r_serv_db.hset('metadata_uuid:{}'.format(sensor_uuid), 'user_mail', user_id)
     if description:
         r_serv_db.hset('metadata_uuid:{}'.format(sensor_uuid), 'description', description)
+    r_serv_db.sadd('sensor_pending_registration', sensor_uuid)
+    return ({'uuid': sensor_uuid}, 200)
+
+def get_pending_sensor():
+    return list(r_serv_db.smembers('sensor_pending_registration'))
+
+def approve_sensor(req_dict):
+    sensor_uuid = req_dict.get('uuid', None)
+    if not is_valid_uuid_v4(sensor_uuid):
+        return ({"status": "error", "reason": "Invalid uuid"}, 400)
+    sensor_uuid = sensor_uuid.replace('-', '')
+    # sensor not registred
+    #if r_serv_db.sismember('sensor_pending_registration', sensor_uuid):
+    #    return ({"status": "error", "reason": "Sensor not registred"}, 404)
+    # sensor already approved
+    if r_serv_db.sismember('registered_uuid', sensor_uuid):
+        return ({"status": "error", "reason": "Sensor already approved"}, 409)
+    return _approve_sensor(sensor_uuid)
+
+def _approve_sensor(sensor_uuid):
+    r_serv_db.sadd('registered_uuid', sensor_uuid)
+    r_serv_db.srem('sensor_pending_registration', sensor_uuid)
+    return ({'uuid': sensor_uuid}, 200)
+
+def delete_pending_sensor(req_dict):
+    sensor_uuid = req_dict.get('uuid', None)
+    if not is_valid_uuid_v4(sensor_uuid):
+        return ({"status": "error", "reason": "Invalid uuid"}, 400)
+    sensor_uuid = sensor_uuid.replace('-', '')
+    # sensor not registred
+    #if r_serv_db.sismember('sensor_pending_registration', sensor_uuid):
+    #    return ({"status": "error", "reason": "Sensor not registred"}, 404)
+    # sensor already approved
+    if not r_serv_db.sismember('sensor_pending_registration', sensor_uuid):
+        return ({"status": "error", "reason": "Not Pending Sensor"}, 409)
+    return _delete_pending_sensor(sensor_uuid)
+
+def _delete_pending_sensor(sensor_uuid):
+    r_serv_db.srem('sensor_pending_registration', sensor_uuid)
     return ({'uuid': sensor_uuid}, 200)
