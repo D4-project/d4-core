@@ -152,7 +152,7 @@ if __name__ == "__main__":
 
 
                     # save data on disk
-                    if save_to_file:
+                    if save_to_file and b'\n' in data[b'message']:
                         new_date = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
                         # check if a new rotation is needed
                         if ( new_date[0:8] != date_file[0:8] ) or ( time.time() - time_file > rotation_save_cycle ):
@@ -160,7 +160,7 @@ if __name__ == "__main__":
                             rotate_file = True
 
                         # file rotation
-                        if rotate_file and b'\n' in data[b'message']:
+                        if rotate_file:
                             end_file, start_new_file = data[b'message'].rsplit(b'\n', maxsplit=1)
                             # save end of file
                             with open(save_path, 'ab') as f:
