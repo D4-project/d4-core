@@ -4,4 +4,5 @@ use_default_save_directory = yes
 save_directory = None
 
 [D4_Server]
-server_mode = registration # registration or shared-secret
+# registration or shared-secret
+server_mode = registration
