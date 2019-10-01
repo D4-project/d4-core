@@ -25,7 +25,26 @@ def is_valid_uuid_v4(UUID):
     except:
         return False
 
-def _get_sensor_metadata(sensor_uuid, first_seen=True, last_seen=True, mail=True, description=True):
+def _get_sensor_type(sensor_uuid, first_seen=True, last_seen=True, time_format='default'):
+    uuid_type = []
+    uuid_all_type = r_serv_db.smembers('all_types_by_uuid:{}'.format(sensor_uuid))
+    for type in uuid_all_type:
+        type_meta = {}
+        type_meta['type'] = type
+        if first_seen:
+            type_meta['first_seen'] = r_serv_db.hget('metadata_type_by_uuid:{}:{}'.format(sensor_uuid, type), 'first_seen')
+        if last_seen:
+            type_meta['last_seen'] = r_serv_db.hget('metadata_type_by_uuid:{}:{}'.format(sensor_uuid, type), 'last_seen')
+        # time format
+        if time_format=='gmt':
+            if type_meta['first_seen']:
+                type_meta['first_seen'] = datetime.datetime.fromtimestamp(float(type_meta['first_seen'])).strftime('%Y-%m-%d %H:%M:%S')
+            if type_meta['last_seen']:
+                type_meta['last_seen'] = datetime.datetime.fromtimestamp(float(type_meta['last_seen'])).strftime('%Y-%m-%d %H:%M:%S')
+        uuid_type.append(type_meta)
+    return uuid_type
+
+def _get_sensor_metadata(sensor_uuid, first_seen=True, last_seen=True, time_format='default', sensor_types=False, mail=True, description=True):
 
     meta_sensor = {}
     meta_sensor['uuid'] = sensor_uuid
@@ -33,6 +52,15 @@ def _get_sensor_metadata(sensor_uuid, first_seen=True, last_seen=True, mail=True
         meta_sensor['first_seen'] = r_serv_db.hget('metadata_uuid:{}'.format(sensor_uuid), 'first_seen')
     if last_seen:
         meta_sensor['last_seen'] = r_serv_db.hget('metadata_uuid:{}'.format(sensor_uuid), 'last_seen')
+    # time format
+    if time_format=='gmt':
+        if meta_sensor['first_seen']:
+            meta_sensor['first_seen'] = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(int(meta_sensor['first_seen'])))
+        if meta_sensor['last_seen']:
+            meta_sensor['last_seen'] = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(int(meta_sensor['last_seen'])))
+
+    if sensor_types:
+        meta_sensor['types'] = _get_sensor_type(sensor_uuid, first_seen=False, last_seen=False)
     if description:
         meta_sensor['description'] = r_serv_db.hget('metadata_uuid:{}'.format(sensor_uuid), 'description')
     if mail:
@@ -76,6 +104,15 @@ def _register_sensor(sensor_uuid, secret_key, user_id=None, description=None):
 
 def get_pending_sensor():
     return list(r_serv_db.smembers('sensor_pending_registration'))
+
+def get_nb_pending_sensor():
+    return r_serv_db.scard('sensor_pending_registration')
+
+def get_nb_registered_sensors():
+    return r_serv_db.scard('registered_uuid')
+
+def get_registered_sensors():
+    return list(r_serv_db.smembers('registered_uuid'))
 
 def approve_sensor(req_dict):
     sensor_uuid = req_dict.get('uuid', None)

@@ -38,6 +38,8 @@ baseUrl = ''
 if baseUrl != '':
     baseUrl = '/'+baseUrl
 
+all_server_modes = ('registration', 'shared-secret')
+
 host_redis_stream = os.getenv('D4_REDIS_STREAM_HOST', "localhost")
 port_redis_stream = int(os.getenv('D4_REDIS_STREAM_PORT', 6379))
 
@@ -60,6 +62,10 @@ if use_default_save_directory:
     data_directory = os.path.join(os.environ['D4_HOME'], 'data')
 else:
     data_directory = config_server['Save_Directories'].get('save_directory')
+
+server_mode = config_server['D4_Server'].get('server_mode')
+if server_mode not in all_server_modes:
+    print('Error: incorrect server_mode')
 
 redis_server_stream = redis.StrictRedis(
                     host=host_redis_stream,
@@ -506,6 +512,9 @@ def show_active_uuid():
 @login_required
 @login_user_basic
 def server_management():
+    nb_sensors_registered = Sensor.get_nb_registered_sensors()
+    nb_sensors_pending = Sensor.get_nb_pending_sensor()
+
     blacklisted_ip = request.args.get('blacklisted_ip')
     unblacklisted_ip = request.args.get('unblacklisted_ip')
     blacklisted_uuid = request.args.get('blacklisted_uuid')
@@ -570,6 +579,8 @@ def server_management():
         list_accepted_extended_types.append({"name": extended_type, 'list_analyzer_uuid': list_analyzer_uuid})
 
     return render_template("server_management.html", list_accepted_types=list_accepted_types, list_accepted_extended_types=list_accepted_extended_types,
+                            server_mode=server_mode,
+                            nb_sensors_registered=nb_sensors_registered, nb_sensors_pending=nb_sensors_pending,
                             default_analyzer_max_line_len=default_analyzer_max_line_len,
                             blacklisted_ip=blacklisted_ip, unblacklisted_ip=unblacklisted_ip,
                             blacklisted_uuid=blacklisted_uuid, unblacklisted_uuid=unblacklisted_uuid)
@@ -709,6 +720,15 @@ def blacklisted_uuid():
                             page=page, nb_page_max=nb_page_max,
                             unblacklisted_uuid=unblacklisted_uuid, blacklisted_uuid=blacklisted_uuid)
 
+@app.route('/server/registered_sensor')
+@login_required
+@login_admin
+def registered_sensor():
+    sensors = Sensor.get_registered_sensors()
+    all_sensors = []
+    for sensor_uuid in sensors:
+        all_sensors.append(Sensor._get_sensor_metadata(sensor_uuid, time_format='gmt', sensor_types=True))
+    return render_template("registered_sensors.html", all_sensors=all_sensors)
 
 @app.route('/server/pending_sensor')
 @login_required

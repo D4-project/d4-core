@@ -12,6 +12,7 @@ import datetime
 import argparse
 import logging
 import logging.handlers
+import configparser
 
 from twisted.internet import ssl, task, protocol, endpoints, defer
 from twisted.python import log
@@ -27,7 +28,6 @@ accepted_type = [1, 2, 4, 8, 254]
 accepted_extended_type = ['ja3-jl']
 
 all_server_modes = ('registration', 'shared-secret')
-server_mode = 'registration'
 
 timeout_time = 30
 
@@ -583,6 +583,21 @@ if __name__ == "__main__":
     handler_log.setFormatter(formatter)
     logger.addHandler(handler_log)
     logger.setLevel(args.verbose)
+
+
+    # get file config
+    config_file_server = os.path.join(os.environ['D4_HOME'], 'configs/server.conf')
+    config_server = configparser.ConfigParser()
+    config_server.read(config_file_server)
+
+    # get server_mode
+    server_mode = config_server['D4_Server'].get('server_mode')
+    if server_mode not in all_server_modes:
+        print('Error: incorrect server_mode')
+        logger.critical('Error: incorrect server_mode')
+        sys.exit(1)
+    logger.info('Server mode: {}'.format(server_mode))
+
 
     logger.info('Launching Server ...')
 

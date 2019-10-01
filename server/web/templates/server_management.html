@@ -21,6 +21,24 @@
 
 	{% include 'navbar.html' %}
 
+	<div class="d-flex justify-content-center">
+		<div class="card border-secondary mt-3 text-center" style="max-width: 30rem;">
+			<div class="card-body text-dark">
+				<h5 class="card-title">D4 Server mode:
+					<span class="badge badge-dark">
+						{{server_mode}}
+					</span>
+				</h5>
+				<a href="{{ url_for('registered_sensor') }}">
+					<button type="button" class="btn btn-info">Registered Sensors    <span class="badge badge-light">{{nb_sensors_registered}}</span></button>
+				</a>
+				<a href="{{ url_for('pending_sensors') }}">
+					<button type="button" class="btn btn-outline-secondary">Pending Sensors    <span class="badge badge-danger">{{nb_sensors_pending}}</span></button>
+				</a>
+			</div>
+		</div>
+	</div>
+
 	<div class="card-deck ml-0 mr-0">
 		<div class="card text-center mt-3 ml-xl-4">
 			<div class="card-header bg-danger text-white">
