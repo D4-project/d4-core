@@ -762,6 +762,17 @@ def delete_pending_sensor():
     else:
         return jsonify(res[0])
 
+@app.route('/server/delete_registered_sensor')
+@login_required
+@login_admin
+def delete_registered_sensor():
+    uuid_sensor = request.args.get('uuid')
+    res = Sensor.delete_registered_sensor({'uuid': uuid_sensor})
+    if res[1] == 200:
+        return redirect(url_for('registered_sensor'))
+    else:
+        return jsonify(res[0])
+
 @app.route('/uuid_change_stream_max_size')
 @login_required
 @login_user_basic

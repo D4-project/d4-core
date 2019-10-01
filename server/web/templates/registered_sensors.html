@@ -38,6 +38,7 @@
 					<th class="bg-info text-white">last seen</th>
 					<th class="bg-info text-white">types</th>
 					<th class="bg-secondary text-white">Status</th>
+					<th class="bg-secondary text-white"></th>
 				</tr>
 			</thead>
 			<tbody>
@@ -84,6 +85,11 @@
 							{% if row_uuid['active_connection'] %}
 									<i class="fa fa-check-circle"></i> Connected
 							{% endif %}
+						</td>
+						<td>
+							<a href="{{ url_for('delete_registered_sensor') }}?uuid={{row_uuid['uuid']}}">
+								<button type="button" class="btn btn-outline-danger"><i class="fa fa-trash"></i></button>
+							</a>
 						</td>
 					</tr>
 				{% endfor %}

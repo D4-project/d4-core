@@ -148,3 +148,17 @@ def delete_pending_sensor(req_dict):
 def _delete_pending_sensor(sensor_uuid):
     r_serv_db.srem('sensor_pending_registration', sensor_uuid)
     return ({'uuid': sensor_uuid}, 200)
+
+def delete_registered_sensor(req_dict):
+    sensor_uuid = req_dict.get('uuid', None)
+    if not is_valid_uuid_v4(sensor_uuid):
+        return ({"status": "error", "reason": "Invalid uuid"}, 400)
+    sensor_uuid = sensor_uuid.replace('-', '')
+    # sensor not registred
+    if not r_serv_db.sismember('registered_uuid', sensor_uuid):
+        return ({"status": "error", "reason": "Sensor not registered"}, 404)
+    return _delete_registered_sensor(sensor_uuid)
+
+def _delete_registered_sensor(sensor_uuid):
+    r_serv_db.srem('registered_uuid', sensor_uuid)
+    return ({'uuid': sensor_uuid}, 200)
