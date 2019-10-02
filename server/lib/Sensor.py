@@ -72,6 +72,7 @@ def register_sensor(req_dict):
     sensor_uuid = req_dict.get('uuid', None)
     hmac_key = req_dict.get('hmac_key', None)
     user_id = req_dict.get('mail', None)
+    third_party = req_dict.get('third_party', None)
     # verify uuid
     if not is_valid_uuid_v4(sensor_uuid):
         return ({"status": "error", "reason": "Invalid uuid"}, 400)
@@ -87,18 +88,21 @@ def register_sensor(req_dict):
         hmac_key = escape(hmac_key)
         if len(hmac_key)>100:
             hmac_key=hmac_key[:100]
+    if third_party:
+        third_party = True
 
-
-    res = _register_sensor(sensor_uuid, hmac_key, user_id=user_id, description=None)
+    res = _register_sensor(sensor_uuid, hmac_key, user_id=user_id, third_party=third_party, description=None)
     return res
 
 
-def _register_sensor(sensor_uuid, secret_key, user_id=None, description=None):
+def _register_sensor(sensor_uuid, secret_key, user_id=None, third_party=False, description=None):
     r_serv_db.hset('metadata_uuid:{}'.format(sensor_uuid), 'hmac_key', secret_key)
     if user_id:
         r_serv_db.hset('metadata_uuid:{}'.format(sensor_uuid), 'user_mail', user_id)
     if description:
         r_serv_db.hset('metadata_uuid:{}'.format(sensor_uuid), 'description', description)
+    if third_party:
+        r_serv_db.hset('metadata_uuid:{}'.format(sensor_uuid), 'third_party', True)
     r_serv_db.sadd('sensor_pending_registration', sensor_uuid)
     return ({'uuid': sensor_uuid}, 200)
 
