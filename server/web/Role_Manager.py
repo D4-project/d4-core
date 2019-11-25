@@ -3,6 +3,7 @@
 
 import os
 import re
+import sys
 import redis
 import bcrypt
 
@@ -11,17 +12,17 @@ from flask_login import LoginManager, current_user, login_user, logout_user, log
 
 from flask import request, current_app
 
+sys.path.append(os.path.join(os.environ['D4_HOME'], 'lib/'))
+import ConfigLoader
+
 login_manager = LoginManager()
 login_manager.login_view = 'role'
 
-host_redis_metadata = os.getenv('D4_REDIS_METADATA_HOST', "localhost")
-port_redis_metadata = int(os.getenv('D4_REDIS_METADATA_PORT', 6380))
-
-r_serv_db = redis.StrictRedis(
-                    host=host_redis_metadata,
-                    port=port_redis_metadata,
-                    db=1,
-                    decode_responses=True)
+### Config ###
+config_loader = ConfigLoader.ConfigLoader()
+r_serv_db = config_loader.get_redis_conn("Redis_SERV")
+config_loader = None
+###  ###
 
 default_passwd_file = os.path.join(os.environ['D4_HOME'], 'DEFAULT_PASSWORD')
 

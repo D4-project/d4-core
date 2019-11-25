@@ -12,7 +12,6 @@ import datetime
 import argparse
 import logging
 import logging.handlers
-import configparser
 
 from twisted.internet import ssl, task, protocol, endpoints, defer
 from twisted.python import log
@@ -20,6 +19,9 @@ from twisted.python.modules import getModule
 
 from twisted.internet.protocol import Protocol
 from twisted.protocols.policies import TimeoutMixin
+
+sys.path.append(os.path.join(os.environ['D4_HOME'], 'lib/'))
+import ConfigLoader
 
 hmac_reset = bytearray(32)
 hmac_key = os.getenv('D4_HMAC_KEY', b'private key to change')
@@ -36,35 +38,29 @@ header_size = 62
 data_default_size_limit = 1000000
 default_max_entries_by_stream = 10000
 
-host_redis_stream = os.getenv('D4_REDIS_STREAM_HOST', "localhost")
-port_redis_stream = int(os.getenv('D4_REDIS_STREAM_PORT', 6379))
+### Config ###
+config_loader = ConfigLoader.ConfigLoader()
 
-host_redis_metadata = os.getenv('D4_REDIS_METADATA_HOST', "localhost")
-port_redis_metadata = int(os.getenv('D4_REDIS_METADATA_PORT', 6380))
+# REDIS #
+redis_server_stream = config_loader.get_redis_conn("Redis_STREAM", decode_responses=False)
+redis_server_metadata = config_loader.get_redis_conn("Redis_METADATA", decode_responses=False)
 
+# get server_mode
+server_mode = config_loader.get_config_str("D4_Server", "server_mode")
 
-### REDIS ###
-
-redis_server_stream = redis.StrictRedis(
-                    host=host_redis_stream,
-                    port=port_redis_stream,
-                    db=0)
-
-redis_server_metadata = redis.StrictRedis(
-                    host=host_redis_metadata,
-                    port=port_redis_metadata,
-                    db=0)
+config_loader = None
+###  ###
 
 try:
     redis_server_stream.ping()
 except redis.exceptions.ConnectionError:
-    print('Error: Redis server {}:{}, ConnectionError'.format(host_redis_stream, port_redis_stream))
+    print('Error: Redis server Redis_STREAM, ConnectionError')
     sys.exit(1)
 
 try:
     redis_server_metadata.ping()
 except redis.exceptions.ConnectionError:
-    print('Error: Redis server {}:{}, ConnectionError'.format(host_redis_metadata, port_redis_metadata))
+    print('Error: Redis server Redis_METADATA, ConnectionError')
     sys.exit(1)
 
 ### REDIS ###
@@ -584,14 +580,7 @@ if __name__ == "__main__":
     logger.addHandler(handler_log)
     logger.setLevel(args.verbose)
 
-
-    # get file config
-    config_file_server = os.path.join(os.environ['D4_HOME'], 'configs/server.conf')
-    config_server = configparser.ConfigParser()
-    config_server.read(config_file_server)
-
     # get server_mode
-    server_mode = config_server['D4_Server'].get('server_mode')
     if server_mode not in all_server_modes:
         print('Error: incorrect server_mode')
         logger.critical('Error: incorrect server_mode')

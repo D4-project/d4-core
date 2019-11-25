@@ -13,7 +13,6 @@ import redis
 import random
 import datetime
 import ipaddress
-import configparser
 
 import subprocess
 
@@ -29,6 +28,7 @@ from Role_Manager import login_user_basic, login_admin
 sys.path.append(os.path.join(os.environ['D4_HOME'], 'lib'))
 from User import User
 import Sensor
+import ConfigLoader
 
 # Import Blueprint
 from blueprints.restApi import restApi
@@ -40,9 +40,6 @@ if baseUrl != '':
 
 all_server_modes = ('registration', 'shared-secret')
 
-host_redis_stream = os.getenv('D4_REDIS_STREAM_HOST', "localhost")
-port_redis_stream = int(os.getenv('D4_REDIS_STREAM_PORT', 6379))
-
 default_max_entries_by_stream = 10000
 analyzer_list_max_default_size = 10000
 
@@ -50,55 +47,29 @@ default_analyzer_max_line_len = 3000
 
 json_type_description_path = os.path.join(os.environ['D4_HOME'], 'web/static/json/type.json')
 
-# get file config
-config_file_server = os.path.join(os.environ['D4_HOME'], 'configs/server.conf')
-config_server = configparser.ConfigParser()
-config_server.read(config_file_server)
+### Config ###
+config_loader = ConfigLoader.ConfigLoader()
 
 # get data directory
-use_default_save_directory = config_server['Save_Directories'].getboolean('use_default_save_directory')
+use_default_save_directory = config_loader.get_config_boolean("Save_Directories", "use_default_save_directory")
 # check if field is None
 if use_default_save_directory:
     data_directory = os.path.join(os.environ['D4_HOME'], 'data')
 else:
-    data_directory = config_server['Save_Directories'].get('save_directory')
+    data_directory = config_loader.get_config_str("Save_Directories", "save_directory")
 
-server_mode = config_server['D4_Server'].get('server_mode')
+server_mode = config_loader.get_config_str("D4_Server", "server_mode")
 if server_mode not in all_server_modes:
     print('Error: incorrect server_mode')
 
-redis_server_stream = redis.StrictRedis(
-                    host=host_redis_stream,
-                    port=port_redis_stream,
-                    db=0,
-                    decode_responses=True)
+redis_server_stream = config_loader.get_redis_conn("Redis_STREAM")
+redis_server_metadata = config_loader.get_redis_conn("Redis_METADATA")
+redis_users = config_loader.get_redis_conn("Redis_SERV")
+redis_server_analyzer = config_loader.get_redis_conn("Redis_ANALYZER")
+r_cache = config_loader.get_redis_conn("Redis_CACHE")
 
-host_redis_metadata = os.getenv('D4_REDIS_METADATA_HOST', "localhost")
-port_redis_metadata = int(os.getenv('D4_REDIS_METADATA_PORT', 6380))
-
-redis_server_metadata = redis.StrictRedis(
-                    host=host_redis_metadata,
-                    port=port_redis_metadata,
-                    db=0,
-                    decode_responses=True)
-
-redis_users = redis.StrictRedis(
-                    host=host_redis_metadata,
-                    port=port_redis_metadata,
-                    db=1,
-                    decode_responses=True)
-
-redis_server_analyzer = redis.StrictRedis(
-                    host=host_redis_metadata,
-                    port=port_redis_metadata,
-                    db=2,
-                    decode_responses=True)
-
-r_cache = redis.StrictRedis(
-                host=host_redis_metadata,
-                port=port_redis_metadata,
-                db=3,
-                decode_responses=True)
+config_loader = None
+###  ###
 
 with open(json_type_description_path, 'r') as f:
     json_type = json.loads(f.read())

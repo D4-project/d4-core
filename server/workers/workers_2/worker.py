@@ -10,21 +10,15 @@ import datetime
 
 from meta_types_modules import MetaTypesDefault
 
-host_redis_stream = os.getenv('D4_REDIS_STREAM_HOST', "localhost")
-port_redis_stream = int(os.getenv('D4_REDIS_STREAM_PORT', 6379))
+sys.path.append(os.path.join(os.environ['D4_HOME'], 'lib/'))
+import ConfigLoader
 
-redis_server_stream = redis.StrictRedis(
-                    host=host_redis_stream,
-                    port=port_redis_stream,
-                    db=0)
-
-host_redis_metadata = os.getenv('D4_REDIS_METADATA_HOST', "localhost")
-port_redis_metadata = int(os.getenv('D4_REDIS_METADATA_PORT', 6380))
-
-redis_server_metadata = redis.StrictRedis(
-                    host=host_redis_metadata,
-                    port=port_redis_metadata,
-                    db=0)
+### Config ###
+config_loader = ConfigLoader.ConfigLoader()
+redis_server_stream = config_loader.get_redis_conn("Redis_STREAM", decode_responses=False)
+redis_server_metadata = config_loader.get_redis_conn("Redis_METADATA", decode_responses=False)
+config_loader = None
+###  ###
 
 type_meta_header = 2
 type_defined = 254

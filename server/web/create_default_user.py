@@ -4,21 +4,17 @@
 import os
 import sys
 import redis
-import configparser
 
 sys.path.append(os.path.join(os.environ['D4_HOME'], 'lib'))
+import ConfigLoader
 
 from Role_Manager import create_user_db, edit_user_db, get_default_admin_token, gen_password
 
-host_redis_metadata = os.getenv('D4_REDIS_METADATA_HOST', "localhost")
-port_redis_metadata = int(os.getenv('D4_REDIS_METADATA_HOST', 6380))
-
-r_serv = redis.StrictRedis(
-    host=host_redis_metadata,
-    port=port_redis_metadata,
-    db=1,
-    decode_responses=True)
-
+### Config ###
+config_loader = ConfigLoader.ConfigLoader()
+r_serv = config_loader.get_redis_conn("Redis_SERV", decode_responses=False)
+config_loader = None
+###  ###
 
 if __name__ == "__main__":
 

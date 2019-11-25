@@ -10,6 +10,9 @@ import re
 import sys
 import redis
 
+sys.path.append(os.path.join(os.environ['D4_HOME'], 'lib'))
+import ConfigLoader
+
 from flask import Flask, render_template, jsonify, request, Blueprint, redirect, url_for, Response
 from flask_login import login_required, current_user
 
@@ -24,20 +27,13 @@ settings = Blueprint('settings', __name__, template_folder='templates')
 
 email_regex = r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}'
 email_regex = re.compile(email_regex)
-host_redis_metadata = os.getenv('D4_REDIS_METADATA_HOST', "localhost")
-port_redis_metadata = int(os.getenv('D4_REDIS_METADATA_PORT', 6380))
 
-r_serv_metadata = redis.StrictRedis(
-                host=host_redis_metadata,
-                port=port_redis_metadata,
-                db=0,
-                decode_responses=True)
-
-r_serv_db = redis.StrictRedis(
-                host=host_redis_metadata,
-                port=port_redis_metadata,
-                db=1,
-                decode_responses=True)
+### Config ###
+config_loader = ConfigLoader.ConfigLoader()
+r_serv_metadata = config_loader.get_redis_conn("Redis_METADATA")
+r_serv_db = config_loader.get_redis_conn("Redis_SERV")
+config_loader = None
+###  ###
 
 # ============ FUNCTIONS ============
 

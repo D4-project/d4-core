@@ -6,3 +6,28 @@ save_directory = None
 [D4_Server]
 # registration or shared-secret
 server_mode = registration
+
+[Redis_STREAM]
+host = localhost
+port = 6379
+db = 0
+
+[Redis_METADATA]
+host = localhost
+port = 6380
+db = 0
+
+[Redis_SERV]
+host = localhost
+port = 6380
+db = 1
+
+[Redis_ANALYZER]
+host = localhost
+port = 6380
+db = 2
+
+[Redis_CACHE]
+host = localhost
+port = 6380
+db = 3

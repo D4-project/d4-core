@@ -6,19 +6,19 @@ import time
 import redis
 import subprocess
 
-host_redis_stream = os.getenv('D4_REDIS_STREAM_HOST', "localhost")
-port_redis_stream = int(os.getenv('D4_REDIS_STREAM_PORT', 6379))
+sys.path.append(os.path.join(os.environ['D4_HOME'], 'lib/'))
+import ConfigLoader
 
-redis_server_stream = redis.StrictRedis(
-                    host=host_redis_stream,
-                    port=port_redis_stream,
-                    db=0)
+config_loader = ConfigLoader.ConfigLoader()
+redis_server_stream = config_loader.get_redis_conn("Redis_STREAM", decode_responses=False)
+config_loader = None
+
 type = 4
 
 try:
     redis_server_stream.ping()
 except redis.exceptions.ConnectionError:
-    print('Error: Redis server {}:{}, ConnectionError'.format(host_redis_stream, port_redis_stream))
+    print('Error: Redis server {}, ConnectionError'.format("Redis_STREAM"))
     sys.exit(1)
 
 if __name__ == "__main__":

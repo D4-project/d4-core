@@ -45,6 +45,10 @@ function helptext {
     "
 }
 
+CONFIG=$D4_HOME/configs/server.conf
+redis_stream=`sed -nr '/\[Redis_STREAM\]/,/\[/{/port/p}' ${CONFIG} | awk -F= '/port/{print $2}' | sed 's/ //g'`
+redis_metadata=`sed -nr '/\[Redis_METADATA\]/,/\[/{/port/p}' ${CONFIG} | awk -F= '/port/{print $2}' | sed 's/ //g'`
+
 function launching_redis {
     conf_dir="${D4_HOME}/configs/"
     redis_dir="${D4_HOME}/redis/src/"
@@ -84,22 +88,22 @@ function launching_workers {
 
 function shutting_down_redis {
     redis_dir=${D4_HOME}/redis/src/
-    bash -c $redis_dir'redis-cli -p 6379 SHUTDOWN'
+    bash -c $redis_dir'redis-cli -p '$redis_stream' SHUTDOWN'
     sleep 0.1
-    bash -c $redis_dir'redis-cli -p 6380 SHUTDOWN'
+    bash -c $redis_dir'redis-cli -p '$redis_metadata' SHUTDOWN'
     sleep 0.1
 }
 
 function checking_redis {
     flag_redis=0
     redis_dir=${D4_HOME}/redis/src/
-    bash -c $redis_dir'redis-cli -p 6379 PING | grep "PONG" &> /dev/null'
+    bash -c $redis_dir'redis-cli -p '$redis_stream' PING | grep "PONG" &> /dev/null'
     if [ ! $? == 0 ]; then
        echo -e $RED"\t6379 not ready"$DEFAULT
        flag_redis=1
     fi
     sleep 0.1
-    bash -c $redis_dir'redis-cli -p 6380 PING | grep "PONG" &> /dev/null'
+    bash -c $redis_dir'redis-cli -p '$redis_metadata' PING | grep "PONG" &> /dev/null'
     if [ ! $? == 0 ]; then
        echo -e $RED"\t6380 not ready"$DEFAULT
        flag_redis=1

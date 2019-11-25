@@ -48,6 +48,13 @@ sensor registrations, management of decoding protocols and dispatching to adequa
 | server:accepted_type          | **accepted type** |
 | server:accepted_extended_type | **accepted extended type** |
 
+###### Server Mode
+| Set Key | Value |
+| --- | --- |
+| blacklist_ip          | **blacklisted ip** |
+| blacklist_ip_by_uuid | **uuidv4** |
+| blacklist_uuid | **uuidv4** |
+
 ###### Connection Manager
 | Set Key | Value |
 | --- | --- |

@@ -22,6 +22,7 @@ from functools import wraps
 
 sys.path.append(os.path.join(os.environ['D4_HOME'], 'lib'))
 import Sensor
+import ConfigLoader
 
 # ============ BLUEPRINT ============
 
@@ -29,26 +30,13 @@ restApi = Blueprint('restApi', __name__, template_folder='templates')
 
 # ============ VARIABLES ============
 
-host_redis_metadata = os.getenv('D4_REDIS_METADATA_HOST', "localhost")
-port_redis_metadata = int(os.getenv('D4_REDIS_METADATA_PORT', 6380))
-
-r_serv_metadata = redis.StrictRedis(
-                host=host_redis_metadata,
-                port=port_redis_metadata,
-                db=0,
-                decode_responses=True)
-
-r_serv_db = redis.StrictRedis(
-                host=host_redis_metadata,
-                port=port_redis_metadata,
-                db=1,
-                decode_responses=True)
-
-r_cache = redis.StrictRedis(
-                host=host_redis_metadata,
-                port=port_redis_metadata,
-                db=3,
-                decode_responses=True)
+### Config ###
+config_loader = ConfigLoader.ConfigLoader()
+r_serv_metadata = config_loader.get_redis_conn("Redis_METADATA")
+r_serv_db = config_loader.get_redis_conn("Redis_SERV")
+r_cache = config_loader.get_redis_conn("Redis_CACHE")
+config_loader = None
+###  ###
 
 # ============ AUTH FUNCTIONS ============
 

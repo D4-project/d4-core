@@ -6,19 +6,17 @@ import time
 import redis
 
 import datetime
-import configparser
+
+sys.path.append(os.path.join(os.environ['D4_HOME'], 'lib/'))
+import ConfigLoader
 
 def data_incorrect_format(session_uuid):
     print('Incorrect format')
     sys.exit(1)
 
-host_redis_stream = os.getenv('D4_REDIS_STREAM_HOST', "localhost")
-port_redis_stream = int(os.getenv('D4_REDIS_STREAM_PORT', 6379))
-
-redis_server_stream = redis.StrictRedis(
-                    host=host_redis_stream,
-                    port=port_redis_stream,
-                    db=0)
+config_loader = ConfigLoader.ConfigLoader()
+redis_server_stream = config_loader.get_redis_conn("Redis_STREAM", decode_responses=False)
+config_loader = None
 
 # get file config
 config_file_server = os.path.join(os.environ['D4_HOME'], 'configs/server.conf')
@@ -26,13 +24,13 @@ config_server = configparser.ConfigParser()
 config_server.read(config_file_server)
 
 # get data directory
-use_default_save_directory = config_server['Save_Directories'].getboolean('use_default_save_directory')
+use_default_save_directory = config_loader.get_config_boolean("Save_Directories", "use_default_save_directory")
 # check if field is None
 if use_default_save_directory:
     data_directory = os.path.join(os.environ['D4_HOME'], 'data')
 else:
-    data_directory = config_server['Save_Directories'].get('save_directory')
-
+    data_directory = get_config_str.get_config_boolean("Save_Directories", "save_directory")
+config_loader = None
 
 type = 4
 rotation_save_cycle = 300 #seconds
