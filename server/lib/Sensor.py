@@ -8,14 +8,14 @@ import redis
 
 from flask import escape
 
-host_redis_metadata = os.getenv('D4_REDIS_METADATA_HOST', "localhost")
-port_redis_metadata = int(os.getenv('D4_REDIS_METADATA_PORT', 6380))
+sys.path.append(os.path.join(os.environ['AIL_BIN'], 'lib/'))
+import ConfigLoader
 
-r_serv_db = redis.StrictRedis(
-    host=host_redis_metadata,
-    port=port_redis_metadata,
-    db=0,
-    decode_responses=True)
+### Config ###
+config_loader = ConfigLoader.ConfigLoader()
+r_serv_db = config_loader.get_redis_conn("Redis_METADATA")
+config_loader = None
+###  ###
 
 def is_valid_uuid_v4(UUID):
     UUID = UUID.replace('-', '')

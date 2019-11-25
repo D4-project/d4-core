@@ -2,6 +2,7 @@
 # -*-coding:UTF-8 -*
 
 import os
+import sys
 import time
 import redis
 import bcrypt
@@ -9,17 +10,21 @@ import random
 
 from flask_login import UserMixin
 
+sys.path.append(os.path.join(os.environ['AIL_BIN'], 'lib/'))
+import ConfigLoader
+
+config_loader = ConfigLoader.ConfigLoader()
+r_serv_db = config_loader.get_redis_conn("Redis_SERV")
+config_loader = None
+
+# CONFIG #
+config_loader = ConfigLoader.ConfigLoader()
+
 class User(UserMixin):
 
     def __init__(self, id):
-        host_redis_metadata = os.getenv('D4_REDIS_METADATA_HOST', "localhost")
-        port_redis_metadata = int(os.getenv('D4_REDIS_METADATA_PORT', 6380))
 
-        self.r_serv_db = redis.StrictRedis(
-            host=host_redis_metadata,
-            port=port_redis_metadata,
-            db=1,
-            decode_responses=True)
+        self.r_serv_db = r_serv_db
 
         if self.r_serv_db.hexists('user:all', id):
             self.id = id
