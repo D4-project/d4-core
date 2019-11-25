@@ -10,7 +10,7 @@ import random
 
 from flask_login import UserMixin
 
-sys.path.append(os.path.join(os.environ['AIL_BIN'], 'lib/'))
+sys.path.append(os.path.join(os.environ['D4_HOME'], 'lib/'))
 import ConfigLoader
 
 config_loader = ConfigLoader.ConfigLoader()

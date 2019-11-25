@@ -8,7 +8,7 @@ import redis
 
 from flask import escape
 
-sys.path.append(os.path.join(os.environ['AIL_BIN'], 'lib/'))
+sys.path.append(os.path.join(os.environ['D4_HOME'], 'lib/'))
 import ConfigLoader
 
 ### Config ###
