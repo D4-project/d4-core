@@ -8,7 +8,10 @@ import gzip
 import redis
 import shutil
 import datetime
-import configparser
+
+sys.path.append(os.path.join(os.environ['AIL_BIN'], 'lib/'))
+import ConfigLoader
+
 
 DEFAULT_FILE_EXTENSION = 'txt'
 DEFAULT_FILE_SEPARATOR = b'\n'
@@ -16,26 +19,12 @@ ROTATION_SAVE_CYCLE = 300 # seconds
 MAX_BUFFER_LENGTH = 100000
 TYPE = 254
 
-host_redis_stream = os.getenv('D4_REDIS_STREAM_HOST', "localhost")
-port_redis_stream = int(os.getenv('D4_REDIS_STREAM_PORT', 6379))
+# CONFIG #
+config_loader = ConfigLoader.ConfigLoader()
 
-redis_server_stream = redis.StrictRedis(
-                    host=host_redis_stream,
-                    port=port_redis_stream,
-                    db=0)
-
-host_redis_metadata = os.getenv('D4_REDIS_METADATA_HOST', "localhost")
-port_redis_metadata = int(os.getenv('D4_REDIS_METADATA_PORT', 6380))
-
-redis_server_metadata = redis.StrictRedis(
-                    host=host_redis_metadata,
-                    port=port_redis_metadata,
-                    db=0)
-
-redis_server_analyzer = redis.StrictRedis(
-                    host=host_redis_metadata,
-                    port=port_redis_metadata,
-                    db=2)
+redis_server_stream = config_loader.get_redis_conn("Redis_STREAM", decode_responses=False)
+redis_server_metadata = config_loader.get_redis_conn("Redis_METADATA", decode_responses=False)
+redis_server_analyzer = config_loader.get_redis_conn("Redis_ANALYZER", decode_responses=False)
 
 analyzer_list_max_default_size = 10000
 
@@ -48,18 +37,16 @@ class MetaTypesDefault:
         self.buffer = b''
         self.file_rotation_mode = True
 
-        # get file config
-        config_file_server = os.path.join(os.environ['D4_HOME'], 'configs/server.conf')
-        config_server = configparser.ConfigParser()
-        config_server.read(config_file_server)
         # get data directory
-        use_default_save_directory = config_server['Save_Directories'].getboolean('use_default_save_directory')
+        use_default_save_directory = config_loader.get_config_boolean("Save_Directories", "use_default_save_directory")
         # check if field is None
         if use_default_save_directory:
             data_directory = os.path.join(os.environ['D4_HOME'], 'data')
         else:
-            data_directory = config_server['Save_Directories'].get('save_directory')
+            data_directory = config_loader.get_config_str("Save_Directories", "save_directory")
         self.data_directory = data_directory
+
+        config_loader = None
 
         self.parse_json(json_file)
 
