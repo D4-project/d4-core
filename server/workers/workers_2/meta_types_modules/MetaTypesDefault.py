@@ -46,8 +46,6 @@ class MetaTypesDefault:
             data_directory = config_loader.get_config_str("Save_Directories", "save_directory")
         self.data_directory = data_directory
 
-        config_loader = None
-
         self.parse_json(json_file)
 
     def test(self):
