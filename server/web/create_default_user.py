@@ -12,7 +12,7 @@ from Role_Manager import create_user_db, edit_user_db, get_default_admin_token, 
 
 ### Config ###
 config_loader = ConfigLoader.ConfigLoader()
-r_serv = config_loader.get_redis_conn("Redis_SERV", decode_responses=False)
+r_serv = config_loader.get_redis_conn("Redis_SERV")
 config_loader = None
 ###  ###
 
