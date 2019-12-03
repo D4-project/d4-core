@@ -12,6 +12,10 @@ if [ -z "$VIRTUAL_ENV" ]; then
 fi
 python3 -m pip install -r requirement.txt
 
+pushd configs/
+cp server.conf.sample server.conf
+popd
+
 pushd web/
 ./update_web.sh
 popd
