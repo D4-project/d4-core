@@ -9,7 +9,7 @@ server_mode = registration
 
 [Flask_Server]
 # UI port number
-port = 7002
+port = 7000
 
 [Redis_STREAM]
 host = localhost
