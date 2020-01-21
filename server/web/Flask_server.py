@@ -62,6 +62,11 @@ server_mode = config_loader.get_config_str("D4_Server", "server_mode")
 if server_mode not in all_server_modes:
     print('Error: incorrect server_mode')
 
+try:
+    FLASK_PORT = config_loader.get_config_int("Flask_Server", "port")
+except Exception:
+    FLASK_PORT = 7000
+
 redis_server_stream = config_loader.get_redis_conn("Redis_STREAM")
 redis_server_metadata = config_loader.get_redis_conn("Redis_METADATA")
 redis_users = config_loader.get_redis_conn("Redis_SERV")
@@ -87,6 +92,9 @@ ssl_context.load_cert_chain(certfile=os.path.join(Flask_dir, 'server.crt'), keyf
 
 app = Flask(__name__, static_url_path=baseUrl+'/static/')
 app.config['MAX_CONTENT_LENGTH'] = 900 * 1024 * 1024
+
+# ========= Cookie name ========
+app.config.update(SESSION_COOKIE_NAME='d4_project_server{}'.format(FLASK_PORT))
 
 # ========= session ========
 app.secret_key = str(random.getrandbits(256))
@@ -1198,4 +1206,4 @@ def get_uuid_stats_history_json():
 
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=7000, threaded=True, ssl_context=ssl_context)
+    app.run(host='0.0.0.0', port=FLASK_PORT, threaded=True, ssl_context=ssl_context)

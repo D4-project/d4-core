@@ -7,6 +7,10 @@ save_directory = None
 # registration or shared-secret
 server_mode = registration
 
+[Flask_Server]
+# UI port number
+port = 7002
+
 [Redis_STREAM]
 host = localhost
 port = 6379
