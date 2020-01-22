@@ -48,6 +48,7 @@ def compress_file(file_full_path, i=0):
                 analyser_queue_max_size = analyzer_list_max_default_size
             redis_server_analyzer.ltrim('analyzer:{}:{}'.format(type, analyzer_uuid), 0, analyser_queue_max_size)
 
+config_loader = ConfigLoader.ConfigLoader()
 redis_server_stream = config_loader.get_redis_conn("Redis_STREAM", decode_responses=False)
 redis_server_metadata = config_loader.get_redis_conn("Redis_METADATA", decode_responses=False)
 redis_server_analyzer = config_loader.get_redis_conn("Redis_ANALYZER", decode_responses=False)
@@ -59,7 +60,7 @@ if use_default_save_directory:
     data_directory = os.path.join(os.environ['D4_HOME'], 'data')
 else:
     data_directory = config_loader.get_config_str("Save_Directories", "save_directory")
-
+config_loader = None
 
 type = 1
 tcp_dump_cycle = '300'
