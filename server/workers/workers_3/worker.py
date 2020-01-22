@@ -19,6 +19,7 @@ def data_incorrect_format(session_uuid):
 config_loader = ConfigLoader.ConfigLoader()
 redis_server_stream = config_loader.get_redis_conn("Redis_STREAM", decode_responses=False)
 redis_server_analyzer = config_loader.get_redis_conn("Redis_ANALYZER", decode_responses=False)
+redis_server_metadata = config_loader.get_redis_conn("Redis_METADATA", decode_responses=False)
 
 # get data directory
 use_default_save_directory = config_loader.get_config_boolean("Save_Directories", "use_default_save_directory")
