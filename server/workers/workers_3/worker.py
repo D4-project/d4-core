@@ -11,6 +11,7 @@ import datetime
 
 sys.path.append(os.path.join(os.environ['D4_HOME'], 'lib/'))
 import ConfigLoader
+import Analyzer_Queue
 
 def data_incorrect_format(session_uuid):
     print('Incorrect format')
@@ -32,8 +33,6 @@ config_loader = None
 
 type = 3
 rotation_save_cycle = 300 #seconds
-
-analyzer_list_max_default_size = 10000
 
 max_buffer_length = 10000
 
@@ -112,14 +111,8 @@ if __name__ == "__main__":
                     if b'\n' in data[b'message']:
                         all_line = data[b'message'].split(b'\n')
                         for line in all_line[:-1]:
-                            for analyzer_uuid in redis_server_metadata.smembers('analyzer:{}'.format(type)):
-                                analyzer_uuid = analyzer_uuid.decode()
-                                redis_server_analyzer.lpush('analyzer:{}:{}'.format(type, analyzer_uuid), line)
-                                redis_server_metadata.hset('analyzer:{}'.format(analyzer_uuid), 'last_updated', time.time())
-                                analyser_queue_max_size = redis_server_metadata.hget('analyzer:{}'.format(analyzer_uuid), 'max_size')
-                                if analyser_queue_max_size is None:
-                                    analyser_queue_max_size = analyzer_list_max_default_size
-                                redis_server_analyzer.ltrim('analyzer:{}:{}'.format(type, analyzer_uuid), 0, analyser_queue_max_size)
+                            Analyzer_Queue.add_data_to_queue(uuid, type, line)
+                            #    analyzer_uuid = analyzer_uuid.decode()
                         # keep incomplete line
                         if all_line[-1] != b'':
                             buffer += all_line[-1]

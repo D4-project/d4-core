@@ -11,6 +11,7 @@ import datetime
 
 sys.path.append(os.path.join(os.environ['D4_HOME'], 'lib/'))
 import ConfigLoader
+import Analyzer_Queue
 
 
 DEFAULT_FILE_EXTENSION = 'txt'
@@ -172,15 +173,7 @@ class MetaTypesDefault:
             os.remove(file_full_path)
 
     def send_to_analyzers(self, data_to_send):
-        ## save full path in anylyzer queue
-        for analyzer_uuid in redis_server_metadata.smembers('analyzer:{}:{}'.format(TYPE, self.get_type_name())):
-            analyzer_uuid = analyzer_uuid.decode()
-            redis_server_analyzer.lpush('analyzer:{}:{}'.format(self.get_type_name(), analyzer_uuid), data_to_send)
-            redis_server_metadata.hset('analyzer:{}'.format(analyzer_uuid), 'last_updated', time.time())
-            analyser_queue_max_size = redis_server_metadata.hget('analyzer:{}'.format(analyzer_uuid), 'max_size')
-            if analyser_queue_max_size is None:
-                analyser_queue_max_size = analyzer_list_max_default_size
-            redis_server_analyzer.ltrim('analyzer:{}:{}'.format(self.get_type_name(), analyzer_uuid), 0, analyser_queue_max_size)
+        Analyzer_Queue.add_data_to_queue(self.uuid, self.get_type_name(), data_to_send)
 
     ######## GET FUNCTIONS ########
 

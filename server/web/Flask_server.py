@@ -29,6 +29,7 @@ sys.path.append(os.path.join(os.environ['D4_HOME'], 'lib'))
 from User import User
 import Sensor
 import ConfigLoader
+import Analyzer_Queue
 
 # Import Blueprint
 from blueprints.restApi import restApi
@@ -532,6 +533,9 @@ def server_management():
                 len_queue = 0
             list_analyzer_uuid.append({'uuid': analyzer_uuid, 'description': description_analyzer, 'size_limit': size_limit,'last_updated': last_updated, 'length': len_queue})
 
+        for analyzer_uuid in Analyzer_Queue.get_all_queues_group_by_type(type):
+            list_analyzer_uuid.append(Analyzer_Queue.get_queue_metadata(analyzer_uuid, type))
+
         list_accepted_types.append({"id": int(type), "description": description, 'list_analyzer_uuid': list_analyzer_uuid})
 
     list_accepted_extended_types = []
@@ -789,25 +793,20 @@ def uuid_change_description():
 @login_required
 @login_user_basic
 def add_new_analyzer():
-    type = request.args.get('type')
+    format_type = request.args.get('type')
     user = request.args.get('redirect')
     metatype_name = request.args.get('metatype_name')
     analyzer_description = request.args.get('analyzer_description')
     analyzer_uuid = request.args.get('analyzer_uuid')
     if is_valid_uuid_v4(analyzer_uuid):
         try:
-            type = int(type)
-            if type < 0:
+            format_type = int(format_type)
+            if format_type < 0:
                 return 'type, Invalid Integer'
         except:
             return 'type, Invalid Integer'
-        if type == 254:
-            # # TODO: check metatype_name
-            redis_server_metadata.sadd('analyzer:{}:{}'.format(type, metatype_name), analyzer_uuid)
-        else:
-            redis_server_metadata.sadd('analyzer:{}'.format(type), analyzer_uuid)
-        if redis_server_metadata.exists('analyzer:{}:{}'.format(type, metatype_name)) or redis_server_metadata.exists('analyzer:{}'.format(type)):
-            redis_server_metadata.hset('analyzer:{}'.format(analyzer_uuid), 'description', analyzer_description)
+
+        Analyzer_Queue.create_queues(format_type, queue_uuid=analyzer_uuid, l_uuid=[], queue_type='list', metatype_name=metatype_name, description=analyzer_description)
         if user:
             return redirect(url_for('server_management'))
     else:
@@ -818,20 +817,13 @@ def add_new_analyzer():
 @login_user_basic
 def empty_analyzer_queue():
     analyzer_uuid = request.args.get('analyzer_uuid')
-    type = request.args.get('type')
+    format_type = request.args.get('type')
     metatype_name = request.args.get('metatype_name')
     user = request.args.get('redirect')
     if is_valid_uuid_v4(analyzer_uuid):
-        try:
-            type = int(type)
-            if type < 0:
-                return 'type, Invalid Integer'
-        except:
-            return 'type, Invalid Integer'
-        if type == 254:
-            redis_server_analyzer.delete('analyzer:{}:{}'.format(metatype_name, analyzer_uuid))
-        else:
-            redis_server_analyzer.delete('analyzer:{}:{}'.format(type, analyzer_uuid))
+        if format_type == 254:
+            format_type = metatype_name
+        Analyzer_Queue.flush_queue(analyzer_uuid, format_type)
         if user:
             return redirect(url_for('server_management'))
     else:
@@ -842,23 +834,11 @@ def empty_analyzer_queue():
 @login_user_basic
 def remove_analyzer():
     analyzer_uuid = request.args.get('analyzer_uuid')
-    type = request.args.get('type')
+    format_type = request.args.get('type')
     metatype_name = request.args.get('metatype_name')
     user = request.args.get('redirect')
     if is_valid_uuid_v4(analyzer_uuid):
-        try:
-            type = int(type)
-            if type < 0:
-                return 'type, Invalid Integer'
-        except:
-            return 'type, Invalid Integer'
-        if type == 254:
-            redis_server_metadata.srem('analyzer:{}:{}'.format(type, metatype_name), analyzer_uuid)
-            redis_server_analyzer.delete('analyzer:{}:{}'.format(metatype_name, analyzer_uuid))
-        else:
-            redis_server_metadata.srem('analyzer:{}'.format(type), analyzer_uuid)
-            redis_server_analyzer.delete('analyzer:{}:{}'.format(type, analyzer_uuid))
-        redis_server_metadata.delete('analyzer:{}'.format(analyzer_uuid))
+        Analyzer_Queue.remove_queues(analyzer_uuid, format_type)
         if user:
             return redirect(url_for('server_management'))
     else:
@@ -872,13 +852,7 @@ def analyzer_change_max_size():
     user = request.args.get('redirect')
     max_size_analyzer = request.args.get('max_size_analyzer')
     if is_valid_uuid_v4(analyzer_uuid):
-        try:
-            max_size_analyzer = int(max_size_analyzer)
-            if max_size_analyzer < 0:
-                return 'analyzer max size, Invalid Integer'
-        except:
-            return 'analyzer max size, Invalid Integer'
-        redis_server_metadata.hset('analyzer:{}'.format(analyzer_uuid), 'max_size', max_size_analyzer)
+        Analyzer_Queue.edit_queue_max_size(analyzer_uuid, max_size_analyzer)
         if user:
             return redirect(url_for('server_management'))
     else:

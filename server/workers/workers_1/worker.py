@@ -11,6 +11,7 @@ import subprocess
 
 sys.path.append(os.path.join(os.environ['D4_HOME'], 'lib/'))
 import ConfigLoader
+import Analyzer_Queue
 
 def data_incorrect_format(stream_name, session_uuid, uuid):
     redis_server_stream.sadd('Error:IncorrectType', session_uuid)
@@ -39,14 +40,7 @@ def compress_file(file_full_path, i=0):
                 shutil.copyfileobj(f_in, f_out)
         os.remove(file_full_path)
         # save full path in anylyzer queue
-        for analyzer_uuid in redis_server_metadata.smembers('analyzer:{}'.format(type)):
-            analyzer_uuid = analyzer_uuid.decode()
-            redis_server_analyzer.lpush('analyzer:{}:{}'.format(type, analyzer_uuid), compressed_filename)
-            redis_server_metadata.hset('analyzer:{}'.format(analyzer_uuid), 'last_updated', time.time())
-            analyser_queue_max_size = redis_server_metadata.hget('analyzer:{}'.format(analyzer_uuid), 'max_size')
-            if analyser_queue_max_size is None:
-                analyser_queue_max_size = analyzer_list_max_default_size
-            redis_server_analyzer.ltrim('analyzer:{}:{}'.format(type, analyzer_uuid), 0, analyser_queue_max_size)
+        Analyzer_Queue.add_data_to_queue(uuid, type, compressed_filename)
 
 config_loader = ConfigLoader.ConfigLoader()
 redis_server_stream = config_loader.get_redis_conn("Redis_STREAM", decode_responses=False)

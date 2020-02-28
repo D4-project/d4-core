@@ -84,13 +84,13 @@ if __name__ == "__main__":
 
         new_date = datetime.datetime.now().strftime("%Y%m%d")
 
-        # get all directory files
-        all_files = os.listdir(worker_data_directory)
         not_compressed_file = []
         # filter: get all not compressed files
-        for file in all_files:
-            if file.endswith('.cap'):
-                not_compressed_file.append(os.path.join(worker_data_directory, file))
+        if os.path.isdir(worker_data_directory):
+            all_files = os.listdir(worker_data_directory)
+            for file in all_files:
+                if file.endswith('.cap'):
+                    not_compressed_file.append(os.path.join(worker_data_directory, file))
 
         if not_compressed_file:
             ### check time-change (minus one hour) ###
