@@ -10,6 +10,7 @@ import redis
 
 sys.path.append(os.path.join(os.environ['D4_HOME'], 'lib/'))
 import ConfigLoader
+import d4_type
 
 ### Config ###
 config_loader = ConfigLoader.ConfigLoader()
@@ -31,24 +32,27 @@ def is_valid_uuid_v4(uuid_v4):
     except:
         return False
 
-def sanitize_uuid(uuid_v4):
+def sanitize_uuid(uuid_v4, not_exist=False):
     if not is_valid_uuid_v4(uuid_v4):
         uuid_v4 = str(uuid.uuid4())
+    if not_exist:
+        if exist_queue(uuid_v4):
+            uuid_v4 = str(uuid.uuid4())
     return uuid_v4
 
+def sanitize_queue_type(format_type):
+    try:
+        format_type = int(format_type)
+    except:
+        format_type = 1
+    if format_type == 2:
+        format_type = 254
+    return format_type
+
+def exist_queue(queue_uuid):
+    return r_serv_metadata.exists('analyzer:{}'.format(queue_uuid))
+
 def get_all_queues(r_list=None):
-    res = r_serv_metadata.smembers('all_analyzer_queues')
-    if r_list:
-        return list(res)
-    return res
-
-def get_all_queues_standard_format(r_list=None):
-    res = r_serv_metadata.smembers('all_analyzer_queues')
-    if r_list:
-        return list(res)
-    return res
-
-def get_all_queues_standard_extended_format(r_list=None):
     res = r_serv_metadata.smembers('all_analyzer_queues')
     if r_list:
         return list(res)
@@ -72,8 +76,20 @@ def get_all_queues_by_type(format_type, r_list=None):
         return list(res)
     return res
 
+def get_all_queues_by_extended_type(extended_type, r_list=None):
+    res = r_serv_metadata.smembers('analyzer:254:{}'.format(extended_type))
+    if r_list:
+        return list(res)
+    return res
+
 def get_all_queues_group_by_type(format_type, r_list=None):
     res = r_serv_metadata.smembers('analyzer_uuid_group:{}'.format(format_type))
+    if r_list:
+        return list(res)
+    return res
+
+def get_all_queues_group_by_extended_type(extended_type, r_list=None):
+    res = r_serv_metadata.smembers('analyzer_uuid_group:254:{}'.format(extended_type))
     if r_list:
         return list(res)
     return res
@@ -106,7 +122,24 @@ def get_queue_max_size(queue_uuid):
         max_size = LIST_DEFAULT_SIZE
     return max_size
 
-def get_queue_metadata(queue_uuid, format_type=None, f_date='str_date'):
+def get_queue_size(queue_uuid, format_type, extended_type=None):
+    if format_type==254:
+        if not extended_type:
+            extended_type = get_queue_extended_type(queue_uuid)
+        length = r_serv_analyzer.llen('analyzer:{}:{}'.format(extended_type, queue_uuid))
+    else:
+        length = r_serv_analyzer.llen('analyzer:{}:{}'.format(format_type, queue_uuid))
+    if length is None:
+        length = 0
+    return length
+
+def get_queue_format_type(queue_uuid):
+    return r_serv_metadata.hget('analyzer:{}'.format(queue_uuid), 'type')
+
+def get_queue_extended_type(queue_uuid):
+    return r_serv_metadata.hget('analyzer:{}'.format(queue_uuid), 'metatype')
+
+def get_queue_metadata(queue_uuid, format_type=None, extended_type=None, f_date='str_date', force_is_group_queue=False):
     dict_queue_meta = {}
     dict_queue_meta['uuid'] = queue_uuid
     dict_queue_meta['size_limit'] = get_queue_max_size(queue_uuid)
@@ -116,10 +149,21 @@ def get_queue_metadata(queue_uuid, format_type=None, f_date='str_date'):
     if dict_queue_meta['description'] is None:
         dict_queue_meta['description'] = ''
 
-    if format_type:
-        dict_queue_meta['length'] = r_serv_analyzer.llen('analyzer:{}:{}'.format(format_type, queue_uuid))
-        if dict_queue_meta['length'] is None:
-            dict_queue_meta['length'] = 0
+    if not format_type:
+        format_type = get_queue_format_type(queue_uuid)
+    dict_queue_meta['format_type'] = format_type
+    if format_type==254:
+        if not extended_type:
+            extended_type = get_queue_extended_type(queue_uuid)
+        dict_queue_meta['extended_type'] = extended_type
+
+    dict_queue_meta['length'] = get_queue_size(queue_uuid, format_type, extended_type=extended_type)
+
+    if force_is_group_queue:
+        dict_queue_meta['is_group_queue'] = True
+    else:
+        dict_queue_meta['is_group_queue'] = False
+
     return dict_queue_meta
 
 def edit_queue_description(queue_uuid, description):
@@ -138,7 +182,15 @@ def edit_queue_max_size(queue_uuid, max_size):
 # create queu by type or by group of uuid
 # # TODO: add size limit
 def create_queues(format_type, queue_uuid=None, l_uuid=[], queue_type='list', metatype_name=None, description=None):
-    queue_uuid = sanitize_uuid(queue_uuid)
+    if not d4_type.is_accepted_format_type(format_type):
+        return {'error': 'Invalid type'}
+
+    ormat_type = sanitize_queue_type(format_type)
+
+    if format_type == 254 and not d4_type.is_accepted_extended_type(metatype_name):
+        return {'error': 'Invalid extended type'}
+
+    queue_uuid = sanitize_uuid(queue_uuid, not_exist=True)
     r_serv_metadata.hset('analyzer:{}'.format(queue_uuid), 'type', format_type)
     edit_queue_description(queue_uuid, description)
 
@@ -151,6 +203,7 @@ def create_queues(format_type, queue_uuid=None, l_uuid=[], queue_type='list', me
     if format_type == 254:
     # TODO: check metatype_name
         r_serv_metadata.sadd('{}:{}:{}'.format(analyzer_key_name, format_type, metatype_name), queue_uuid)
+        r_serv_metadata.hset('analyzer:{}'.format(queue_uuid), 'metatype', metatype_name)
     else:
         r_serv_metadata.sadd('{}:{}'.format(analyzer_key_name, format_type), queue_uuid)
 
@@ -193,8 +246,22 @@ def flush_queue(queue_uuid, format_type):
     r_serv_analyzer.delete('analyzer:{}:{}'.format(format_type, queue_uuid))
 
 def remove_queues(queue_uuid, format_type, metatype_name=None):
+    try:
+        format_type = int(format_type)
+    except:
+        print('error: Invalid format type')
+        return {'error': 'Invalid format type'}
+
     if not is_valid_uuid_v4(queue_uuid):
+        print('error: Invalid uuid')
         return {'error': 'Invalid uuid'}
+
+    if not exist_queue(queue_uuid):
+        print('error: unknow queue uuid')
+        return {'error': 'unknow queue uuid'}
+
+    if format_type==254 and not metatype_name:
+        metatype_name = get_queue_extended_type(queue_uuid)
 
     # delete metadata
     r_serv_metadata.delete('analyzer:{}'.format(queue_uuid))
@@ -212,7 +279,6 @@ def remove_queues(queue_uuid, format_type, metatype_name=None):
         analyzer_key_name = 'analyzer'
 
     if format_type == 254:
-    # TODO: check metatype_name
         r_serv_metadata.srem('{}:{}:{}'.format(analyzer_key_name, format_type, metatype_name), queue_uuid)
     else:
         r_serv_metadata.srem('{}:{}'.format(analyzer_key_name, format_type), queue_uuid)

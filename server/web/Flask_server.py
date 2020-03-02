@@ -34,6 +34,7 @@ import Analyzer_Queue
 # Import Blueprint
 from blueprints.restApi import restApi
 from blueprints.settings import settings
+from blueprints.analyzer_queue import analyzer_queue
 
 baseUrl = ''
 if baseUrl != '':
@@ -107,6 +108,7 @@ login_manager.init_app(app)
 # =========  BLUEPRINT  =========#
 app.register_blueprint(restApi)
 app.register_blueprint(settings)
+app.register_blueprint(analyzer_queue)
 # =========       =========#
 
 # ========= LOGIN MANAGER ========
@@ -516,53 +518,29 @@ def server_management():
             description = 'Please update your web server'
 
         list_analyzer_uuid = []
-        for analyzer_uuid in redis_server_metadata.smembers('analyzer:{}'.format(type)):
-            size_limit = redis_server_metadata.hget('analyzer:{}'.format(analyzer_uuid), 'max_size')
-            if size_limit is None:
-                size_limit = analyzer_list_max_default_size
-            last_updated = redis_server_metadata.hget('analyzer:{}'.format(analyzer_uuid), 'last_updated')
-            if last_updated is None:
-                last_updated = 'Never'
-            else:
-                last_updated = datetime.datetime.fromtimestamp(float(last_updated)).strftime('%Y-%m-%d %H:%M:%S')
-            description_analyzer = redis_server_metadata.hget('analyzer:{}'.format(analyzer_uuid), 'description')
-            if description_analyzer is None:
-                description_analyzer = ''
-            len_queue = redis_server_analyzer.llen('analyzer:{}:{}'.format(type, analyzer_uuid))
-            if len_queue is None:
-                len_queue = 0
-            list_analyzer_uuid.append({'uuid': analyzer_uuid, 'description': description_analyzer, 'size_limit': size_limit,'last_updated': last_updated, 'length': len_queue})
+        for analyzer_uuid in Analyzer_Queue.get_all_queues_by_type(type):
+            list_analyzer_uuid.append(Analyzer_Queue.get_queue_metadata(analyzer_uuid, format_type=type))
 
         for analyzer_uuid in Analyzer_Queue.get_all_queues_group_by_type(type):
-            list_analyzer_uuid.append(Analyzer_Queue.get_queue_metadata(analyzer_uuid, type))
+            list_analyzer_uuid.append(Analyzer_Queue.get_queue_metadata(analyzer_uuid, format_type=type, force_is_group_queue=True))
 
         list_accepted_types.append({"id": int(type), "description": description, 'list_analyzer_uuid': list_analyzer_uuid})
 
     list_accepted_extended_types = []
+    l_queue_extended_type = []
     for extended_type in redis_server_metadata.smembers('server:accepted_extended_type'):
+        list_accepted_extended_types.append({"name": extended_type, 'list_analyzer_uuid': []})
 
-        list_analyzer_uuid = []
-        for analyzer_uuid in redis_server_metadata.smembers('analyzer:254:{}'.format(extended_type)):
-            size_limit = redis_server_metadata.hget('analyzer:{}'.format(analyzer_uuid), 'max_size')
-            if size_limit is None:
-                size_limit = analyzer_list_max_default_size
-            last_updated = redis_server_metadata.hget('analyzer:{}'.format(analyzer_uuid), 'last_updated')
-            if last_updated is None:
-                last_updated = 'Never'
-            else:
-                last_updated = datetime.datetime.fromtimestamp(float(last_updated)).strftime('%Y-%m-%d %H:%M:%S')
-            description_analyzer = redis_server_metadata.hget('analyzer:{}'.format(analyzer_uuid), 'description')
-            if description_analyzer is None:
-                description_analyzer = ''
-            len_queue = redis_server_analyzer.llen('analyzer:{}:{}'.format(extended_type, analyzer_uuid))
-            if len_queue is None:
-                len_queue = 0
-            list_analyzer_uuid.append({'uuid': analyzer_uuid, 'description': description_analyzer, 'size_limit': size_limit,'last_updated': last_updated, 'length': len_queue})
+        for extended_queue_uuid in Analyzer_Queue.get_all_queues_by_extended_type(extended_type):
+            l_queue_extended_type.append(Analyzer_Queue.get_queue_metadata(extended_queue_uuid, format_type=254, extended_type=extended_type))
 
-        list_accepted_extended_types.append({"name": extended_type, 'list_analyzer_uuid': list_analyzer_uuid})
+        for extended_queue_uuid in Analyzer_Queue.get_all_queues_group_by_extended_type(extended_type):
+            l_queue_extended_type.append(Analyzer_Queue.get_queue_metadata(extended_queue_uuid, format_type=254, extended_type=extended_type, force_is_group_queue=True))
+
 
     return render_template("server_management.html", list_accepted_types=list_accepted_types, list_accepted_extended_types=list_accepted_extended_types,
                             server_mode=server_mode,
+                            l_queue_extended_type=l_queue_extended_type,
                             nb_sensors_registered=nb_sensors_registered, nb_sensors_pending=nb_sensors_pending,
                             default_analyzer_max_line_len=default_analyzer_max_line_len,
                             blacklisted_ip=blacklisted_ip, unblacklisted_ip=unblacklisted_ip,
@@ -787,30 +765,6 @@ def uuid_change_description():
         return jsonify()
     else:
         return jsonify({'error':'invalid uuid'}), 400
-
-# # TODO: check analyser uuid dont exist
-@app.route('/add_new_analyzer')
-@login_required
-@login_user_basic
-def add_new_analyzer():
-    format_type = request.args.get('type')
-    user = request.args.get('redirect')
-    metatype_name = request.args.get('metatype_name')
-    analyzer_description = request.args.get('analyzer_description')
-    analyzer_uuid = request.args.get('analyzer_uuid')
-    if is_valid_uuid_v4(analyzer_uuid):
-        try:
-            format_type = int(format_type)
-            if format_type < 0:
-                return 'type, Invalid Integer'
-        except:
-            return 'type, Invalid Integer'
-
-        Analyzer_Queue.create_queues(format_type, queue_uuid=analyzer_uuid, l_uuid=[], queue_type='list', metatype_name=metatype_name, description=analyzer_description)
-        if user:
-            return redirect(url_for('server_management'))
-    else:
-        return 'Invalid uuid'
 
 @app.route('/empty_analyzer_queue')
 @login_required

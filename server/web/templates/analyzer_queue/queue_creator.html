@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+	<title>D4-Project</title>
+	<link rel="icon" href="{{ url_for('static', filename='img/d4-logo.png')}}">
+	<!-- Core CSS -->
+	<link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+	<link href="{{ url_for('static', filename='font-awesome/css/font-awesome.css') }}" rel="stylesheet">
+	<link href="{{ url_for('static', filename='css/dataTables.bootstrap.min.css') }}" rel="stylesheet">
+
+	<!-- JS -->
+	<script src="{{ url_for('static', filename='js/jquery.js')}}"></script>
+	<script src="{{ url_for('static', filename='js/popper.min.js')}}"></script>
+	<script src="{{ url_for('static', filename='js/bootstrap.min.js')}}"></script>
+	<script src="{{ url_for('static', filename='js/jquery.dataTables.min.js')}}"></script>
+	<script src="{{ url_for('static', filename='js/dataTables.bootstrap.min.js')}}"></script>
+
+  <style>
+	.popover{
+		max-width: 100%;
+	}
+  </style>
+
+
+</head>
+
+<body>
+
+	{% include 'navbar.html' %}
+
+
+
+		<div class="card mb-3 mt-1">
+			<div class="card-header text-white bg-dark">
+				<h5 class="card-title">Create Analyzer Queue</h5>
+			</div>
+			<div class="card-body">
+
+				<form action="{{ url_for('analyzer_queue.create_analyzer_queue_post') }}" method="post" enctype=multipart/form-data onsubmit="submitPaste()">
+
+					<div class="form-group mb-4">
+						<label for="analyzer_type"><b>Analyzer Type</b></label>
+						<input class="form-control col-md-4" type="number" name="analyzer_type" id="analyzer_type" value="{%if queue_type%}{{queue_type}}{%else%}1{%endif%}" min="1" max="254" required>
+						<input class="form-control" type="text" name="analyzer_metatype" id="analyzer_metatype_name" placeholder="Meta Type Name" {%if metatype_name%}value="{{metatype_name}}"{%endif%}>
+					</div>
+
+					<div class="input-group my-2">
+						<div class="input-group-prepend">
+							<button class="btn btn-outline-secondary" type="button" onclick="generate_new_uuid();"><i class="fa fa-random"></i></button>
+						</div>
+						<input class="form-control col-md-4" type="text" name="analyzer_uuid" id="analyzer_uuid" {%if queue_uuid%}value="{{queue_uuid}}"{%endif%} required placeholder="Analyzer uuid - (Optional)">
+					</div>
+
+					<div class="form-group my-2">
+						<input class="form-control" type="text" name="description" id="analyzer_description" {%if description%}value="{{description}}"{%endif%} required placeholder="Description - (Optional)">
+					</div>
+
+					<div id="container-id-to-import">
+
+						<p>Create Queue by Group of UUID</p>
+
+						<div for="first_sensor_uuid"><b>Sensor UUID</b></div>
+
+						<div class="form-horizontal">
+							<div class="form-body">
+								<div class="form-group">
+									<div class="fields">
+
+										{% if l_uuid %}
+											{% for sensor_uuid in l_uuid %}
+											  {% with sensor_uuid=sensor_uuid, error=False%}
+											    {% include 'analyzer_queue/block_add_sensor_to_group_block.html' %}
+											  {% endwith %}
+											{% endfor %}
+											<br>
+										{% endif %}
+										{% if l_invalid_uuid %}
+											{% for sensor_uuid in l_invalid_uuid %}
+											  {% with sensor_uuid=sensor_uuid, error=True%}
+											    {% include 'analyzer_queue/block_add_sensor_to_group_block.html' %}
+											  {% endwith %}
+											{% endfor %}
+											<br>
+										{% endif %}
+										<div class="input-group mb-1">
+											<input type="text" class="form-control col-10" name="first_sensor_uuid" id="first_sensor_uuid">
+										  <span class="btn btn-info input-group-addon add-field col-2"><i class="fa fa-plus"></i></span>
+										</div>
+										<span class="help-block" hidden>Export Objects</span>
+									</div>
+								</div>
+							</div>
+						</div>
+
+					</div>
+
+					<div class="form-group">
+						<button class="btn btn-info" type="submit">Create Queue</button>
+					</div>
+
+				</form>
+
+			</div>
+		</div>
+
+
+	{% include 'navfooter.html' %}
+</body>
+
+<script>
+$(document).ready(function(){
+	$("#nav-sensor").addClass("active");
+	{%if queue_type!=2 and queue_type!=254%}
+		$('#analyzer_metatype_name').hide();
+	{%endif%}
+});
+
+
+var input_part_1 = '<div class="input-group mb-1"><input type="text" class="form-control col-10" name="'
+var input_part_2 = '"></div>'
+var minusButton = '<span class="btn btn-danger input-group-addon delete-field col-2"><i class="fa fa-trash"></i></span>'
+
+$('.add-field').click(function() {
+	var new_uuid = uuidv4();
+	var template = input_part_1 + new_uuid + input_part_2;
+  var temp = $(template).insertBefore('.help-block');
+  temp.append(minusButton);
+});
+
+$('.fields').on('click', '.delete-field', function(){
+	console.log($(this).parent());
+  $(this).parent().remove();
+	//$.get( "#")
+});
+
+function uuidv4() {
+  return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+    (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+  );
+}
+
+$('#analyzer_type').on('input', function() {
+	if ($('#analyzer_type').val() == 2 || $('#analyzer_type').val() == 254){
+		$('#analyzer_metatype_name').show()
+	} else {
+		$('#analyzer_metatype_name').hide()
+	}
+});
+
+function generate_new_uuid(){
+	$.getJSON( "{{url_for('generate_uuid')}}", function( data ) {
+		console.log(data['uuid'])
+		$( "#analyzer_uuid" ).val(data['uuid']);
+	});
+}
+
+</script>

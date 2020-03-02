@@ -1,0 +1,7 @@
+<div class="input-group mb-1">
+  <input type="text" class="form-control col-10 {%if error%}is-invalid{%else%}is-valid{%endif%}" name="{{sensor_uuid}}" value="{{sensor_uuid}}">
+  <span class="btn btn-danger input-group-addon delete-field col-2"><i class="fa fa-trash"></i></span>
+  <div class="invalid-feedback">
+    Please provide a valid UUID v4.
+  </div>
+</div>

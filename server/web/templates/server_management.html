@@ -231,11 +231,12 @@
 		  <div class="card-body text-dark">
 
 				<div class="row">
-			    <div class="col-xl-8">
+			    <div class="col-xl-10">
 						<table class="table table-striped table-bordered table-hover" id="myTable_1">
 							<thead class="thead-dark">
 								<tr>
 									<th>Type</th>
+									<th>Group</th>
 									<th style="max-width: 800px;">uuid</th>
 									<th style="max-width: 800px;">last updated</th>
 									<th style="max-width: 800px;">Change max size limit</th>
@@ -246,8 +247,13 @@
 								{% for type in list_accepted_types %}
 									{% if type['list_analyzer_uuid'] %}
 										{% for analyzer in type['list_analyzer_uuid'] %}
-											<tr>
+											<tr id="{{analyzer['uuid']}}">
 												<td>{{type['id']}}</td>
+												{%if analyzer['is_group_queue']%}
+													<td class="text-center"><i class="fa fa-group"></i></td>
+												{%else%}
+													<td></td>
+												{%endif%}
 												<td>
 													<div class="d-flex">
 														{{analyzer['uuid']}}
@@ -284,6 +290,7 @@
 								<thead class="thead-dark">
 									<tr>
 										<th>Type Name</th>
+										<th>Group</th>
 										<th style="max-width: 800px;">uuid</th>
 										<th style="max-width: 800px;">last updated</th>
 										<th style="max-width: 800px;">Change max size limit</th>
@@ -291,60 +298,49 @@
 									</tr>
 								</thead>
 								<tbody id="analyzer_accepted_extended_types_tbody">
-									{% for type in list_accepted_extended_types %}
-										{% if type['list_analyzer_uuid'] %}
-											{% for analyzer in type['list_analyzer_uuid'] %}
-												<tr>
-													<td>{{type['name']}}</td>
-													<td>
-														<div class="d-flex">
-															{{analyzer['uuid']}}
-															<a href="{{ url_for('remove_analyzer') }}?redirect=1&type=254&metatype_name={{type['name']}}&analyzer_uuid={{analyzer['uuid']}}" class="ml-auto">
-																<button type="button" class="btn btn-outline-danger px-2 py-0"><i class="fa fa-trash"></i></button>
-															</a>
-														</div>
-														{%if analyzer['description']%}
-															<div class="text-info"><small>{{analyzer['description']}}</small></div>
-														{%endif%}
-													</td>
-													<td>{{analyzer['last_updated']}}</td>
-													<td>
-														<div class="d-xl-flex justify-content-xl-center">
-															<input class="form-control mr-lg-1" style="max-width: 100px;" type="number" id="max_size_analyzer_{{analyzer['uuid']}}" value="{{analyzer['size_limit']}}" min="0" required="">
-															<button type="button" class="btn btn-outline-secondary" onclick="window.location.href ='{{ url_for('analyzer_change_max_size') }}?analyzer_uuid={{analyzer['uuid']}}&redirect=0&max_size_analyzer='+$('#max_size_analyzer_{{analyzer['uuid']}}').val();">Change Max Size</button>
-														</div>
-													</td>
-													<td>
-														<a href="{{ url_for('empty_analyzer_queue') }}?redirect=1&type=254&metatype_name={{type['name']}}&analyzer_uuid={{analyzer['uuid']}}">
-															<button type="button" class="btn btn-outline-danger"><i class="fa fa-eraser"></i></button>
-														</a>
-														<button type="button" class="btn btn-outline-info ml-xl-3" onclick="get_analyser_sample('{{type['name']}}', '{{analyzer['uuid']}}');"><i class="fa fa-database"></i> {{analyzer['length']}}</button>
-													</td>
-												</tr>
-											{% endfor %}
-										{% endif %}
+									{% for dict_queue in l_queue_extended_type %}
+										<tr>
+											<td>{{dict_queue['extended_type']}}</td>
+											{%if dict_queue['is_group_queue']%}
+												<td class="text-center"><i class="fa fa-group"></i></td>
+											{%else%}
+												<td></td>
+											{%endif%}
+											<td>
+												<div class="d-flex">
+													{{dict_queue['uuid']}}
+													<a href="{{ url_for('remove_analyzer') }}?redirect=1&type=254&metatype_name={{dict_queue['extended_type']}}&analyzer_uuid={{dict_queue['uuid']}}" class="ml-auto">
+														<button type="button" class="btn btn-outline-danger px-2 py-0"><i class="fa fa-trash"></i></button>
+													</a>
+												</div>
+												{%if dict_queue['description']%}
+													<div class="text-info"><small>{{dict_queue['description']}}</small></div>
+												{%endif%}
+											</td>
+											<td>{{dict_queue['last_updated']}}</td>
+											<td>
+												<div class="d-xl-flex justify-content-xl-center">
+													<input class="form-control mr-lg-1" style="max-width: 100px;" type="number" id="max_size_analyzer_{{dict_queue['uuid']}}" value="{{dict_queue['size_limit']}}" min="0" required="">
+													<button type="button" class="btn btn-outline-secondary" onclick="window.location.href ='{{ url_for('analyzer_change_max_size') }}?analyzer_uuid={{dict_queue['uuid']}}&redirect=0&max_size_analyzer='+$('#max_size_analyzer_{{dict_queue['uuid']}}').val();">Change Max Size</button>
+												</div>
+											</td>
+											<td>
+												<a href="{{ url_for('empty_analyzer_queue') }}?redirect=1&type=254&metatype_name={{dict_queue['extended_type']}}&analyzer_uuid={{dict_queue['uuid']}}">
+													<button type="button" class="btn btn-outline-danger"><i class="fa fa-eraser"></i></button>
+												</a>
+												<button type="button" class="btn btn-outline-info ml-xl-3" onclick="get_analyser_sample('{{dict_queue['extended_type']}}', '{{dict_queue['uuid']}}');"><i class="fa fa-database"></i> {{dict_queue['length']}}</button>
+											</td>
+										</tr>
 									{% endfor %}
 								</tbody>
 							</table>
 						</div>
 
 					</div>
-			    <div class="col-xl-4">
-						<div class="card border-dark mt-3" style="max-width: 18rem;">
-						  <div class="card-body text-dark">
-						    <h5 class="card-title">Add New Analyzer Queue</h5>
-									<input class="form-control" type="number" id="analyzer_type" value="1" min="1" max="254" required>
-									<input class="form-control" type="text" id="analyzer_metatype_name" placeholder="Meta Type Name">
-									<div class="input-group">
-									  <div class="input-group-prepend">
-									    <button class="btn btn-outline-secondary" type="button" onclick="generate_new_uuid();"><i class="fa fa-random"></i></button>
-									  </div>
-										<input class="form-control" type="text" id="analyzer_uuid" required placeholder="Analyzer uuid">
-									</div>
-									<input class="form-control" type="text" id="analyzer_description" required placeholder="Optional Description">
-									<button type="button" class="btn btn-outline-primary mt-1" onclick="window.location.href ='{{ url_for('add_new_analyzer') }}?redirect=1&type='+$('#analyzer_type').val()+'&analyzer_uuid='+$('#analyzer_uuid').val()+'&metatype_name='+$('#analyzer_metatype_name').val()+'&analyzer_description='+$('#analyzer_description').val();">Add New Analyzer</button>
-							</div>
-						</div>
+			    <div class="col-xl-2">
+						<a href="{{ url_for('analyzer_queue.create_analyzer_queue') }}" class="ml-auto">
+							<button type="button" class="btn btn-primary"><i class="fa fa-plus"></i> Add New Analyzer Queue</button>
+						</a>
 					</div>
 			  </div>
 
@@ -430,7 +426,7 @@ if (tbody.children().length == 0) {
 }
 
 $('#accepted_type').on('input', function() {
-	if ($('#accepted_type').val() == 254){
+	if ($('#analyzer_type').val() == 2 || $('#accepted_type').val() == 254){
 		$('#extended_type_name').show()
 	} else {
 		$('#extended_type_name').hide()
@@ -438,7 +434,7 @@ $('#accepted_type').on('input', function() {
 });
 
 $('#analyzer_type').on('input', function() {
-	if ($('#analyzer_type').val() == 254){
+	if ($('#analyzer_type').val() == 2 || $('#analyzer_type').val() == 254){
 		$('#analyzer_metatype_name').show()
 	} else {
 		$('#analyzer_metatype_name').hide()
