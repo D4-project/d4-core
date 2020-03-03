@@ -62,6 +62,8 @@ class MetaTypesDefault:
     def process_data(self, data):
         # save data on disk
         self.save_rotate_file(data)
+        # do something with the data (send to analyzer queue by default)
+        self.reconstruct_data(data)
 
     ######## CORE FUNCTIONS ########
 
