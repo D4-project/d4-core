@@ -58,6 +58,33 @@ def get_all_queues(r_list=None):
         return list(res)
     return res
 
+def get_all_queues_format_type(r_list=None):
+    res = r_serv_metadata.smembers('all:analyzer:format_type')
+    if r_list:
+        return list(res)
+    return res
+
+def get_all_queues_extended_type(r_list=None):
+    res = r_serv_metadata.smembers('all:analyzer:extended_type')
+    if r_list:
+        return list(res)
+    return res
+
+# GLOBAL
+def get_all_queues_uuid_by_type(format_type, r_list=None):
+    res = r_serv_metadata.smembers('all:analyzer:by:format_type:{}'.format(format_type))
+    if r_list:
+        return list(res)
+    return res
+
+# GLOBAL
+def get_all_queues_uuid_by_extended_type(extended_type, r_list=None):
+    res = r_serv_metadata.smembers('all:analyzer:by:extended_type:{}'.format(extended_type))
+    if r_list:
+        return list(res)
+    return res
+
+# ONLY NON GROUP
 def get_all_queues_by_type(format_type, r_list=None):
     '''
     Get all analyzer Queues by type
@@ -76,6 +103,7 @@ def get_all_queues_by_type(format_type, r_list=None):
         return list(res)
     return res
 
+# ONLY NON GROUP
 def get_all_queues_by_extended_type(extended_type, r_list=None):
     res = r_serv_metadata.smembers('analyzer:254:{}'.format(extended_type))
     if r_list:
@@ -182,10 +210,10 @@ def edit_queue_max_size(queue_uuid, max_size):
 # create queu by type or by group of uuid
 # # TODO: add size limit
 def create_queues(format_type, queue_uuid=None, l_uuid=[], queue_type='list', metatype_name=None, description=None):
+    format_type = sanitize_queue_type(format_type)
+    
     if not d4_type.is_accepted_format_type(format_type):
         return {'error': 'Invalid type'}
-
-    ormat_type = sanitize_queue_type(format_type)
 
     if format_type == 254 and not d4_type.is_accepted_extended_type(metatype_name):
         return {'error': 'Invalid extended type'}
@@ -200,10 +228,17 @@ def create_queues(format_type, queue_uuid=None, l_uuid=[], queue_type='list', me
     else:
         analyzer_key_name = 'analyzer'
 
+    r_serv_metadata.sadd('all:analyzer:format_type', format_type)
+    r_serv_metadata.sadd('all:analyzer:by:format_type:{}'.format(format_type), queue_uuid)
+
+
     if format_type == 254:
     # TODO: check metatype_name
         r_serv_metadata.sadd('{}:{}:{}'.format(analyzer_key_name, format_type, metatype_name), queue_uuid)
         r_serv_metadata.hset('analyzer:{}'.format(queue_uuid), 'metatype', metatype_name)
+
+        r_serv_metadata.sadd('all:analyzer:by:extended_type:{}'.format(metatype_name), queue_uuid)
+        r_serv_metadata.sadd('all:analyzer:extended_type', metatype_name)
     else:
         r_serv_metadata.sadd('{}:{}'.format(analyzer_key_name, format_type), queue_uuid)
 
@@ -278,12 +313,22 @@ def remove_queues(queue_uuid, format_type, metatype_name=None):
     else:
         analyzer_key_name = 'analyzer'
 
+    r_serv_metadata.srem('all:analyzer:by:format_type:{}'.format(format_type), queue_uuid)
     if format_type == 254:
-        r_serv_metadata.srem('{}:{}:{}'.format(analyzer_key_name, format_type, metatype_name), queue_uuid)
+        r_serv_metadata.srem('{}:254:{}'.format(analyzer_key_name, metatype_name), queue_uuid)
+        r_serv_metadata.srem('all:analyzer:by:extended_type:{}'.format(metatype_name), queue_uuid)
     else:
         r_serv_metadata.srem('{}:{}'.format(analyzer_key_name, format_type), queue_uuid)
 
     r_serv_metadata.srem('all_analyzer_queues', queue_uuid)
+
+    ## delete global queue ##
+    if not r_serv_metadata.exists('all:analyzer:by:format_type:{}'.format(format_type)):
+        r_serv_metadata.srem('all:analyzer:format_type', format_type)
+    if format_type ==254:
+        if not r_serv_metadata.exists('all:analyzer:by:extended_type:{}'.format(metatype_name)):
+            r_serv_metadata.srem('all:analyzer:extended_type', metatype_name)
+    ## --- ##
 
     # delete qeue
     r_serv_analyzer.delete('analyzer:{}:{}'.format(format_type, queue_uuid))
