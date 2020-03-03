@@ -30,6 +30,7 @@ if __name__ == '__main__':
 
     for extended_type in d4_type.get_all_accepted_extended_type():
         for queue_uuid in Analyzer_Queue.get_all_queues_by_extended_type(extended_type):
+            r_serv_metadata.hset('analyzer:{}'.format(queue_uuid), 'type', 254)
             r_serv_metadata.hset('analyzer:{}'.format(queue_uuid), 'metatype', extended_type)
             r_serv_metadata.sadd('all:analyzer:extended_type', extended_type)
             r_serv_metadata.sadd('all:analyzer:format_type', 254)

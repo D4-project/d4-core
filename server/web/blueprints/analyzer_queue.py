@@ -79,3 +79,45 @@ def create_analyzer_queue_post():
         return jsonify(res)
     if res:
         return redirect(url_for('server_management', _anchor=res))
+
+@analyzer_queue.route("/analyzer_queue/edit_queue", methods=['GET'])
+@login_required
+@login_user_basic
+def edit_queue_analyzer_queue():
+    queue_uuid = request.args.get("queue_uuid")
+    queue_metadata = Analyzer_Queue.get_queue_metadata(queue_uuid, is_group=True)
+    if 'is_group_queue' in queue_metadata:
+        l_sensors_uuid = Analyzer_Queue.get_queue_group_all_sensors(queue_uuid)
+    else:
+        l_sensors_uuid = None
+    return render_template("analyzer_queue/queue_editor.html", queue_metadata=queue_metadata, l_sensors_uuid=l_sensors_uuid)
+
+@analyzer_queue.route("/analyzer_queue/edit_queue_post", methods=['POST'])
+@login_required
+@login_user_basic
+def edit_queue_analyzer_queue_post():
+    l_queue_meta = ['queue_uuid', 'description']
+    queue_uuid = request.form.get("queue_uuid")
+    queue_description = request.form.get("description")
+
+    l_uuid = set()
+    l_invalid_uuid = set()
+    for obj_tuple in list(request.form):
+        if obj_tuple not in l_queue_meta:
+            sensor_uuid = request.form.get(obj_tuple)
+            if Analyzer_Queue.is_valid_uuid_v4(sensor_uuid):
+                l_uuid.add(sensor_uuid)
+            else:
+                if sensor_uuid:
+                    l_invalid_uuid.add(sensor_uuid)
+
+    if l_invalid_uuid:
+        queue_metadata = Analyzer_Queue.get_queue_metadata(queue_uuid, is_group=True)
+        if queue_description:
+            queue_metadata['description'] = queue_description
+        return render_template("analyzer_queue/queue_editor.html", queue_metadata=queue_metadata, l_sensors_uuid=l_uuid, l_invalid_uuid=l_invalid_uuid)
+
+    Analyzer_Queue.edit_queue_description(queue_uuid, queue_description)
+    Analyzer_Queue.edit_queue_sensors_set(queue_uuid, l_uuid)
+
+    return redirect(url_for('analyzer_queue.edit_queue_analyzer_queue', queue_uuid=queue_uuid))

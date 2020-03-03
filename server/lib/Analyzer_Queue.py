@@ -162,12 +162,15 @@ def get_queue_size(queue_uuid, format_type, extended_type=None):
     return length
 
 def get_queue_format_type(queue_uuid):
-    return r_serv_metadata.hget('analyzer:{}'.format(queue_uuid), 'type')
+    return int(r_serv_metadata.hget('analyzer:{}'.format(queue_uuid), 'type'))
 
 def get_queue_extended_type(queue_uuid):
     return r_serv_metadata.hget('analyzer:{}'.format(queue_uuid), 'metatype')
 
-def get_queue_metadata(queue_uuid, format_type=None, extended_type=None, f_date='str_date', force_is_group_queue=False):
+def is_queue_group_of_sensors(queue_uuid):
+    return r_serv_metadata.exists('analyzer_sensor_group:{}'.format(queue_uuid))
+
+def get_queue_metadata(queue_uuid, format_type=None, extended_type=None, f_date='str_date', is_group=None, force_is_group_queue=False):
     dict_queue_meta = {}
     dict_queue_meta['uuid'] = queue_uuid
     dict_queue_meta['size_limit'] = get_queue_max_size(queue_uuid)
@@ -187,10 +190,13 @@ def get_queue_metadata(queue_uuid, format_type=None, extended_type=None, f_date=
 
     dict_queue_meta['length'] = get_queue_size(queue_uuid, format_type, extended_type=extended_type)
 
-    if force_is_group_queue:
-        dict_queue_meta['is_group_queue'] = True
+    if is_group and not force_is_group_queue:
+        dict_queue_meta['is_group_queue'] = is_queue_group_of_sensors(queue_uuid)
     else:
-        dict_queue_meta['is_group_queue'] = False
+        if force_is_group_queue:
+            dict_queue_meta['is_group_queue'] = True
+        else:
+            dict_queue_meta['is_group_queue'] = False
 
     return dict_queue_meta
 
@@ -207,11 +213,30 @@ def edit_queue_max_size(queue_uuid, max_size):
     if r_serv_metadata.exists('analyzer:{}'.format(queue_uuid)) and max_size > 0:
         r_serv_metadata.hset('analyzer:{}'.format(queue_uuid), 'max_size', max_size)
 
+def edit_queue_sensors_set(queue_uuid, l_sensors_uuid):
+    format_type = get_queue_format_type(queue_uuid)
+    set_current_sensors = get_queue_group_all_sensors(queue_uuid)
+    l_new_sensors_uuid = []
+    for sensor_uuid in l_sensors_uuid:
+        l_new_sensors_uuid.append(sensor_uuid.replace('-', ''))
+
+    sensors_to_add = l_sensors_uuid.difference(set_current_sensors)
+    sensors_to_remove = set_current_sensors.difference(l_sensors_uuid)
+
+    for sensor_uuid in sensors_to_add:
+        r_serv_metadata.sadd('analyzer_sensor_group:{}'.format(queue_uuid), sensor_uuid)
+        r_serv_metadata.sadd('sensor:queues:{}:{}'.format(format_type, sensor_uuid), queue_uuid)
+
+    for sensor_uuid in sensors_to_remove:
+        r_serv_metadata.srem('analyzer_sensor_group:{}'.format(queue_uuid), sensor_uuid)
+        r_serv_metadata.srem('sensor:queues:{}:{}'.format(format_type, sensor_uuid), queue_uuid)
+
+
 # create queu by type or by group of uuid
 # # TODO: add size limit
 def create_queues(format_type, queue_uuid=None, l_uuid=[], queue_type='list', metatype_name=None, description=None):
     format_type = sanitize_queue_type(format_type)
-    
+
     if not d4_type.is_accepted_format_type(format_type):
         return {'error': 'Invalid type'}
 
@@ -271,12 +296,6 @@ def add_data_to_queue(sensor_uuid, format_type, data):
             r_serv_analyzer.ltrim('analyzer:{}:{}'.format(format_type, queue_uuid), 0, analyser_queue_max_size)
 
 
-def is_queue_group_of_sensors(queue_uuid):
-    if r_serv_metadata.exists('analyzer_sensor_group:{}'.format(queue_uuid)):
-        return True
-    else:
-        return False
-
 def flush_queue(queue_uuid, format_type):
     r_serv_analyzer.delete('analyzer:{}:{}'.format(format_type, queue_uuid))
 
@@ -302,7 +321,7 @@ def remove_queues(queue_uuid, format_type, metatype_name=None):
     r_serv_metadata.delete('analyzer:{}'.format(queue_uuid))
 
     # delete queue group of sensors uuid
-    l_sensors_uuid = get_queue_group_all_sensors(queue_uuid, r_list=None)
+    l_sensors_uuid = get_queue_group_all_sensors(queue_uuid)
     if l_sensors_uuid:
         r_serv_metadata.delete('analyzer_sensor_group:{}'.format(queue_uuid))
         for sensor_uuid in l_sensors_uuid:

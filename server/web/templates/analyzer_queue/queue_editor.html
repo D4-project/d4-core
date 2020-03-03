@@ -33,32 +33,61 @@
 
 		<div class="card mb-3 mt-1">
 			<div class="card-header text-white bg-dark">
-				<h5 class="card-title">Create Analyzer Queue</h5>
+				<h5 class="card-title">Analyzer Queue: <b>{{queue_metadata['uuid']}}</b></h5>
 			</div>
 			<div class="card-body">
 
-				<form action="{{ url_for('analyzer_queue.create_analyzer_queue_post') }}" method="post" enctype=multipart/form-data onsubmit="submitPaste()">
+							<table class="table table-striped table-bordered">
+								<thead class="thead-dark">
+									<tr>
+										<th>Type Name</th>
+										<th>Group</th>
+										<th style="max-width: 800px;">Name</th>
+										<th style="max-width: 800px;">Last updated</th>
+										<th style="max-width: 800px;">Change max size limit</th>
+									</tr>
+								</thead>
+								<tbody>
+									<tr>
+										<td>
+											{%if queue_metadata['format_type'] == 254%}
+												{{queue_metadata['extended_type']}}
+											{%else%}
+												{{queue_metadata['format_type']}}
+											{%endif%}
+										</td>
+											{%if queue_metadata['is_group_queue']%}
+												<td class="text-center"><i class="fa fa-group"></i></td>
+											{%else%}
+												<td></td>
+											{%endif%}
+										<td>
+											<div class="d-flex">
+												<b>{{queue_metadata['uuid']}}:{{queue_metadata['format_type']}}{%if queue_metadata['format_type'] == 254%}:{{queue_metadata['extended_type']}}{%endif%}</b>
+											</div>
+										</td>
+										<td>{{queue_metadata['last_updated']}}</td>
+										<td>
+											<div class="d-xl-flex justify-content-xl-center">
+												<input class="form-control mr-lg-1" style="max-width: 100px;" type="number" id="max_size_analyzer_{{queue_metadata['uuid']}}" value="{{queue_metadata['size_limit']}}" min="0" required="">
+												<button type="button" class="btn btn-outline-secondary" onclick="window.location.href ='{{ url_for('analyzer_change_max_size') }}?analyzer_uuid={{queue_metadata['uuid']}}&redirect=0&max_size_analyzer='+$('#max_size_analyzer_{{queue_metadata['uuid']}}').val();">Change Max Size</button>
+											</div>
+										</td>
+									</tr>
+								</tbody>
+							</table>
 
-					<div class="form-group mb-4">
-						<label for="analyzer_type"><b>Analyzer Type</b></label>
-						<input class="form-control col-md-4" type="number" name="analyzer_type" id="analyzer_type" value="{%if queue_type%}{{queue_type}}{%else%}1{%endif%}" min="1" max="254" required>
-						<input class="form-control" type="text" name="analyzer_metatype" id="analyzer_metatype_name" placeholder="Meta Type Name" {%if metatype_name%}value="{{metatype_name}}"{%endif%}>
-					</div>
+				<form action="{{ url_for('analyzer_queue.edit_queue_analyzer_queue_post') }}" method="post" enctype=multipart/form-data>
 
-					<div class="input-group my-2">
-						<div class="input-group-prepend">
-							<button class="btn btn-outline-secondary" type="button" onclick="generate_new_uuid();"><i class="fa fa-random"></i></button>
-						</div>
-						<input class="form-control col-md-4" type="text" name="analyzer_uuid" id="analyzer_uuid" {%if queue_uuid%}value="{{queue_uuid}}"{%endif%} placeholder="Analyzer uuid - (Optional)">
-					</div>
+					<input class="form-control" type="text" name="queue_uuid" id="queue_uuid" value="{{queue_metadata['uuid']}}" hidden>
 
 					<div class="form-group my-2">
-						<input class="form-control" type="text" name="description" id="analyzer_description" {%if description%}value="{{description}}"{%endif%} placeholder="Description - (Optional)">
+						<input class="form-control" type="text" name="description" id="analyzer_description" {%if 'description' in queue_metadata%}value="{{queue_metadata['description']}}"{%endif%} placeholder="Description - (Optional)">
 					</div>
 
-					<div id="container-id-to-import">
+					<div>
 
-						<p>Create Queue by Group of UUID</p>
+						<br>
 
 						<div for="first_sensor_uuid"><b>Sensor UUID</b></div>
 
@@ -67,8 +96,8 @@
 								<div class="form-group">
 									<div class="fields">
 
-										{% if l_uuid %}
-											{% for sensor_uuid in l_uuid %}
+										{% if l_sensors_uuid %}
+											{% for sensor_uuid in l_sensors_uuid %}
 											  {% with sensor_uuid=sensor_uuid, error=False%}
 											    {% include 'analyzer_queue/block_add_sensor_to_group_block.html' %}
 											  {% endwith %}
@@ -87,7 +116,7 @@
 											<input type="text" class="form-control col-10" name="first_sensor_uuid" id="first_sensor_uuid">
 										  <span class="btn btn-info input-group-addon add-field col-2"><i class="fa fa-plus"></i></span>
 										</div>
-										<span class="help-block" hidden>Export Objects</span>
+										<span class="help-block" hidden>Sensor UUID</span>
 									</div>
 								</div>
 							</div>
@@ -96,7 +125,7 @@
 					</div>
 
 					<div class="form-group">
-						<button class="btn btn-info" type="submit">Create Queue</button>
+						<button class="btn btn-info" type="submit">Edit Queue</button>
 					</div>
 
 				</form>
@@ -110,9 +139,6 @@
 
 <script>
 $(document).ready(function(){
-	{%if queue_type!=2 and queue_type!=254%}
-		$('#analyzer_metatype_name').hide();
-	{%endif%}
 });
 
 
@@ -137,21 +163,6 @@ function uuidv4() {
   return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
     (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
   );
-}
-
-$('#analyzer_type').on('input', function() {
-	if ($('#analyzer_type').val() == 2 || $('#analyzer_type').val() == 254){
-		$('#analyzer_metatype_name').show()
-	} else {
-		$('#analyzer_metatype_name').hide()
-	}
-});
-
-function generate_new_uuid(){
-	$.getJSON( "{{url_for('generate_uuid')}}", function( data ) {
-		console.log(data['uuid'])
-		$( "#analyzer_uuid" ).val(data['uuid']);
-	});
 }
 
 </script>
