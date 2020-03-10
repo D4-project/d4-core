@@ -18,15 +18,16 @@ import ssl
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Export d4 data to stdout')
-    parser.add_argument('-t', '--type', help='d4 type or extended type' , type=str, dest='type', required=True)
-    parser.add_argument('-u', '--uuid', help='queue uuid' , type=str, dest='uuid', required=True)
-    parser.add_argument('-i', '--ip',help='server ip' , type=str, default='127.0.0.1', dest='target_ip')
-    parser.add_argument('-p', '--port',help='server port' , type=int, dest='target_port', required=True)
+    parser.add_argument('-t', '--type', help='d4 type or extended type', type=str, dest='type', required=True)
+    parser.add_argument('-u', '--uuid', help='queue uuid', type=str, dest='uuid', required=True)
+    parser.add_argument('-i', '--ip',help='server ip', type=str, default='127.0.0.1', dest='target_ip')
+    parser.add_argument('-p', '--port',help='server port', type=int, dest='target_port', required=True)
     parser.add_argument('-k', '--Keepalive', help='Keepalive in second', type=int, default='15', dest='ka_sec')
     parser.add_argument('-n', '--newline', help='add new lines', action="store_true")
-    parser.add_argument('-ri', '--redis_ip', help='redis ip' , type=str, default='127.0.0.1', dest='host_redis')
-    parser.add_argument('-rp', '--redis_port', help='redis port' , type=int, default=6380, dest='port_redis')
-    parser.add_argument('-v', '--verify_certificate', help='verify server certificate' , type=str, default='False', dest='verify_certificate')
+    parser.add_argument('-ri', '--redis_ip', help='redis ip', type=str, default='127.0.0.1', dest='host_redis')
+    parser.add_argument('-rp', '--redis_port', help='redis port', type=int, default=6380, dest='port_redis')
+    parser.add_argument('-v', '--verify_certificate', help='verify server certificate', type=str, default='True', dest='verify_certificate')
+    parser.add_argument('-c', '--ca_certs', help='cert filename' , type=str, default=None, dest='ca_certs')
     args = parser.parse_args()
 
     if not args.uuid or not args.type or not args.target_port:
@@ -37,6 +38,7 @@ if __name__ == "__main__":
     port_redis=args.port_redis
     newLines=args.newline
     verify_certificate=args.verify_certificate
+    ca_certs=args.ca_certs
 
     redis_d4= redis.StrictRedis(
                         host=host_redis,
@@ -69,12 +71,15 @@ if __name__ == "__main__":
     s.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, ka_sec)
 
     # SSL
-    if verify_certificate == 'False':
+    if verify_certificate in ['False', 'false', 'f']:
         cert_reqs_option = ssl.CERT_NONE
     else:
         cert_reqs_option = ssl.CERT_REQUIRED
 
-    client_socket = ssl.wrap_socket(s, cert_reqs=cert_reqs_option, ssl_version=ssl.PROTOCOL_TLS)
+    if ca_certs:
+        ca_certs = None
+
+    client_socket = ssl.wrap_socket(s, cert_reqs=cert_reqs_option, ca_certs=ca_certs, ssl_version=ssl.PROTOCOL_TLS)
 
     # TCP connect
     client_socket.connect(addr)
