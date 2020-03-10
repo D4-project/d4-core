@@ -13,7 +13,7 @@ import logging.handlers
 
 
 import socket
-
+import ssl
 
 
 if __name__ == "__main__":
@@ -24,8 +24,9 @@ if __name__ == "__main__":
     parser.add_argument('-p', '--port',help='server port' , type=int, dest='target_port', required=True)
     parser.add_argument('-k', '--Keepalive', help='Keepalive in second', type=int, default='15', dest='ka_sec')
     parser.add_argument('-n', '--newline', help='add new lines', action="store_true")
-    parser.add_argument('-ri', '--redis_ip',help='redis ip' , type=str, default='127.0.0.1', dest='host_redis')
-    parser.add_argument('-rp', '--redis_port',help='redis port' , type=int, default=6380, dest='port_redis')
+    parser.add_argument('-ri', '--redis_ip', help='redis ip' , type=str, default='127.0.0.1', dest='host_redis')
+    parser.add_argument('-rp', '--redis_port', help='redis port' , type=int, default=6380, dest='port_redis')
+    parser.add_argument('-v', '--verify_certificate', help='verify server certificate' , type=str, default='False', dest='verify_certificate')
     args = parser.parse_args()
 
     if not args.uuid or not args.type or not args.target_port:
@@ -34,7 +35,8 @@ if __name__ == "__main__":
 
     host_redis=args.host_redis
     port_redis=args.port_redis
-    newLines = args.newline
+    newLines=args.newline
+    verify_certificate=args.verify_certificate
 
     redis_d4= redis.StrictRedis(
                         host=host_redis,
@@ -58,13 +60,21 @@ if __name__ == "__main__":
     ka_sec = args.ka_sec
 
     # Create a TCP socket
-    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     # TCP Keepalive
-    client_socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
-    client_socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPCNT, 1)
-    client_socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, ka_sec)
-    client_socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, ka_sec)
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+    s.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPCNT, 1)
+    s.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, ka_sec)
+    s.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, ka_sec)
+
+    # SSL
+    if verify_certificate == 'False':
+        cert_reqs_option = ssl.CERT_NONE
+    else:
+        cert_reqs_option = ssl.CERT_REQUIRED
+
+    client_socket = ssl.wrap_socket(s, cert_reqs=cert_reqs_option, ssl_version=ssl.PROTOCOL_TLS)
 
     # TCP connect
     client_socket.connect(addr)
@@ -81,6 +91,6 @@ if __name__ == "__main__":
             d4_data = d4_data + b'\n'
 
         print(d4_data)
-        client_socket.sendall(d4_data)
+        client_socket.send(d4_data)
 
     client_socket.close()
