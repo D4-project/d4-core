@@ -52,13 +52,27 @@ cd web
 - All server logs are located in ``d4-core/server/logs/``
 - Close D4 Server: ``./LAUNCH.sh -k``
 
-### Screenshots of D4 core server management
+### D4 core server
 
+#### Dashboard
 ![](https://raw.githubusercontent.com/D4-project/d4-core/master/doc/images/main.png)
+
+#### Connected Sensors
 ![](https://raw.githubusercontent.com/D4-project/d4-core/master/doc/images/sensor-mgmt.png)
-![](https://raw.githubusercontent.com/D4-project/d4-core/master/doc/images/server-mgmt.png)
+
+#### Sensors Status
+![](https://raw.githubusercontent.com/D4-project/d4-core/master/doc/images/sensor_status.png)
+![](https://raw.githubusercontent.com/D4-project/d4-core/master/doc/images/sensor_stat_types.png)
+![](https://raw.githubusercontent.com/D4-project/d4-core/master/doc/images/sensor_stat_files.png)
+
+#### Server Management
+![](https://raw.githubusercontent.com/D4-project/d4-core/master/doc/images/server-management.png)
+![](https://raw.githubusercontent.com/D4-project/d4-core/master/doc/images/server-management-type.png)
+
+#### analyzer Queues
+![](https://raw.githubusercontent.com/D4-project/d4-core/master/doc/images/analyzer-queues)
+![](https://raw.githubusercontent.com/D4-project/d4-core/master/doc/images/create_analyzer_queue.png)
 ![](https://raw.githubusercontent.com/D4-project/d4-core/master/doc/images/analyzer-mgmt.png)
-![](https://raw.githubusercontent.com/D4-project/d4-core/master/doc/images/server-mgmt2.png)
 
 ### Troubleshooting
 
