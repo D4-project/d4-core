@@ -81,22 +81,22 @@ sensor registrations, management of decoding protocols and dispatching to adequa
 
 ### D4 core server Screenshots
 
-#### Dashboard
+#### Dashboard:
 ![](https://raw.githubusercontent.com/D4-project/d4-core/master/doc/images/main.png)
 
-#### Connected Sensors
+#### Connected Sensors:
 ![](https://raw.githubusercontent.com/D4-project/d4-core/master/doc/images/sensor-mgmt.png)
 
-#### Sensors Status
+#### Sensors Status:
 ![](https://raw.githubusercontent.com/D4-project/d4-core/master/doc/images/sensor_status.png)
 ![](https://raw.githubusercontent.com/D4-project/d4-core/master/doc/images/sensor_stat_types.png)
 ![](https://raw.githubusercontent.com/D4-project/d4-core/master/doc/images/sensor_stat_files.png)
 
-#### Server Management
+#### Server Management:
 ![](https://raw.githubusercontent.com/D4-project/d4-core/master/doc/images/server-management.png)
-![](https://raw.githubusercontent.com/D4-project/d4-core/master/doc/images/server-management-type.png)
+![](https://raw.githubusercontent.com/D4-project/d4-core/master/doc/images/server-management-types.png)
 
-#### analyzer Queues
-![](https://raw.githubusercontent.com/D4-project/d4-core/master/doc/images/analyzer-queues)
+#### analyzer Queues:
+![](https://raw.githubusercontent.com/D4-project/d4-core/master/doc/images/analyzer-queues.png)
 ![](https://raw.githubusercontent.com/D4-project/d4-core/master/doc/images/create_analyzer_queue.png)
 ![](https://raw.githubusercontent.com/D4-project/d4-core/master/doc/images/analyzer-mgmt.png)
