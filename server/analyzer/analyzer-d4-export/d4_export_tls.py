@@ -98,4 +98,4 @@ if __name__ == "__main__":
         print(d4_data)
         client_socket.send(d4_data)
 
-    client_socket.close()
+    client_socket.shutdown(socket.SHUT_RDWR)
