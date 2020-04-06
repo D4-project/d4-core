@@ -47,8 +47,8 @@ mv temp/bootstrap-${BOOTSTRAP_VERSION}-dist/js/bootstrap.min.js ./static/js/
 mv temp/bootstrap-${BOOTSTRAP_VERSION}-dist/css/bootstrap.min.css ./static/css/
 mv temp/bootstrap-${BOOTSTRAP_VERSION}-dist/css/bootstrap.min.css.map ./static/css/
 
-mv temp/popper.js-1.14.3/dist/umd/popper.min.js ./static/js/
-mv temp/popper.js-1.14.3/dist/umd/popper.min.js.map ./static/js/
+mv temp/popper-core-1.14.3/dist/umd/popper.min.js ./static/js/
+mv temp/popper-core-1.14.3/dist/umd/popper.min.js.map ./static/js/
 
 mv temp/Font-Awesome-${FONT_AWESOME_VERSION} temp/font-awesome
 
