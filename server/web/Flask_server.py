@@ -96,7 +96,7 @@ app = Flask(__name__, static_url_path=baseUrl+'/static/')
 app.config['MAX_CONTENT_LENGTH'] = 900 * 1024 * 1024
 
 # ========= Cookie name ========
-app.config.update(SESSION_COOKIE_NAME='d4_project_server{}'.format(FLASK_PORT))
+app.config.update(SESSION_COOKIE_NAME='d4_project_server{}'.format(uuid.uuid4().int))
 
 # ========= session ========
 app.secret_key = str(random.getrandbits(256))
