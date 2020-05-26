@@ -170,7 +170,7 @@ if __name__ == "__main__":
                 redis_server_stream.delete(stream_name)
                 try:
                     if os.path.isfile(save_path):
-                        print('save')
+                        #print('save')
                         compress_file(save_path)
                 except NameError:
                     pass

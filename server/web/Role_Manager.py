@@ -109,7 +109,7 @@ def create_user_db(username_id , password, default=False, role=None, update=Fals
 
     r_serv_db.hset('user:all', username_id, password_hash)
 
-def edit_user_db(user_id, role, password=None):
+def edit_user_db(user_id, password=None, role=None):
     if password:
         password_hash = hashing_password(password.encode())
         r_serv_db.hset('user:all', user_id, password_hash)

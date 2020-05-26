@@ -25,7 +25,7 @@ if __name__ == "__main__":
 
     username = 'admin@admin.test'
     password = gen_password()
-    if r_serv.exists('user_metadata:admin@admin.test'):
+    if r_serv.exists('user_metadata:{}'.format(username)):
         edit_user_db(username, password=password, role='admin')
     else:
         create_user_db(username, password, role='admin', default=True)
