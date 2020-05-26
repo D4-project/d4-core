@@ -303,12 +303,12 @@ def add_data_to_queue(sensor_uuid, queue_type, data):
             r_serv_analyzer.ltrim('analyzer:{}:{}'.format(queue_type, queue_uuid), 0, analyser_queue_max_size)
 
 
-def flush_queue(queue_uuid, format_type):
-    r_serv_analyzer.delete('analyzer:{}:{}'.format(format_type, queue_uuid))
+def flush_queue(queue_uuid, queue_type):
+    r_serv_analyzer.delete('analyzer:{}:{}'.format(queue_type, queue_uuid))
 
-def remove_queues(queue_uuid, format_type, metatype_name=None):
+def remove_queues(queue_uuid, queue_type, metatype_name=None):
     try:
-        format_type = int(format_type)
+        queue_type = int(queue_type)
     except:
         print('error: Invalid format type')
         return {'error': 'Invalid format type'}
@@ -321,7 +321,7 @@ def remove_queues(queue_uuid, format_type, metatype_name=None):
         print('error: unknow queue uuid')
         return {'error': 'unknow queue uuid'}
 
-    if format_type==254 and not metatype_name:
+    if queue_type==254 and not metatype_name:
         metatype_name = get_queue_extended_type(queue_uuid)
 
     # delete metadata
@@ -332,7 +332,7 @@ def remove_queues(queue_uuid, format_type, metatype_name=None):
     if l_sensors_uuid:
         r_serv_metadata.delete('analyzer_sensor_group:{}'.format(queue_uuid))
 
-        if format_type == 254:
+        if queue_type == 254:
             queue_type = metatype_name
         for sensor_uuid in l_sensors_uuid:
             r_serv_metadata.srem('sensor:queues:{}:{}'.format(queue_type, sensor_uuid), queue_uuid)
@@ -342,25 +342,25 @@ def remove_queues(queue_uuid, format_type, metatype_name=None):
     else:
         analyzer_key_name = 'analyzer'
 
-    r_serv_metadata.srem('all:analyzer:by:format_type:{}'.format(format_type), queue_uuid)
-    if format_type == 254:
+    r_serv_metadata.srem('all:analyzer:by:format_type:{}'.format(queue_type), queue_uuid)
+    if queue_type == 254:
         r_serv_metadata.srem('{}:254:{}'.format(analyzer_key_name, metatype_name), queue_uuid)
         r_serv_metadata.srem('all:analyzer:by:extended_type:{}'.format(metatype_name), queue_uuid)
     else:
-        r_serv_metadata.srem('{}:{}'.format(analyzer_key_name, format_type), queue_uuid)
+        r_serv_metadata.srem('{}:{}'.format(analyzer_key_name, queue_type), queue_uuid)
 
     r_serv_metadata.srem('all_analyzer_queues', queue_uuid)
 
     ## delete global queue ##
-    if not r_serv_metadata.exists('all:analyzer:by:format_type:{}'.format(format_type)):
-        r_serv_metadata.srem('all:analyzer:format_type', format_type)
-    if format_type ==254:
+    if not r_serv_metadata.exists('all:analyzer:by:format_type:{}'.format(queue_type)):
+        r_serv_metadata.srem('all:analyzer:format_type', queue_type)
+    if queue_type ==254:
         if not r_serv_metadata.exists('all:analyzer:by:extended_type:{}'.format(metatype_name)):
             r_serv_metadata.srem('all:analyzer:extended_type', metatype_name)
     ## --- ##
 
     # delete qeue
-    r_serv_analyzer.delete('analyzer:{}:{}'.format(format_type, queue_uuid))
+    r_serv_analyzer.delete('analyzer:{}:{}'.format(queue_type, queue_uuid))
 
 def get_sensor_queues(sensor_uuid):
     pass
