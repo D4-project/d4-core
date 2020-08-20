@@ -319,6 +319,7 @@ def login():
 
 @app.route('/change_password', methods=['POST', 'GET'])
 @login_required
+@login_user_basic
 def change_password():
     password1 = request.form.get('password1')
     password2 = request.form.get('password2')
