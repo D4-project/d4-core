@@ -293,6 +293,8 @@ def login():
                 #if not check_user_role_integrity(user.get_id()):
                 #    error = 'Incorrect User ACL, Please contact your administrator'
                 #    return render_template("login.html", error=error)
+                if not user.is_in_role('user'):
+                    return render_template("403.html"), 403
                 login_user(user) ## TODO: use remember me ?
                 if user.request_password_change():
                     return redirect(url_for('change_password'))
@@ -354,7 +356,7 @@ def logout():
 @app.route('/role', methods=['POST', 'GET'])
 @login_required
 def role():
-    return render_template("error/403.html"), 403
+    return render_template("403.html"), 403
 
 @app.route('/')
 @login_required
