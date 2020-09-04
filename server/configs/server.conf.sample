@@ -10,6 +10,7 @@ analyzer_queues_max_size = 10000
 
 [Flask_Server]
 # UI port number
+host = 127.0.0.1
 port = 7000
 
 [Redis_STREAM]

@@ -65,6 +65,11 @@ if server_mode not in all_server_modes:
     print('Error: incorrect server_mode')
 
 try:
+    FLASK_HOST = config_loader.get_config_int("Flask_Server", "host")
+except Exception as e:
+    FLASK_HOST = '127.0.0.1'
+
+try:
     FLASK_PORT = config_loader.get_config_int("Flask_Server", "port")
 except Exception:
     FLASK_PORT = 7000
@@ -1137,4 +1142,4 @@ def get_uuid_stats_history_json():
 
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=FLASK_PORT, threaded=True, ssl_context=ssl_context)
+    app.run(host='FLASK_HOST', port=FLASK_PORT, threaded=True, ssl_context=ssl_context)
