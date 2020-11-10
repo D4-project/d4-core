@@ -50,5 +50,5 @@ if __name__ == "__main__":
         curr_time = int(time.time())
         if curr_time - time_refresh >= 60:
             time_refresh = curr_time
-            dict_to_monitor = reload_all_sensors_to_monitor_dict(all_sensors_to_monitor, last_updated)
+            all_sensors_to_monitor = reload_all_sensors_to_monitor_dict(all_sensors_to_monitor, last_updated)
         ##--  --##
