@@ -32,6 +32,7 @@ def reload_all_sensors_to_monitor_dict(dict_to_monitor, last_updated):
             dict_to_monitor = Sensor.get_all_sensors_to_monitor_dict()
             last_updated = int(time.time())
             print('updated: List of sensors to monitor')
+    return dict_to_monitor
 
 if __name__ == "__main__":
 
@@ -49,5 +50,5 @@ if __name__ == "__main__":
         curr_time = int(time.time())
         if curr_time - time_refresh >= 60:
             time_refresh = curr_time
-            reload_all_sensors_to_monitor_dict(all_sensors_to_monitor, last_updated)
+            dict_to_monitor = reload_all_sensors_to_monitor_dict(all_sensors_to_monitor, last_updated)
         ##--  --##

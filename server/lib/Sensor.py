@@ -234,6 +234,7 @@ def add_sensor_to_monitor(sensor_uuid, delta_time):
     r_serv_db.sadd('to_monitor:sensors', sensor_uuid)
     r_serv_db.hset('to_monitor:sensor:{}'.format(sensor_uuid), 'delta_time', delta_time)
     r_serv_db.set('sensors_monitoring:last_updated', int(time.time()))
+    r_serv_db.srem('sensors_monitoring:sensors_error', sensor_uuid)
 
 def delete_sensor_to_monitor(sensor_uuid):
     r_serv_db.srem('to_monitor:sensors', sensor_uuid)
