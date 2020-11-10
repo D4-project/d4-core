@@ -69,6 +69,8 @@ function launching_d4_server {
 
     screen -S "Server_D4" -X screen -t "Server_D4" bash -c "cd ${D4_HOME}; ./server.py -v 10; read x"
     sleep 0.1
+    screen -S "Server_D4" -X screen -t "sensors_manager" bash -c "cd ${D4_HOME}; ./sensors_manager.py; read x"
+    sleep 0.1
 }
 
 function launching_workers {

@@ -101,6 +101,18 @@
 		</div>
 	</div>
 
+	<div class="d-flex justify-content-center mt-2">
+		{% if not data_uuid.get('is_monitored', False) %}
+			<a href="{{ url_for('D4_sensors.add_sensor_to_monitor') }}?uuid={{uuid_sensor}}">
+				<button type="button" class="btn btn-primary">Monitor Sensor</button>
+			</a>
+		{% else %}
+			<a href="{{ url_for('D4_sensors.delete_sensor_to_monitor') }}?uuid={{uuid_sensor}}">
+				<button type="button" class="btn btn-danger">Remove Sensor from monitoring</button>
+			</a>
+		{% endif %}
+	</div>
+
 	<div class="card-deck justify-content-center ml-0 mr-0">
 		<div class="card border-dark mt-3" style="max-width: 18rem;">
 		  <div class="card-body text-dark">

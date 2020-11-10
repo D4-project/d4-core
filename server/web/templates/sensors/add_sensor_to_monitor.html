@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+	<title>D4-Project</title>
+	<link rel="icon" href="{{ url_for('static', filename='img/d4-logo.png')}}">
+	<!-- Core CSS -->
+	<link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+	<link href="{{ url_for('static', filename='font-awesome/css/font-awesome.css') }}" rel="stylesheet">
+
+	<!-- JS -->
+	<script src="{{ url_for('static', filename='js/jquery.js')}}"></script>
+	<script src="{{ url_for('static', filename='js/popper.min.js')}}"></script>
+	<script src="{{ url_for('static', filename='js/bootstrap.min.js')}}"></script>
+</head>
+
+<body>
+
+	{% include 'navbar.html' %}
+
+	<form action="{{ url_for('D4_sensors.add_sensor_to_monitor_post') }}" method="post" enctype=multipart/form-data>
+
+		<div class="d-flex justify-content-center">
+			<div class="col-sm-6">
+				<h4 class="my-3">Monitor a Sensor</h4>
+				<div class="form-group">
+					<input class="form-control text-center bg-dark text-white" type="text" value="{{sensor_uuid}}" disabled>
+					<input type="text" name="uuid" id="uuid" value="{{sensor_uuid}}" hidden>
+				</div>
+
+				<div class="input-group mt-2 mb-2">
+					<div class="input-group-prepend">
+						<span class="input-group-text bg-light"><i class="fa fa-clock-o"></i>&nbsp;</span>
+					</div>
+					<input class="form-control" type="number" id="delta_time" value="3600" min="30" name="delta_time" required>
+					<div class="input-group-append">
+						<span class="input-group-text">Maxinum Time (seconds) between two D4 packets</span>
+					</div>
+				</div>
+
+				<div class="form-group">
+					<button class="btn btn-primary" type="submit">Monitor Sensor</button>
+				</div>
+			</div>
+		</div>
+
+	</form>
+
+	{% include 'navfooter.html' %}
+</body>
+
+<script>
+$(document).ready(function(){
+	$("#nav-sensor").addClass("active");
+});
+
+</script>

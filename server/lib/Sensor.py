@@ -11,6 +11,7 @@ from flask import escape
 
 sys.path.append(os.path.join(os.environ['D4_HOME'], 'lib/'))
 import ConfigLoader
+import d4_server
 
 ### Config ###
 config_loader = ConfigLoader.ConfigLoader()
@@ -25,6 +26,13 @@ def is_valid_uuid_v4(UUID):
         return uuid_test.hex == UUID
     except:
         return False
+
+def get_time_sensor_last_seen(sensor_uuid):
+    res = r_serv_db.hget('metadata_uuid:{}'.format(sensor_uuid), 'last_seen')
+    if res:
+        return int(res)
+    else:
+        return 0
 
 def _get_sensor_type(sensor_uuid, first_seen=True, last_seen=True, time_format='default'):
     uuid_type = []
@@ -67,6 +75,8 @@ def _get_sensor_metadata(sensor_uuid, first_seen=True, last_seen=True, time_form
     if mail:
         meta_sensor['mail'] = r_serv_db.hget('metadata_uuid:{}'.format(sensor_uuid), 'user_mail')
     return meta_sensor
+
+### BEGIN - SENSOR REGISTRATION ###
 
 ## TODO: add description
 def register_sensor(req_dict):
@@ -167,3 +177,98 @@ def delete_registered_sensor(req_dict):
 def _delete_registered_sensor(sensor_uuid):
     r_serv_db.srem('registered_uuid', sensor_uuid)
     return ({'uuid': sensor_uuid}, 200)
+
+### --- END - SENSOR REGISTRATION --- ###
+
+
+###  BEGIN - SENSOR MONITORING  ###
+def get_sensors_monitoring_last_updated():
+    res = r_serv_db.get('sensors_monitoring:last_updated')
+    if res:
+        return int(res)
+    else:
+        return 0
+
+def get_all_sensors_to_monitor():
+    return r_serv_db.smembers('to_monitor:sensors')
+
+def get_to_monitor_delta_time_by_uuid(sensor_uuid):
+    return int(r_serv_db.hget('to_monitor:sensor:{}'.format(sensor_uuid), 'delta_time'))
+
+def get_all_sensors_to_monitor_dict():
+    dict_to_monitor = {}
+    for sensor_uuid in get_all_sensors_to_monitor():
+        dict_to_monitor[sensor_uuid] = get_to_monitor_delta_time_by_uuid(sensor_uuid)
+    return dict_to_monitor
+
+def _check_sensor_delta(sensor_uuid, sensor_delta):
+    last_d4_packet = get_time_sensor_last_seen(sensor_uuid)
+
+    # check sensor delta time between two D4 packets + check sensor connection
+    if int(time.time()) - last_d4_packet > sensor_delta or not d4_server.is_sensor_connected(sensor_uuid):
+        r_serv_db.sadd('sensors_monitoring:sensors_error', sensor_uuid)
+        handle_sensor_monitoring_error(sensor_uuid)
+    else:
+        r_serv_db.srem('sensors_monitoring:sensors_error', sensor_uuid)
+
+def handle_sensor_monitoring_error(sensor_uuid):
+    print('sensor monitoring error: {}'.format(sensor_uuid))
+    ## TODO: ##
+    # MAILS
+    # UI Notifications
+    # SNMP
+    # Syslog message
+    ## ## ## ##
+    return None
+
+def is_sensor_monitored(sensor_uuid):
+    return r_serv_db.exists('to_monitor:sensors', sensor_uuid)
+
+def get_all_sensors_connection_errors():
+    return r_serv_db.smembers('sensors_monitoring:sensors_error')
+
+def api_get_all_sensors_connection_errors():
+    return list(get_all_sensors_connection_errors()), 200
+
+def add_sensor_to_monitor(sensor_uuid, delta_time):
+    r_serv_db.sadd('to_monitor:sensors', sensor_uuid)
+    r_serv_db.hset('to_monitor:sensor:{}'.format(sensor_uuid), 'delta_time', delta_time)
+    r_serv_db.set('sensors_monitoring:last_updated', int(time.time()))
+
+def delete_sensor_to_monitor(sensor_uuid):
+    r_serv_db.srem('to_monitor:sensors', sensor_uuid)
+    r_serv_db.delete('to_monitor:sensor:{}'.format(sensor_uuid))
+    r_serv_db.set('sensors_monitoring:last_updated', int(time.time()))
+    r_serv_db.srem('sensors_monitoring:sensors_error', sensor_uuid)
+
+def api_add_sensor_to_monitor(data_dict):
+    sensor_uuid = data_dict.get('uuid', None)
+    delta_time = data_dict.get('delta_time', None)
+
+    if not is_valid_uuid_v4(sensor_uuid):
+        return ({"status": "error", "reason": "Invalid uuid"}, 400)
+    sensor_uuid = sensor_uuid.replace('-', '')
+
+    # hmac key
+    if not delta_time:
+        return ({"status": "error", "reason": "Mandatory parameter(s) not provided"}, 400)
+    else:
+        try:
+            delta_time = int(delta_time)
+            if delta_time < 1:
+                return ({"status": "error", "reason": "Invalid delta_time"}, 400)
+        except Exception:
+            return ({"status": "error", "reason": "Invalid delta_time"}, 400)
+    add_sensor_to_monitor(sensor_uuid, delta_time)
+
+def api_delete_sensor_to_monitor(data_dict):
+    sensor_uuid = data_dict.get('uuid', None)
+    if not is_valid_uuid_v4(sensor_uuid):
+        return ({"status": "error", "reason": "Invalid uuid"}, 400)
+    sensor_uuid = sensor_uuid.replace('-', '')
+    if not is_sensor_monitored(sensor_uuid):
+        return ({"status": "error", "reason": "Sensor not monitored"}, 400)
+    delete_sensor_to_monitor(sensor_uuid)
+
+
+### --- END - SENSOR REGISTRATION --- ###

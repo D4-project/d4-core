@@ -509,10 +509,11 @@ class D4_Server(Protocol, TimeoutMixin):
                 redis_server_metadata.zincrby('stat_uuid_type:{}:{}'.format(date, data_header['uuid_header']), 1, data_header['type'])
 
                 #
+                d4_packet_rcv_time = int(time.time())
                 if not redis_server_metadata.hexists('metadata_uuid:{}'.format(data_header['uuid_header']), 'first_seen'):
-                    redis_server_metadata.hset('metadata_uuid:{}'.format(data_header['uuid_header']), 'first_seen', data_header['timestamp'])
-                redis_server_metadata.hset('metadata_uuid:{}'.format(data_header['uuid_header']), 'last_seen', data_header['timestamp'])
-                redis_server_metadata.hset('metadata_type_by_uuid:{}:{}'.format(data_header['uuid_header'], data_header['type']), 'last_seen', data_header['timestamp'])
+                    redis_server_metadata.hset('metadata_uuid:{}'.format(data_header['uuid_header']), 'first_seen', d4_packet_rcv_time)
+                redis_server_metadata.hset('metadata_uuid:{}'.format(data_header['uuid_header']), 'last_seen', d4_packet_rcv_time)
+                redis_server_metadata.hset('metadata_type_by_uuid:{}:{}'.format(data_header['uuid_header'], data_header['type']), 'last_seen', d4_packet_rcv_time)
 
                 if not self.data_saved:
                     #UUID IP:           ## TODO: use d4 timestamp ?
@@ -523,7 +524,7 @@ class D4_Server(Protocol, TimeoutMixin):
                 if self.update_stream_type:
 
                     if not redis_server_metadata.hexists('metadata_type_by_uuid:{}:{}'.format(data_header['uuid_header'], data_header['type']), 'first_seen'):
-                        redis_server_metadata.hset('metadata_type_by_uuid:{}:{}'.format(data_header['uuid_header'], data_header['type']), 'first_seen', data_header['timestamp'])
+                        redis_server_metadata.hset('metadata_type_by_uuid:{}:{}'.format(data_header['uuid_header'], data_header['type']), 'first_seen', d4_packet_rcv_time)
                     self.update_stream_type = False
                 return 0
             else:

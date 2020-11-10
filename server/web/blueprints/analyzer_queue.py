@@ -18,7 +18,6 @@ from flask import Flask, render_template, jsonify, request, Blueprint, redirect,
 from flask_login import login_required, current_user
 
 from Role_Manager import login_admin, login_user_basic
-from Role_Manager import create_user_db, edit_user_db, delete_user_db, check_password_strength, generate_new_token, gen_password, get_all_role
 
 # ============ BLUEPRINT ============
 

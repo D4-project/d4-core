@@ -35,6 +35,7 @@ import Analyzer_Queue
 from blueprints.restApi import restApi
 from blueprints.settings import settings
 from blueprints.analyzer_queue import analyzer_queue
+from blueprints.D4_sensors import D4_sensors
 
 baseUrl = ''
 if baseUrl != '':
@@ -114,6 +115,7 @@ login_manager.init_app(app)
 app.register_blueprint(restApi)
 app.register_blueprint(settings)
 app.register_blueprint(analyzer_queue)
+app.register_blueprint(D4_sensors)
 # =========       =========#
 
 # ========= LOGIN MANAGER ========
@@ -281,7 +283,7 @@ def login():
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
-        #next_page = request.form.get('next_page')
+        next_page = request.form.get('next_page')
 
         if username is not None:
             user = User.get(username)
@@ -304,7 +306,10 @@ def login():
                 if user.request_password_change():
                     return redirect(url_for('change_password'))
                 else:
-                    return redirect(url_for('index'))
+                    if next_page and next_page!='None':
+                        return redirect(next_page)
+                    else:
+                        return redirect(url_for('index'))
             # login failed
             else:
                 # set brute force protection
@@ -320,9 +325,9 @@ def login():
         return 'please provide a valid username'
 
     else:
-        #next_page = request.args.get('next')
+        next_page = request.args.get('next')
         error = request.args.get('error')
-        return render_template("login.html" , error=error)
+        return render_template("login.html" , error=error, next_page=next_page)
 
 @app.route('/change_password', methods=['POST', 'GET'])
 @login_required
@@ -595,6 +600,8 @@ def uuid_management():
                     "temp_blacklist_uuid": temp_blacklist_uuid,
                     "blacklisted_uuid": blacklisted_uuid, "blacklisted_ip_by_uuid": blacklisted_ip_by_uuid,
                     "first_seen_gmt": first_seen_gmt, "last_seen_gmt": last_seen_gmt, "Error": Error}
+                    
+        data_uuid['is_monitored'] = Sensor.is_sensor_monitored(uuid_sensor)
 
         if redis_server_stream.sismember('active_connection', uuid_sensor):
             active_connection = True
