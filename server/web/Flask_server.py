@@ -66,8 +66,9 @@ if server_mode not in all_server_modes:
     print('Error: incorrect server_mode')
 
 try:
-    FLASK_HOST = config_loader.get_config_int("Flask_Server", "host")
+    FLASK_HOST = config_loader.get_config_str("Flask_Server", "host")
 except Exception as e:
+    print(e)
     FLASK_HOST = '127.0.0.1'
 
 try:
@@ -600,7 +601,7 @@ def uuid_management():
                     "temp_blacklist_uuid": temp_blacklist_uuid,
                     "blacklisted_uuid": blacklisted_uuid, "blacklisted_ip_by_uuid": blacklisted_ip_by_uuid,
                     "first_seen_gmt": first_seen_gmt, "last_seen_gmt": last_seen_gmt, "Error": Error}
-                    
+
         data_uuid['is_monitored'] = Sensor.is_sensor_monitored(uuid_sensor)
 
         if redis_server_stream.sismember('active_connection', uuid_sensor):
