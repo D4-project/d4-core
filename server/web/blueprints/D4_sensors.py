@@ -67,11 +67,9 @@ def delete_sensor_to_monitor():
     return redirect(url_for('uuid_management', uuid=sensor_uuid))
 
 
-#
-#
-#
-#
-#
-#
-#
-#
+@D4_sensors.route("/sensors/monitoring/errors", methods=['GET'])
+@login_required
+@login_user_basic
+def get_all_sensors_connection_errors():
+    res = Sensor.api_get_all_sensors_connection_errors()
+    return build_json_response(res[0], res[1])
