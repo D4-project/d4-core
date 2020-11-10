@@ -222,7 +222,7 @@ def handle_sensor_monitoring_error(sensor_uuid):
     return None
 
 def is_sensor_monitored(sensor_uuid):
-    return r_serv_db.exists('to_monitor:sensors', sensor_uuid)
+    return r_serv_db.sismember('to_monitor:sensors', sensor_uuid)
 
 def get_all_sensors_connection_errors():
     return r_serv_db.smembers('sensors_monitoring:sensors_error')
