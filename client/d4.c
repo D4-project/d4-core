@@ -210,7 +210,7 @@ void d4_transfert(d4_t* d4)
         //In case of errors see block of 0 bytes
         bzero(buf, d4->snaplen);
         nread = read(d4->source.fd, buf, d4->snaplen);
-        if ( nread > 0 ) {
+        if ( nread >= 0 ) {
             d4_update_header(d4, nread);
             //Do HMAC on header and payload. HMAC field is 0 during computation
             if (d4->ctx) {
@@ -237,6 +237,11 @@ void d4_transfert(d4_t* d4)
             if (n != SZD4HDR + nread) {
                 fprintf(stderr,"Incomplete header written. abort to let consumer known that the packet is corrupted\n");
                 abort();
+            }
+            // no data - create empty D4 packet
+            if ( nread == 0 ) {
+              //FIXME no data available, sleep, abort, retry
+              break;
             }
         } else{
             //FIXME no data available, sleep, abort, retry
