@@ -5,6 +5,7 @@ import hashlib
 import time
 import os
 import datetime
+import base64
 
 class TypeHandler(MetaTypesDefault):
 
@@ -23,16 +24,24 @@ class TypeHandler(MetaTypesDefault):
         self.set_last_saved_date(datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
 
         # Create folder
-        jsons_save_dir = os.path.join(self.get_save_dir(), 'files')
-        if not os.path.isdir(jsons_save_dir):
-            os.makedirs(jsons_save_dir)
-        # write json file to disk
-        m.update(data)
-        jsons_path = os.path.join(jsons_save_dir, m.hexdigest()+'.json')
-        with open(jsons_path, 'wb') as j:
-            j.write(data)
+        save_dir = os.path.join(self.get_save_dir(), 'files')
+        #debug_dir = os.path.join(self.get_save_dir(), 'debug')
+        if not os.path.isdir(save_dir):
+            os.makedirs(save_dir)
+        #if not os.path.isdir(debug_dir):
+        #    os.makedirs(debug_dir)
+        # write binary file to disk
+        decodeddata = base64.b64decode(data)
+        m.update(decodeddata)
+        path  = os.path.join(save_dir, m.hexdigest())
+        #pathd  = os.path.join(debug_dir, m.hexdigest())
+        with open(path, 'wb') as p:
+            p.write(decodeddata)
+
+        #with open(pathd, 'wb') as p:
+        #    p.write(data)
             # Send data to Analyszer
-        self.send_to_analyzers(jsons_path)
+        self.send_to_analyzers(path)
 
     def test(self):
-        print('Class: filewatcherjson')
+        print('Class: filewatcher')
