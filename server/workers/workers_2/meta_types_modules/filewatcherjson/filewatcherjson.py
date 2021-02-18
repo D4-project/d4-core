@@ -23,7 +23,7 @@ class TypeHandler(MetaTypesDefault):
         self.set_last_saved_date(datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
 
         # Create folder
-        jsons_save_dir = os.path.join(self.get_save_dir(), 'files')
+        jsons_save_dir = os.path.join(self.get_save_dir(save_by_uuid=True), 'files')
         if not os.path.isdir(jsons_save_dir):
             os.makedirs(jsons_save_dir)
         # write json file to disk

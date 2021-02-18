@@ -24,7 +24,7 @@ class TypeHandler(MetaTypesDefault):
         self.set_last_saved_date(datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
 
         # Create folder
-        save_dir = os.path.join(self.get_save_dir(), 'files')
+        save_dir = os.path.join(self.get_save_dir(save_by_uuid=True), 'files')
         #debug_dir = os.path.join(self.get_save_dir(), 'debug')
         if not os.path.isdir(save_dir):
             os.makedirs(save_dir)
