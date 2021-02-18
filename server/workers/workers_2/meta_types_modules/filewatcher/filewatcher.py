@@ -13,10 +13,15 @@ class TypeHandler(MetaTypesDefault):
 
     def __init__(self, uuid, json_file):
         super().__init__(uuid, json_file)
+        self.compress = False
+        self.extension = ''
+        self.segregate = True
         if "compress" in json_file:
             self.compress = json_file['compress']
         if "extension" in json_file:
             self.extension = json_file['extension']
+        if "segregate" in json_file:
+            self.segregate = json_file['segregate']
         self.set_rotate_file_mode(False)
         self.saved_dir = ''
 
@@ -31,7 +36,7 @@ class TypeHandler(MetaTypesDefault):
         self.set_last_saved_date(datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
 
         # Create folder
-        save_dir = os.path.join(self.get_save_dir(save_by_uuid=True), 'files')
+        save_dir = os.path.join(self.get_save_dir(save_by_uuid=self.segregate), 'files')
         if not os.path.isdir(save_dir):
             os.makedirs(save_dir)
         # write file to disk
