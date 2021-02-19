@@ -54,8 +54,8 @@ class TypeHandler(MetaTypesDefault):
                     shutil.copyfileobj(f_in, f_out)
             os.remove(path)
             self.send_to_analyzers(compressed_filename)
-        # Send data to Analyzer
-        self.send_to_analyzers(path)
+        else:
+            self.send_to_analyzers(path)
 
     def reconstruct_data(self, data):
         # save data in buffer
