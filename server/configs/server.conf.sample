@@ -6,7 +6,7 @@ save_directory = None
 [D4_Server]
 # registration or shared-secret
 server_mode = registration
-analyzer_queues_max_size = 10000
+analyzer_queues_max_size = 100000000
 
 [Flask_Server]
 # UI port number
