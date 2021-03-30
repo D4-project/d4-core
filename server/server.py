@@ -24,7 +24,6 @@ sys.path.append(os.path.join(os.environ['D4_HOME'], 'lib/'))
 import ConfigLoader
 
 hmac_reset = bytearray(32)
-hmac_key = os.getenv('D4_HMAC_KEY', b'private key to change')
 
 accepted_type = [1, 2, 4, 8, 254]
 accepted_extended_type = ['ja3-jl']
@@ -47,6 +46,7 @@ redis_server_metadata = config_loader.get_redis_conn("Redis_METADATA", decode_re
 
 # get server_mode
 server_mode = config_loader.get_config_str("D4_Server", "server_mode")
+hmac_key = config_loader.get_config_str("D4_Server", "default_hmac_key")
 
 config_loader = None
 ###  ###
