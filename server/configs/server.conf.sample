@@ -7,7 +7,7 @@ save_directory = None
 # registration or shared-secret
 server_mode = registration
 default_hmac_key = private key to change
-analyzer_queues_max_size = 10000
+analyzer_queues_max_size = 100000000
 
 [Flask_Server]
 # UI port number
