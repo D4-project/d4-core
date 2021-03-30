@@ -6,6 +6,7 @@ save_directory = None
 [D4_Server]
 # registration or shared-secret
 server_mode = registration
+default_hmac_key = private key to change
 analyzer_queues_max_size = 10000
 
 [Flask_Server]
