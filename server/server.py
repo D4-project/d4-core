@@ -13,6 +13,8 @@ import argparse
 import logging
 import logging.handlers
 
+import configparser
+
 from twisted.internet import ssl, task, protocol, endpoints, defer
 from twisted.python import log
 from twisted.python.modules import getModule
@@ -45,8 +47,16 @@ redis_server_stream = config_loader.get_redis_conn("Redis_STREAM", decode_respon
 redis_server_metadata = config_loader.get_redis_conn("Redis_METADATA", decode_responses=False)
 
 # get server_mode
+try:
+    D4server_port = config_loader.get_config_int("D4_Server", "server_port")
+except configparser.NoOptionError:
+    D4server_port = 4443
+
 server_mode = config_loader.get_config_str("D4_Server", "server_mode")
-hmac_key = config_loader.get_config_str("D4_Server", "default_hmac_key")
+try:
+    hmac_key = config_loader.get_config_str("D4_Server", "default_hmac_key")
+except configparser.NoOptionError:
+    hmac_key = 'private key to change'
 
 config_loader = None
 ###  ###
@@ -555,7 +565,7 @@ def main(reactor):
     certificate = ssl.PrivateCertificate.loadPEM(certData)
     factory = protocol.Factory.forProtocol(D4_Server)
     # use interface to support both IPv4 and IPv6
-    reactor.listenSSL(4443, factory, certificate.options(), interface='::')
+    reactor.listenSSL(D4server_port, factory, certificate.options(), interface='::')
     return defer.Deferred()
 
 
