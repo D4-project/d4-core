@@ -255,8 +255,8 @@ class D4_Server(Protocol, TimeoutMixin):
                 if not redis_server_stream.exists('active_connection_by_uuid:{}'.format(self.uuid)):
                     redis_server_stream.srem('active_connection', self.uuid)
 
-                logger.debug('Connection closed: session_uuid={}'.format(self.session_uuid))
-                dict_all_connection.pop(self.session_uuid)
+            logger.debug('Connection closed: session_uuid={}'.format(self.session_uuid))
+            dict_all_connection.pop(self.session_uuid)
 
     def unpack_header(self, data):
         data_header = {}
@@ -359,14 +359,14 @@ class D4_Server(Protocol, TimeoutMixin):
                         self.type = data_header['type']
                         self.uuid = data_header['uuid_header']
 
-                        # check HMAC
-                        if not self.check_hmac_key(data_header['hmac_header'], data):
-                            print('hmac do not match')
-                            print(data)
-                            logger.debug("HMAC don't match, uuid={}, session_uuid={}".format(self.uuid, self.session_uuid))
-                            redis_server_metadata.hset('metadata_uuid:{}'.format(data_header['uuid_header']), 'Error', 'Error: HMAC don\'t match')
-                            self.transport.abortConnection()
-                            return 1
+                        # # check HMAC /!\ incomplete data
+                        # if not self.check_hmac_key(data_header['hmac_header'], data):
+                        #     print('hmac do not match')
+                        #     print(data)
+                        #     logger.debug("HMAC don't match, uuid={}, session_uuid={}".format(self.uuid, self.session_uuid))
+                        #     redis_server_metadata.hset('metadata_uuid:{}'.format(data_header['uuid_header']), 'Error', 'Error: HMAC don\'t match')
+                        #     self.transport.abortConnection()
+                        #     return 1
 
                         ## save active connection ##
                         #active Connection
