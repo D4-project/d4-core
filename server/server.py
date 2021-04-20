@@ -269,6 +269,20 @@ class D4_Server(Protocol, TimeoutMixin):
             data_header['size'] = struct.unpack('I', data[58:62])[0]
         return data_header
 
+    def check_hmac_key(self, hmac_header, data):
+        if self.hmac_key is None:
+            self.hmac_key = redis_server_metadata.hget('metadata_uuid:{}'.format(self.uuid), 'hmac_key')
+            if self.hmac_key is None:
+                self.hmac_key = redis_server_metadata.get('server:hmac_default_key')
+
+        # set hmac_header to 0
+        data = data.replace(hmac_header, hmac_reset, 1)
+
+        HMAC = hmac.new(self.hmac_key, msg=data, digestmod='sha256')
+        hmac_header = hmac_header.hex()
+        # hmac match
+        return hmac_header == HMAC.hexdigest()
+
     def check_connection_validity(self, data_header):
         # blacklist ip by uuid
         if redis_server_metadata.sismember('blacklist_ip_by_uuid', data_header['uuid_header']):
@@ -345,8 +359,14 @@ class D4_Server(Protocol, TimeoutMixin):
                         self.type = data_header['type']
                         self.uuid = data_header['uuid_header']
 
-                        # worker entry point: map type:session_uuid
-                        redis_server_stream.sadd('session_uuid:{}'.format(data_header['type']), self.session_uuid.encode())
+                        # check HMAC
+                        if not self.check_hmac_key(data_header['hmac_header'], data):
+                            print('hmac do not match')
+                            print(data)
+                            logger.debug("HMAC don't match, uuid={}, session_uuid={}".format(self.uuid, self.session_uuid))
+                            redis_server_metadata.hset('metadata_uuid:{}'.format(data_header['uuid_header']), 'Error', 'Error: HMAC don\'t match')
+                            self.transport.abortConnection()
+                            return 1
 
                         ## save active connection ##
                         #active Connection
@@ -473,15 +493,6 @@ class D4_Server(Protocol, TimeoutMixin):
     def process_d4_data(self, data, data_header, ip):
         # empty buffer
         self.buffer = b''
-        # set hmac_header to 0
-        data = data.replace(data_header['hmac_header'], hmac_reset, 1)
-        if self.hmac_key is None:
-            self.hmac_key = redis_server_metadata.hget('metadata_uuid:{}'.format(data_header['uuid_header']), 'hmac_key')
-            if self.hmac_key is None:
-                self.hmac_key = redis_server_metadata.get('server:hmac_default_key')
-
-        HMAC = hmac.new(self.hmac_key, msg=data, digestmod='sha256')
-        data_header['hmac_header'] = data_header['hmac_header'].hex()
 
         ### Debug ###
         #print('hexdigest: {}'.format( HMAC.hexdigest() ))
@@ -494,7 +505,7 @@ class D4_Server(Protocol, TimeoutMixin):
         ###       ###
 
         # hmac match
-        if data_header['hmac_header'] == HMAC.hexdigest():
+        if self.check_hmac_key(data_header['hmac_header'], data):
             if not self.stream_max_size:
                 temp = redis_server_metadata.hget('stream_max_size_by_uuid', data_header['uuid_header'])
                 if temp is not None:
@@ -526,6 +537,9 @@ class D4_Server(Protocol, TimeoutMixin):
                 redis_server_metadata.hset('metadata_type_by_uuid:{}:{}'.format(data_header['uuid_header'], data_header['type']), 'last_seen', d4_packet_rcv_time)
 
                 if not self.data_saved:
+                    # worker entry point: map type:session_uuid
+                    redis_server_stream.sadd('session_uuid:{}'.format(data_header['type']), self.session_uuid.encode())
+
                     #UUID IP:           ## TODO: use d4 timestamp ?
                     redis_server_metadata.lpush('list_uuid_ip:{}'.format(data_header['uuid_header']), '{}-{}'.format(ip, datetime.datetime.now().strftime("%Y%m%d%H%M%S")))
                     redis_server_metadata.ltrim('list_uuid_ip:{}'.format(data_header['uuid_header']), 0, 15)

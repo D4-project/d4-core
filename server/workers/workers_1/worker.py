@@ -85,8 +85,8 @@ if __name__ == "__main__":
             os.makedirs(rel_path)
         print('----    worker launched, uuid={} session_uuid={} epoch={}'.format(uuid, session_uuid, time.time()))
     else:
+        print('Incorrect Stream, Closing worker: type={} session_uuid={}'.format(type, session_uuid))
         sys.exit(1)
-        print('Incorrect message')
     redis_server_stream.sadd('working_session_uuid:{}'.format(type), session_uuid)
 
     #LAUNCH a tcpdump
@@ -149,16 +149,16 @@ if __name__ == "__main__":
                 except subprocess.TimeoutExpired:
                     process_compressor.kill()
                     ### compress all files ###
-                    date = datetime.datetime.now().strftime("%Y%m%d")
                     worker_data_directory = os.path.join(full_tcpdump_path, date[0:4], date[4:6], date[6:8])
-                    all_files = os.listdir(worker_data_directory)
-                    all_files.sort()
-                    if all_files:
-                        for file in all_files:
-                            if file.endswith('.cap'):
-                                full_path = os.path.join(worker_data_directory, file)
-                                if redis_server_stream.get('data_in_process:{}'.format(session_uuid)) != full_path:
-                                    compress_file(full_path)
+                    if os.path.isdir(worker_data_directory):
+                        all_files = os.listdir(worker_data_directory)
+                        all_files.sort()
+                        if all_files:
+                            for file in all_files:
+                                if file.endswith('.cap'):
+                                    full_path = os.path.join(worker_data_directory, file)
+                                    if redis_server_stream.get('data_in_process:{}'.format(session_uuid)) != full_path:
+                                        compress_file(full_path)
                     ### ###
 
                 #print(process.stderr.read())

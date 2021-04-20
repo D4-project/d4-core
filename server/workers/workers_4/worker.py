@@ -60,8 +60,8 @@ if __name__ == "__main__":
         rel_path = os.path.join(dir_path, filename)
         print('----    worker launched, uuid={} session_uuid={} epoch={}'.format(uuid, session_uuid, time.time()))
     else:
+        print('Incorrect Stream, Closing worker: type={} session_uuid={}'.format(type, session_uuid))
         sys.exit(1)
-        print('Incorrect message')
 
     time_file = time.time()
     rotate_file = False
