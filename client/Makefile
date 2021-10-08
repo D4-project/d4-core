@@ -32,7 +32,7 @@ clean:
 	- rm -rf *.o hmac
 
 d4:	d4.o sha2.o hmac.o unpack.o unparse.o pack.o gen_uuid.o randutils.o parse.o
-	gcc -Wall -o d4 d4.o hmac.o sha2.o unpack.o pack.o unparse.o gen_uuid.o randutils.o parse.o
+	$(CC) -Wall -o d4 d4.o hmac.o sha2.o unpack.o pack.o unparse.o gen_uuid.o randutils.o parse.o
 
 d4.o:	d4.c
-	gcc -Wall -c d4.c
+	$(CC) -Wall -c d4.c
