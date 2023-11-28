@@ -30,8 +30,8 @@ git checkout 5.0
 make
 popd
 
-# LAUNCH Redis
-bash ${AIL_BIN}LAUNCH.sh -lrv &
+# LAUNCH
+bash LAUNCH.sh -l &
 wait
 echo ""
 
