@@ -64,10 +64,31 @@ git submodule init
 git submodule update
 ~~~~
 
+Build the d4 client. This will create the `d4` binary.
+
+~~~~
+make
+~~~~
+
+Then register the sensor with the server. Replace `API_TOKEN`, `VALID_UUID4` (create a random UUID via [UUIDgenerator](https://www.uuidgenerator.net/)) and `VALID_HMAC_KEY`.
+
+~~~~
+curl -k https://127.0.0.1:7000/api/v1/add/sensor/register --header "Authorization: API_TOKEN" -H "Content-Type: application/json" --data '{"uuid":"VALID_UUID4","hmac_key":"VALID_HMAC_KEY"}' -X POST
+~~~~
+
+If the registration went correctly the UUID is returned. Do not forget to approve the registration in the D4 server web interface.
+
+Update the configuration file
+
+~~~~
+cp -r conf.sample conf
+echo VALID_UUID4 > conf/uuid
+echo VALID_HMAC_KEY > conf/key
+~~~~
+
 ## D4 core server
 
-D4 core server is a complete server to handle clients (sensors) including the decapsulation of the [D4 protocol](https://github.com/D4-project/architecture/tree/master/format), control of
-sensor registrations, management of decoding protocols and dispatching to adequate decoders/analysers.
+D4 core server is a complete server to handle clients (sensors) including the decapsulation of the [D4 protocol](https://github.com/D4-project/architecture/tree/master/format), control of sensor registrations, management of decoding protocols and dispatching to adequate decoders/analysers.
 
 ### Requirements
 
@@ -75,7 +96,6 @@ sensor registrations, management of decoding protocols and dispatching to adequa
 - GNU/Linux distribution
 
 ### Installation
-
 
 - [Install D4 Server](https://github.com/D4-project/d4-core/tree/master/server)
 
