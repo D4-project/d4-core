@@ -144,10 +144,10 @@ def extract_ip(ip_string):
         return ip_string
 
 def server_mode_registration(header_uuid):
-    # only accept registred uuid
+    # only accept registered uuid
     if server_mode == 'registration':
         if not redis_server_metadata.sismember('registered_uuid', header_uuid):
-            error_msg = 'Not registred UUID={}, connection closed'.format(header_uuid)
+            error_msg = 'Not registered UUID={}, connection closed'.format(header_uuid)
             print(error_msg)
             logger.warning(error_msg)
             #redis_server_metadata.hset('metadata_uuid:{}'.format(data_header['uuid_header']), 'Error', 'Error: This UUID is temporarily blacklisted')

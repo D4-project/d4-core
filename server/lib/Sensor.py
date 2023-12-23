@@ -90,7 +90,7 @@ def register_sensor(req_dict):
     sensor_uuid = sensor_uuid.replace('-', '')
     # sensor already exist
     if r_serv_db.exists('metadata_uuid:{}'.format(sensor_uuid)):
-        return ({"status": "error", "reason": "Sensor already registred"}, 409)
+        return ({"status": "error", "reason": "Sensor already registered"}, 409)
 
     # hmac key
     if not hmac_key:
