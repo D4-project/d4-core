@@ -161,7 +161,7 @@ def delete_pending_sensor(req_dict):
     return _delete_pending_sensor(sensor_uuid)
 
 def _delete_pending_sensor(sensor_uuid):
-    r_serv_db.delete(f'metadata_uuid:{sensor_uuid}
+    r_serv_db.delete(f'metadata_uuid:{sensor_uuid}')
     r_serv_db.srem('sensor_pending_registration', sensor_uuid)
     return ({'uuid': sensor_uuid}, 200)
 
