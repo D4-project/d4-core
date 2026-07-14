@@ -568,7 +568,7 @@ def uuid_management():
     if is_valid_uuid_v4(uuid_sensor):
         uuid_sensor = uuid_sensor.replace('-', '')
 
-        disk_stats = get_uuid_disk_statistics(uuid_sensor)
+        # disk_stats = get_uuid_disk_statistics(uuid_sensor)
         first_seen = redis_server_metadata.hget('metadata_uuid:{}'.format(uuid_sensor), 'first_seen')
         if first_seen:
             first_seen_gmt = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(int(first_seen)))
@@ -638,7 +638,6 @@ def uuid_management():
 
         return render_template("uuid_management.html", uuid_sensor=uuid_sensor, active_connection=active_connection,
                                 uuid_key=uuid_key, data_uuid=data_uuid, uuid_all_type=uuid_all_type_list,
-                                disk_stats=disk_stats,
                                 max_uuid_stream=max_uuid_stream, all_ip=all_ip)
     else:
         return 'Invalid uuid'
